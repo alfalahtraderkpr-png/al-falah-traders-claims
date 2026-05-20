@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String
+  role          String   @default("admin") // "admin" or "orderbooker"
+  orderBookerId String? // if role is orderbooker, link to OrderBooker
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products  Product[]
+  suppliers Supplier[]
+  claims    Claim[]
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String   // e.g. "Zeera", "Coconut"
+  price     Float    // e.g. 10, 20, 50
+  unit      String   @default("pcs") // pcs, Box, Ctn
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  claimItems ClaimItem[]
+
+  @@unique([name, price, companyId])
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  claims    Claim[]
+}
+
+model Shop {
+  id            String   @id @default(cuid())
+  name          String
+  address       String   @default("")
+  orderBookerId String?
+  orderBooker   OrderBooker? @relation(fields: [orderBookerId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  claims        Claim[]
+}
+
+model OrderBooker {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  shops     Shop[]
+  claims    Claim[]
+}
+
+model Claim {
+  id            String     @id @default(cuid())
+  claimNumber   String     @unique // e.g. CLM-001
+  date          DateTime
+  companyId     String
+  company       Company    @relation(fields: [companyId], references: [id])
+  shopId        String
+  shop          Shop       @relation(fields: [shopId], references: [id])
+  supplierId    String
+  supplier      Supplier   @relation(fields: [supplierId], references: [id])
+  orderBookerId String?
+  orderBooker   OrderBooker? @relation(fields: [orderBookerId], references: [id])
+  totalAmount   Float      @default(0)
+  approvedAmount Float?    // null means not yet approved, can be partial
+  status        String     @default("pending") // pending, approved, partially_approved, cleared, rejected
+  clearedBy     String?    // name of person who cleared
+  clearedDate   DateTime?  // when it was cleared
+  rejectReason  String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  claimItems    ClaimItem[]
+}
+
+model ClaimItem {
+  id        String  @id @default(cuid())
+  claimId   String
+  claim     Claim   @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  amount    Float   // price * quantity (auto-calculated)
+}

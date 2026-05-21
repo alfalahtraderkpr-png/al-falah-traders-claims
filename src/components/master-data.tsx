@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store, UserCheck } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store, UserCheck, Upload, Download, FileSpreadsheet } from 'lucide-react';
 
 // Types
 interface Company { id: string; name: string; _count?: { products: number } }
@@ -177,6 +178,13 @@ function ProductsTab() {
   const [editItem, setEditItem] = useState<Product | null>(null);
   const [form, setForm] = useState({ name: '', price: '', unit: 'pcs', companyId: '' });
 
+  // Bulk import state
+  const [importOpen, setImportOpen] = useState(false);
+  const [importCompany, setImportCompany] = useState('');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; total: number; errors?: string[] } | null>(null);
+
   const load = useCallback(async () => {
     try {
       const [prodRes, compRes] = await Promise.all([fetch('/api/products'), fetch('/api/companies')]);
@@ -221,6 +229,56 @@ function ProductsTab() {
     } catch (e) { console.error(e); }
   };
 
+  const handleBulkImport = async () => {
+    if (!importFile || !importCompany) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('companyId', importCompany);
+
+      const res = await fetch('/api/products/bulk-import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Import failed');
+        return;
+      }
+
+      setImportResult({
+        imported: data.imported,
+        skipped: data.skipped,
+        total: data.total,
+        errors: data.errors,
+      });
+      load();
+    } catch (e) {
+      console.error(e);
+      alert('Import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    // Create a sample Excel template
+    const templateData = [
+      { Name: 'Zeera', Price: 10, Unit: 'pcs' },
+      { Name: 'Coconut', Price: 50, Unit: 'pcs' },
+      { Name: 'NanKhatai', Price: 320, Unit: 'Box' },
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    // Set column widths
+    ws['!cols'] = [{ wch: 25 }, { wch: 12 }, { wch: 10 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Products');
+    XLSX.writeFile(wb, 'product-import-template.xlsx');
+  };
+
   const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
     const matchCompany = filterCompany === 'all' || i.companyId === filterCompany;
@@ -231,9 +289,14 @@ function ProductsTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Products ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setEditItem(null); setForm({ name: '', price: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> Add
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
+            <Upload className="h-4 w-4 mr-1" /> Bulk Import
+          </Button>
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setEditItem(null); setForm({ name: '', price: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Add
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -282,6 +345,7 @@ function ProductsTab() {
         )}
       </CardContent>
 
+      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editItem ? 'Edit' : 'Add'} Product</DialogTitle></DialogHeader>
@@ -302,6 +366,181 @@ function ProductsTab() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSave}>Save</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+              Bulk Import Products
+            </DialogTitle>
+          </DialogHeader>
+
+          {!importResult ? (
+            <div className="space-y-4 py-4">
+              {/* Step 1: Download Template */}
+              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                <h4 className="font-medium text-emerald-800 mb-2">Step 1: Download Template</h4>
+                <p className="text-sm text-emerald-700 mb-3">
+                  Download the Excel template, fill in your products, and upload it back.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-100"
+                  onClick={handleDownloadTemplate}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Template (.xlsx)
+                </Button>
+              </div>
+
+              {/* Step 2: Select Company */}
+              <div>
+                <Label className="text-sm font-medium">Step 2: Select Company *</Label>
+                <p className="text-xs text-muted-foreground mb-2">All products will be added to this company</p>
+                <Select value={importCompany} onValueChange={setImportCompany}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Step 3: Upload File */}
+              <div>
+                <Label className="text-sm font-medium">Step 3: Upload Excel File *</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  File must have columns: <strong>Name, Price, Unit</strong> (Unit is optional, default: pcs)
+                </p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors">
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="bulk-import-file"
+                  />
+                  <label htmlFor="bulk-import-file" className="cursor-pointer">
+                    {importFile ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <FileSpreadsheet className="h-8 w-8 text-emerald-600" />
+                        <div className="text-left">
+                          <p className="font-medium text-sm">{importFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{(importFile.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">Click to select file</p>
+                        <p className="text-xs text-muted-foreground">.xlsx, .xls, .csv</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* Format Help */}
+              <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                <p className="font-medium text-gray-700 mb-1">Expected Columns:</p>
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-gray-500">
+                      <th className="text-left py-1">Column</th>
+                      <th className="text-left py-1">Required</th>
+                      <th className="text-left py-1">Example</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-600">
+                    <tr><td className="py-1">Name</td><td className="py-1">Yes</td><td className="py-1">Zeera</td></tr>
+                    <tr><td className="py-1">Price</td><td className="py-1">Yes</td><td className="py-1">10</td></tr>
+                    <tr><td className="py-1">Unit</td><td className="py-1">No</td><td className="py-1">pcs / Box / Ctn</td></tr>
+                  </tbody>
+                </table>
+                <p className="mt-2 text-amber-600 font-medium">Note: Same product with different prices = separate rows (e.g., Zeera Rs.10, Zeera Rs.20)</p>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  onClick={handleBulkImport}
+                  disabled={!importFile || !importCompany || importing}
+                >
+                  {importing ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importing...</>
+                  ) : (
+                    <><Upload className="h-4 w-4 mr-2" /> Import Products</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            /* Import Result */
+            <div className="space-y-4 py-4">
+              <div className="text-center py-4">
+                <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${importResult.imported > 0 ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                  <span className="text-2xl">{importResult.imported > 0 ? '✅' : '⚠️'}</span>
+                </div>
+                <h3 className="text-lg font-bold">Import Complete!</h3>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-gray-800">{importResult.total}</p>
+                  <p className="text-xs text-muted-foreground">Total Rows</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-green-700">{importResult.imported}</p>
+                  <p className="text-xs text-muted-foreground">Imported</p>
+                </div>
+                <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-yellow-700">{importResult.skipped}</p>
+                  <p className="text-xs text-muted-foreground">Skipped</p>
+                </div>
+              </div>
+
+              {importResult.skipped > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-yellow-800 mb-1">
+                    {importResult.skipped} product(s) were skipped
+                  </p>
+                  <p className="text-xs text-yellow-700">
+                    This usually means those products already exist with the same name, price, and company (duplicates are automatically skipped).
+                  </p>
+                </div>
+              )}
+
+              {importResult.errors && importResult.errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-32 overflow-y-auto">
+                  <p className="text-sm font-medium text-red-800 mb-1">Errors:</p>
+                  {importResult.errors.map((err, i) => (
+                    <p key={i} className="text-xs text-red-700">{err}</p>
+                  ))}
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                  onClick={() => {
+                    setImportOpen(false);
+                    setImportResult(null);
+                  }}
+                >
+                  Done
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </Card>

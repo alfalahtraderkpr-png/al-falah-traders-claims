@@ -24,6 +24,13 @@ function createPrismaClient() {
   return new PrismaClient({ adapter })
 }
 
-export const db = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// Lazy initialization - only create PrismaClient when first accessed, not at import time
+// This prevents build-time database connection errors on Vercel
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, prop: string | symbol) {
+    if (!globalForPrisma.prisma) {
+      globalForPrisma.prisma = createPrismaClient()
+    }
+    return (globalForPrisma.prisma as Record<string | symbol, unknown>)[prop]
+  }
+})

@@ -27,8 +27,8 @@ export async function POST() {
 
     await db.company.upsert({
       where: { id: 'company-cadbury' },
-      update: {},
-      create: { id: 'company-cadbury', name: 'Cadbury' },
+      update: { multiTierPricing: true },
+      create: { id: 'company-cadbury', name: 'Cadbury', multiTierPricing: true },
     });
 
     await db.company.upsert({
@@ -54,6 +54,30 @@ export async function POST() {
       });
     }
 
+    // Create order booker users
+    const obPassword = hashSync('password123', 10);
+    const obUsers = [
+      { name: 'Anas', email: 'anas@alfalah.com', orderBookerId: 'ob-anas' },
+      { name: 'Murtaza', email: 'murtaza@alfalah.com', orderBookerId: 'ob-murtaza' },
+      { name: 'Kashif Khan', email: 'kashifkhan@alfalah.com', orderBookerId: 'ob-kashif' },
+      { name: 'Ali', email: 'ali@alfalah.com', orderBookerId: 'ob-ali' },
+      { name: 'Danish Ramzan', email: 'danishramzan@alfalah.com', orderBookerId: 'ob-danish' },
+    ];
+
+    for (const obUser of obUsers) {
+      await db.user.upsert({
+        where: { email: obUser.email },
+        update: {},
+        create: {
+          name: obUser.name,
+          email: obUser.email,
+          password: obPassword,
+          role: 'orderbooker',
+          orderBookerId: obUser.orderBookerId,
+        },
+      });
+    }
+
     // Create suppliers
     const supData = [
       { id: 'sup-ayub', name: 'Ayub' },
@@ -74,12 +98,12 @@ export async function POST() {
 
     // Create shops
     const shopData = [
-      { id: 'shop-chks', name: 'CH Ks', address: 'Pakistan Chowk', orderBookerId: 'ob-anas' },
-      { id: 'shop-apna', name: 'Apna Easy Load', address: 'Pakistan Chowk', orderBookerId: 'ob-anas' },
-      { id: 'shop-usama', name: 'Usama SS', address: 'Feroza', orderBookerId: 'ob-danish' },
-      { id: 'shop-kanwal', name: 'Kanwal Pan Shop', address: 'Din Pur Chowk', orderBookerId: 'ob-murtaza' },
-      { id: 'shop-punjab', name: 'Punjab Gs', address: 'Trunk Bazar', orderBookerId: 'ob-murtaza' },
-      { id: 'shop-alian', name: 'Alian Sweets', address: 'Kotla Pathan', orderBookerId: 'ob-kashif' },
+      { id: 'shop-chks', name: 'CH Ks', address: 'Pakistan Chowk', shopType: 'retail' },
+      { id: 'shop-apna', name: 'Apna Easy Load', address: 'Pakistan Chowk', shopType: 'retail' },
+      { id: 'shop-usama', name: 'Usama SS', address: 'Feroza', shopType: 'retail' },
+      { id: 'shop-kanwal', name: 'Kanwal Pan Shop', address: 'Din Pur Chowk', shopType: 'retail' },
+      { id: 'shop-punjab', name: 'Punjab Gs', address: 'Trunk Bazar', shopType: 'wholesale' },
+      { id: 'shop-alian', name: 'Alian Sweets', address: 'Kotla Pathan', shopType: 'retail' },
     ];
 
     for (const s of shopData) {

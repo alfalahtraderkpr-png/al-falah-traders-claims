@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -19,26 +19,29 @@ model User {
 }
 
 model Company {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  products  Product[]
-  suppliers Supplier[]
-  claims    Claim[]
+  id              String   @id @default(cuid())
+  name            String
+  multiTierPricing Boolean @default(false) // Cadbury = true, others = false
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  products        Product[]
+  suppliers       Supplier[]
+  claims          Claim[]
   shopOrderBookers ShopCompanyOrderBooker[]
 }
 
 model Product {
-  id        String   @id @default(cuid())
-  name      String   // e.g. "Zeera", "Coconut"
-  price     Float    // e.g. 10, 20, 50
-  unit      String   @default("pcs") // pcs, Box, Ctn
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  claimItems ClaimItem[]
+  id             String   @id @default(cuid())
+  name           String   // e.g. "Zeera", "Coconut"
+  price          Float    // e.g. 10, 20, 50 (Retail price)
+  wholesalePrice Float?   // Wholesale price (only for multi-tier companies like Cadbury)
+  lmtPrice       Float?   // LMT price (only for multi-tier companies like Cadbury)
+  unit           String   @default("pcs") // pcs, Box, Ctn
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  claimItems     ClaimItem[]
 
   @@unique([name, price, companyId])
 }
@@ -54,12 +57,13 @@ model Supplier {
 }
 
 model Shop {
-  id            String   @id @default(cuid())
-  name          String
-  address       String   @default("")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  claims        Claim[]
+  id                  String   @id @default(cuid())
+  name                String
+  address             String   @default("")
+  shopType            String   @default("retail") // retail, wholesale, lmt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  claims              Claim[]
   companyOrderBookers ShopCompanyOrderBooker[]
 }
 

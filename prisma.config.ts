@@ -8,6 +8,6 @@ export default defineConfig({
     path: path.join(__dirname, "prisma", "migrations"),
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? `file:${path.join(__dirname, "db", "custom.db")}`,
+    url: process.env.DATABASE_URL!,
   },
 })

@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Loader2, Plus, Trash2, ArrowLeft, Store } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface ClaimFormProps {
   claim: ClaimData | null;
@@ -82,6 +83,13 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   const [shops, setShops] = useState<Shop[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
+
+  // Quick shop create dialog state
+  const [showQuickShop, setShowQuickShop] = useState(false);
+  const [quickShopName, setQuickShopName] = useState('');
+  const [quickShopAddress, setQuickShopAddress] = useState('');
+  const [quickShopOB, setQuickShopOB] = useState('');
+  const [creatingShop, setCreatingShop] = useState(false);
 
   useEffect(() => {
     loadDropdowns();
@@ -265,18 +273,35 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
             </div>
             <div>
               <Label>Shop *</Label>
-              <Select value={shopId} onValueChange={setShopId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Shop" />
-                </SelectTrigger>
-                <SelectContent>
-                  {shops.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name} {s.address ? `(${s.address})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-1">
+                <Select value={shopId} onValueChange={setShopId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select Shop" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shops.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name} {s.address ? `(${s.address})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                  title="Quick Create Shop"
+                  onClick={() => {
+                    setQuickShopName('');
+                    setQuickShopAddress('');
+                    setQuickShopOB('');
+                    setShowQuickShop(true);
+                  }}
+                >
+                  <Store className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div>
               <Label>Supplier *</Label>
@@ -409,6 +434,98 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
           )}
         </CardContent>
       </Card>
+
+      {/* Quick Shop Create Dialog */}
+      <Dialog open={showQuickShop} onOpenChange={setShowQuickShop}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-800">Quick Create Shop</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Shop Name *</Label>
+              <Input
+                placeholder="Enter shop name"
+                value={quickShopName}
+                onChange={(e) => setQuickShopName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label>Address</Label>
+              <Input
+                placeholder="Enter address (optional)"
+                value={quickShopAddress}
+                onChange={(e) => setQuickShopAddress(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Order Booker</Label>
+              <Select value={quickShopOB} onValueChange={setQuickShopOB}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Order Booker" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {orderBookers.map((ob) => (
+                    <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowQuickShop(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700"
+              disabled={creatingShop || !quickShopName.trim()}
+              onClick={async () => {
+                setCreatingShop(true);
+                try {
+                  const res = await fetch('/api/shops', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      name: quickShopName.trim(),
+                      address: quickShopAddress.trim(),
+                      orderBookerId: quickShopOB === 'none' ? null : quickShopOB || null,
+                    }),
+                  });
+                  if (!res.ok) {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to create shop');
+                    return;
+                  }
+                  const newShop = await res.json();
+                  // Add to shops list, auto-select, and auto-assign order booker
+                  setShops((prev) => [...prev, newShop].sort((a, b) => a.name.localeCompare(b.name)));
+                  setShopId(newShop.id);
+                  if (newShop.orderBookerId) {
+                    setOrderBookerId(newShop.orderBookerId);
+                  }
+                  setShowQuickShop(false);
+                } catch (error) {
+                  console.error('Quick shop create error:', error);
+                  alert('Failed to create shop');
+                } finally {
+                  setCreatingShop(false);
+                }
+              }}
+            >
+              {creatingShop ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Shop'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Save Button */}
       <div className="flex justify-end gap-3">

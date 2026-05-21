@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Trash2, ArrowLeft, Store } from 'lucide-react';
+import { Loader2, Plus, Trash2, ArrowLeft, Store, Search, X, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface ClaimFormProps {
@@ -91,6 +91,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   const [quickShopOB, setQuickShopOB] = useState('');
   const [creatingShop, setCreatingShop] = useState(false);
 
+  // Shop search state
+  const [shopSearch, setShopSearch] = useState('');
+  const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
+  const shopDropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     loadDropdowns();
   }, []);
@@ -109,6 +114,17 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       }
     }
   }, [shopId, shops]);
+
+  // Close shop dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (shopDropdownRef.current && !shopDropdownRef.current.contains(e.target as Node)) {
+        setShopDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadDropdowns = async () => {
     try {
@@ -274,18 +290,112 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
             <div>
               <Label>Shop *</Label>
               <div className="flex gap-1">
-                <Select value={shopId} onValueChange={setShopId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select Shop" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {shops.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} {s.address ? `(${s.address})` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div ref={shopDropdownRef} className="relative flex-1">
+                  {shopId ? (
+                    <div className="flex items-center justify-between h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <span className="truncate">
+                        {shops.find((s) => s.id === shopId)?.name}
+                        {shops.find((s) => s.id === shopId)?.address ? ` (${shops.find((s) => s.id === shopId)?.address})` : ''}
+                      </span>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => { setShopId(''); setShopSearch(''); }}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => setShopDropdownOpen(!shopDropdownOpen)}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search shop..."
+                        value={shopSearch}
+                        onChange={(e) => {
+                          setShopSearch(e.target.value);
+                          setShopDropdownOpen(true);
+                        }}
+                        onFocus={() => setShopDropdownOpen(true)}
+                        className="pl-9 pr-9"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShopDropdownOpen(!shopDropdownOpen)}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  {shopDropdownOpen && !shopId && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {shops
+                        .filter((s) => {
+                          if (!shopSearch) return true;
+                          const search = shopSearch.toLowerCase();
+                          return (
+                            s.name.toLowerCase().includes(search) ||
+                            (s.address && s.address.toLowerCase().includes(search))
+                          );
+                        })
+                        .length === 0 ? (
+                        <div className="px-3 py-4 text-center">
+                          <p className="text-sm text-muted-foreground mb-2">No shop found</p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            onClick={() => {
+                              setQuickShopName(shopSearch);
+                              setQuickShopAddress('');
+                              setQuickShopOB('');
+                              setShowQuickShop(true);
+                              setShopDropdownOpen(false);
+                            }}
+                          >
+                            <Store className="h-3.5 w-3.5 mr-1" />
+                            Create "{shopSearch}"
+                          </Button>
+                        </div>
+                      ) : (
+                        shops
+                          .filter((s) => {
+                            if (!shopSearch) return true;
+                            const search = shopSearch.toLowerCase();
+                            return (
+                              s.name.toLowerCase().includes(search) ||
+                              (s.address && s.address.toLowerCase().includes(search))
+                            );
+                          })
+                          .map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-emerald-50 hover:text-emerald-800 transition-colors border-b last:border-b-0"
+                              onClick={() => {
+                                setShopId(s.id);
+                                setShopSearch('');
+                                setShopDropdownOpen(false);
+                              }}
+                            >
+                              <span className="font-medium">{s.name}</span>
+                              {s.address && <span className="text-muted-foreground ml-1">({s.address})</span>}
+                              {s.orderBooker && <span className="text-emerald-600 ml-1 text-xs">- {s.orderBooker.name}</span>}
+                            </button>
+                          ))
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Button
                   type="button"
                   variant="outline"

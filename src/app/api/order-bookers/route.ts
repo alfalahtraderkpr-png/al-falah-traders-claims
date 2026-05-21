@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const orderBookers = await db.orderBooker.findMany({
       orderBy: { name: 'asc' },
-      include: { _count: { select: { shops: true } } },
+      include: { _count: { select: { shopCompanyOrderBookers: true } } },
     });
     return NextResponse.json(orderBookers);
   } catch (error) {

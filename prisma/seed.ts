@@ -210,22 +210,65 @@ async function main() {
 
   // Create sample shops
   const shopData = [
-    { id: 'shop-chks', name: 'CH Ks', address: 'Pakistan Chowk', orderBookerId: orderBookers['Anas'].id },
-    { id: 'shop-apna', name: 'Apna Easy Load', address: 'Pakistan Chowk', orderBookerId: orderBookers['Anas'].id },
-    { id: 'shop-usama', name: 'Usama SS', address: 'Feroza', orderBookerId: orderBookers['Danish Ramzan'].id },
-    { id: 'shop-kanwal', name: 'Kanwal Pan Shop', address: 'Din Pur Chowk', orderBookerId: orderBookers['Murtaza'].id },
-    { id: 'shop-punjab', name: 'Punjab Gs', address: 'Trunk Bazar', orderBookerId: orderBookers['Murtaza'].id },
-    { id: 'shop-alian', name: 'Alian Sweets', address: 'Kotla Pathan', orderBookerId: orderBookers['Kashif Khan'].id },
+    { id: 'shop-chks', name: 'CH Ks', address: 'Pakistan Chowk' },
+    { id: 'shop-apna', name: 'Apna Easy Load', address: 'Pakistan Chowk' },
+    { id: 'shop-usama', name: 'Usama SS', address: 'Feroza' },
+    { id: 'shop-kanwal', name: 'Kanwal Pan Shop', address: 'Din Pur Chowk' },
+    { id: 'shop-punjab', name: 'Punjab Gs', address: 'Trunk Bazar' },
+    { id: 'shop-alian', name: 'Alian Sweets', address: 'Kotla Pathan' },
   ];
 
   for (const s of shopData) {
     await prisma.shop.upsert({
       where: { id: s.id },
       update: {},
-      create: s,
+      create: { id: s.id, name: s.name, address: s.address },
     });
   }
   console.log('Created shops');
+
+  // Create Shop-Company-OrderBooker mappings
+  // Each shop can have different order bookers for different companies
+  const shopCompanyOBData = [
+    // CH Ks - Anas for CBL & Shan, Murtaza for Cadbury
+    { shopId: 'shop-chks', companyId: cbl.id, orderBookerId: orderBookers['Anas'].id },
+    { shopId: 'shop-chks', companyId: shan.id, orderBookerId: orderBookers['Anas'].id },
+    { shopId: 'shop-chks', companyId: cadbury.id, orderBookerId: orderBookers['Murtaza'].id },
+    // Apna Easy Load - Anas for all
+    { shopId: 'shop-apna', companyId: cbl.id, orderBookerId: orderBookers['Anas'].id },
+    { shopId: 'shop-apna', companyId: shan.id, orderBookerId: orderBookers['Anas'].id },
+    { shopId: 'shop-apna', companyId: cadbury.id, orderBookerId: orderBookers['Anas'].id },
+    // Usama SS - Danish for CBL, Ali for Shan & Cadbury
+    { shopId: 'shop-usama', companyId: cbl.id, orderBookerId: orderBookers['Danish Ramzan'].id },
+    { shopId: 'shop-usama', companyId: shan.id, orderBookerId: orderBookers['Ali'].id },
+    { shopId: 'shop-usama', companyId: cadbury.id, orderBookerId: orderBookers['Ali'].id },
+    // Kanwal Pan Shop - Murtaza for CBL & Cadbury, Kashif for Shan
+    { shopId: 'shop-kanwal', companyId: cbl.id, orderBookerId: orderBookers['Murtaza'].id },
+    { shopId: 'shop-kanwal', companyId: shan.id, orderBookerId: orderBookers['Kashif Khan'].id },
+    { shopId: 'shop-kanwal', companyId: cadbury.id, orderBookerId: orderBookers['Murtaza'].id },
+    // Punjab Gs - Murtaza for all
+    { shopId: 'shop-punjab', companyId: cbl.id, orderBookerId: orderBookers['Murtaza'].id },
+    { shopId: 'shop-punjab', companyId: shan.id, orderBookerId: orderBookers['Murtaza'].id },
+    { shopId: 'shop-punjab', companyId: cadbury.id, orderBookerId: orderBookers['Murtaza'].id },
+    // Alian Sweets - Kashif for all
+    { shopId: 'shop-alian', companyId: cbl.id, orderBookerId: orderBookers['Kashif Khan'].id },
+    { shopId: 'shop-alian', companyId: shan.id, orderBookerId: orderBookers['Kashif Khan'].id },
+    { shopId: 'shop-alian', companyId: cadbury.id, orderBookerId: orderBookers['Kashif Khan'].id },
+  ];
+
+  for (const mapping of shopCompanyOBData) {
+    await prisma.shopCompanyOrderBooker.upsert({
+      where: {
+        shopId_companyId: {
+          shopId: mapping.shopId,
+          companyId: mapping.companyId,
+        },
+      },
+      update: { orderBookerId: mapping.orderBookerId },
+      create: mapping,
+    });
+  }
+  console.log('Created shop-company-orderbooker mappings');
 
   // Create order booker users
   for (const ob of orderBookerData) {

@@ -16,8 +16,9 @@ import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store,
 interface Company { id: string; name: string; _count?: { products: number } }
 interface Product { id: string; name: string; price: number; unit: string; companyId: string; company: { name: string } }
 interface Supplier { id: string; name: string; companyId?: string | null; company?: { name: string } | null }
-interface Shop { id: string; name: string; address: string; orderBookerId?: string | null; orderBooker?: { name: string } | null }
-interface OrderBooker { id: string; name: string; _count?: { shops: number } }
+interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
+interface Shop { id: string; name: string; address: string; companyOrderBookers: ShopCompanyOB[] }
+interface OrderBooker { id: string; name: string; _count?: { shopCompanyOrderBookers: number } }
 
 export function MasterData({ initialTab = 'companies' }: { initialTab?: string }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -640,49 +641,111 @@ function SuppliersTab() {
 // ========= Shops Tab =========
 function ShopsTab() {
   const [items, setItems] = useState<Shop[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Shop | null>(null);
-  const [form, setForm] = useState({ name: '', address: '', orderBookerId: '' });
+  const [form, setForm] = useState({ name: '', address: '' });
+  // Company-orderbooker mappings: { companyId: orderBookerId | '' }
+  const [companyOBMap, setCompanyOBMap] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     try {
-      const [shopRes, obRes] = await Promise.all([fetch('/api/shops'), fetch('/api/order-bookers')]);
+      const [shopRes, obRes, compRes] = await Promise.all([
+        fetch('/api/shops'),
+        fetch('/api/order-bookers'),
+        fetch('/api/companies'),
+      ]);
       setItems(await shopRes.json());
       setOrderBookers(await obRes.json());
+      setCompanies(await compRes.json());
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
+  const openAddDialog = () => {
+    setEditItem(null);
+    setForm({ name: '', address: '' });
+    // Initialize companyOBMap with empty values for each company
+    const initialMap: Record<string, string> = {};
+    companies.forEach((c) => { initialMap[c.id] = ''; });
+    setCompanyOBMap(initialMap);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (shop: Shop) => {
+    setEditItem(shop);
+    setForm({ name: shop.name, address: shop.address });
+    // Populate companyOBMap from existing mappings
+    const map: Record<string, string> = {};
+    companies.forEach((c) => { map[c.id] = ''; });
+    shop.companyOrderBookers?.forEach((cob) => {
+      map[cob.companyId] = cob.orderBookerId || '';
+    });
+    setCompanyOBMap(map);
+    setDialogOpen(true);
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) return;
     try {
-      const body = { name: form.name, address: form.address, orderBookerId: form.orderBookerId || null };
+      // Build companyOrderBookers array from the map
+      const cobArray = Object.entries(companyOBMap)
+        .filter(([, obId]) => obId) // only include if order booker is assigned
+        .map(([companyId, orderBookerId]) => ({ companyId, orderBookerId }));
+
+      const body = {
+        name: form.name,
+        address: form.address,
+        companyOrderBookers: cobArray,
+      };
+
       if (editItem) {
-        await fetch(`/api/shops/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        await fetch(`/api/shops/${editItem.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
       } else {
-        await fetch('/api/shops', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        await fetch('/api/shops', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
       }
-      setDialogOpen(false); setEditItem(null); setForm({ name: '', address: '', orderBookerId: '' }); load();
+      setDialogOpen(false);
+      setEditItem(null);
+      setForm({ name: '', address: '' });
+      setCompanyOBMap({});
+      load();
     } catch (e) { console.error(e); }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this shop?')) return;
-    try { const res = await fetch(`/api/shops/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); alert(d.error); } load(); }
-    catch (e) { console.error(e); }
+    try {
+      const res = await fetch(`/api/shops/${id}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); alert(d.error); }
+      load();
+    } catch (e) { console.error(e); }
   };
 
   const filtered = items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()));
+
+  // Get order booker display for a shop+company
+  const getOBForCompany = (shop: Shop, companyId: string) => {
+    const mapping = shop.companyOrderBookers?.find((cob) => cob.companyId === companyId);
+    return mapping?.orderBooker?.name || '-';
+  };
 
   return (
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Shops ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setEditItem(null); setForm({ name: '', address: '', orderBookerId: '' }); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={openAddDialog}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -699,7 +762,9 @@ function ShopsTab() {
               <thead><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-left py-2 px-4 font-medium">Address</th>
-                <th className="text-left py-2 px-4 font-medium">Order Booker</th>
+                {companies.map((c) => (
+                  <th key={c.id} className="text-left py-2 px-4 font-medium whitespace-nowrap">{c.name} OB</th>
+                ))}
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
               </tr></thead>
               <tbody>
@@ -707,10 +772,20 @@ function ShopsTab() {
                   <tr key={item.id} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4">{item.address || '-'}</td>
-                    <td className="py-2 px-4">{item.orderBooker?.name || '-'}</td>
+                    {companies.map((c) => (
+                      <td key={c.id} className="py-2 px-4">
+                        <span className={getOBForCompany(item, c.id) !== '-' ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}>
+                          {getOBForCompany(item, c.id)}
+                        </span>
+                      </td>
+                    ))}
                     <td className="py-2 px-4 text-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditItem(item); setForm({ name: item.name, address: item.address, orderBookerId: item.orderBookerId || '' }); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -721,19 +796,38 @@ function ShopsTab() {
       </CardContent>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editItem ? 'Edit' : 'Add'} Shop</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
-            <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Shop name" /></div>
+            <div><Label>Shop Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Shop name" /></div>
             <div><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Address" /></div>
-            <div><Label>Order Booker</Label>
-              <Select value={form.orderBookerId} onValueChange={(v) => setForm({ ...form, orderBookerId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select order booker" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {orderBookers.map((ob) => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold text-emerald-800">Order Bookers by Company</Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">Assign order bookers for each company. Same shop can have different order bookers for different companies.</p>
+              <div className="space-y-3">
+                {companies.map((c) => (
+                  <div key={c.id} className="flex items-center gap-3">
+                    <div className="w-28 shrink-0">
+                      <Badge variant="outline" className="text-xs font-medium">{c.name}</Badge>
+                    </div>
+                    <Select
+                      value={companyOBMap[c.id] || 'none'}
+                      onValueChange={(v) => setCompanyOBMap({ ...companyOBMap, [c.id]: v === 'none' ? '' : v })}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select Order Booker" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {orderBookers.map((ob) => (
+                          <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -802,14 +896,14 @@ function OrderBookersTab() {
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
-                <th className="text-center py-2 px-4 font-medium">Shops</th>
+                <th className="text-center py-2 px-4 font-medium">Assignments</th>
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
               </tr></thead>
               <tbody>
                 {filtered.map((item) => (
                   <tr key={item.id} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4 font-medium">{item.name}</td>
-                    <td className="py-2 px-4 text-center"><Badge variant="outline">{item._count?.shops || 0}</Badge></td>
+                    <td className="py-2 px-4 text-center"><Badge variant="outline">{item._count?.shopCompanyOrderBookers || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>

@@ -7,18 +7,57 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { name, address, orderBookerId } = await request.json();
+    const { name, address, companyOrderBookers } = await request.json();
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name.trim();
     if (address !== undefined) data.address = address;
-    if (orderBookerId !== undefined) data.orderBookerId = orderBookerId || null;
 
     const shop = await db.shop.update({
       where: { id },
       data,
-      include: { orderBooker: true },
+      include: {
+        companyOrderBookers: {
+          include: {
+            company: true,
+            orderBooker: true,
+          },
+        },
+      },
     });
+
+    // Update company-orderbooker mappings if provided
+    if (companyOrderBookers && Array.isArray(companyOrderBookers)) {
+      // Delete existing mappings
+      await db.shopCompanyOrderBooker.deleteMany({ where: { shopId: id } });
+
+      // Create new mappings
+      for (const mapping of companyOrderBookers) {
+        if (mapping.companyId) {
+          await db.shopCompanyOrderBooker.create({
+            data: {
+              shopId: id,
+              companyId: mapping.companyId,
+              orderBookerId: mapping.orderBookerId || null,
+            },
+          });
+        }
+      }
+
+      // Reload with new mappings
+      const reloaded = await db.shop.findUnique({
+        where: { id },
+        include: {
+          companyOrderBookers: {
+            include: {
+              company: true,
+              orderBooker: true,
+            },
+          },
+        },
+      });
+      return NextResponse.json(reloaded);
+    }
 
     return NextResponse.json(shop);
   } catch (error) {
@@ -39,6 +78,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete shop used in claims' }, { status: 400 });
     }
 
+    // Delete company-orderbooker mappings first (cascade should handle this, but explicit for safety)
+    await db.shopCompanyOrderBooker.deleteMany({ where: { shopId: id } });
     await db.shop.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -5,7 +5,14 @@ export async function GET() {
   try {
     const shops = await db.shop.findMany({
       orderBy: { name: 'asc' },
-      include: { orderBooker: true },
+      include: {
+        companyOrderBookers: {
+          include: {
+            company: true,
+            orderBooker: true,
+          },
+        },
+      },
     });
     return NextResponse.json(shops);
   } catch (error) {
@@ -16,7 +23,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, address, orderBookerId } = await request.json();
+    const { name, address, companyOrderBookers } = await request.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Shop name is required' }, { status: 400 });
@@ -26,10 +33,44 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         address: address || '',
-        orderBookerId: orderBookerId || null,
       },
-      include: { orderBooker: true },
+      include: {
+        companyOrderBookers: {
+          include: {
+            company: true,
+            orderBooker: true,
+          },
+        },
+      },
     });
+
+    // Create company-orderbooker mappings if provided
+    if (companyOrderBookers && Array.isArray(companyOrderBookers)) {
+      for (const mapping of companyOrderBookers) {
+        if (mapping.companyId && mapping.orderBookerId) {
+          await db.shopCompanyOrderBooker.create({
+            data: {
+              shopId: shop.id,
+              companyId: mapping.companyId,
+              orderBookerId: mapping.orderBookerId,
+            },
+          });
+        }
+      }
+      // Reload with mappings
+      const reloaded = await db.shop.findUnique({
+        where: { id: shop.id },
+        include: {
+          companyOrderBookers: {
+            include: {
+              company: true,
+              orderBooker: true,
+            },
+          },
+        },
+      });
+      return NextResponse.json(reloaded, { status: 201 });
+    }
 
     return NextResponse.json(shop, { status: 201 });
   } catch (error) {

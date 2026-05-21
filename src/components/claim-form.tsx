@@ -26,12 +26,20 @@ interface Product {
   company: { name: string };
 }
 
+interface ShopCompanyOB {
+  id: string;
+  shopId: string;
+  companyId: string;
+  orderBookerId: string | null;
+  company: { id: string; name: string };
+  orderBooker?: { id: string; name: string } | null;
+}
+
 interface Shop {
   id: string;
   name: string;
   address: string;
-  orderBookerId: string | null;
-  orderBooker: { name: string; id: string } | null;
+  companyOrderBookers: ShopCompanyOB[];
 }
 
 interface Supplier {
@@ -107,13 +115,19 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   }, [companyId]);
 
   useEffect(() => {
-    if (shopId) {
+    // Auto-fill order booker based on shop + company combination
+    if (shopId && companyId) {
       const shop = shops.find((s) => s.id === shopId);
-      if (shop?.orderBookerId) {
-        setOrderBookerId(shop.orderBookerId);
+      if (shop) {
+        const mapping = shop.companyOrderBookers?.find(
+          (cob) => cob.companyId === companyId
+        );
+        if (mapping?.orderBookerId) {
+          setOrderBookerId(mapping.orderBookerId);
+        }
       }
     }
-  }, [shopId, shops]);
+  }, [shopId, companyId, shops]);
 
   // Close shop dropdown on outside click
   useEffect(() => {
@@ -389,7 +403,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                             >
                               <span className="font-medium">{s.name}</span>
                               {s.address && <span className="text-muted-foreground ml-1">({s.address})</span>}
-                              {s.orderBooker && <span className="text-emerald-600 ml-1 text-xs">- {s.orderBooker.name}</span>}
+                              {companyId && s.companyOrderBookers?.find((cob) => cob.companyId === companyId)?.orderBooker && (
+                                <span className="text-emerald-600 ml-1 text-xs">
+                                  - {s.companyOrderBookers.find((cob) => cob.companyId === companyId)?.orderBooker?.name}
+                                </span>
+                              )}
                             </button>
                           ))
                       )}
@@ -547,7 +565,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
 
       {/* Quick Shop Create Dialog */}
       <Dialog open={showQuickShop} onOpenChange={setShowQuickShop}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-emerald-800">Quick Create Shop</DialogTitle>
           </DialogHeader>
@@ -570,7 +588,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
               />
             </div>
             <div>
-              <Label>Order Booker</Label>
+              <Label>Order Booker {companyId ? `(for ${companies.find((c) => c.id === companyId)?.name})` : ''}</Label>
               <Select value={quickShopOB} onValueChange={setQuickShopOB}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Order Booker" />
@@ -594,13 +612,19 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
               onClick={async () => {
                 setCreatingShop(true);
                 try {
+                  // Build companyOrderBookers if company is selected and order booker assigned
+                  const cobArray: Array<{ companyId: string; orderBookerId: string }> = [];
+                  if (companyId && quickShopOB && quickShopOB !== 'none') {
+                    cobArray.push({ companyId, orderBookerId: quickShopOB });
+                  }
+
                   const res = await fetch('/api/shops', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       name: quickShopName.trim(),
                       address: quickShopAddress.trim(),
-                      orderBookerId: quickShopOB === 'none' ? null : quickShopOB || null,
+                      companyOrderBookers: cobArray,
                     }),
                   });
                   if (!res.ok) {
@@ -612,8 +636,8 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                   // Add to shops list, auto-select, and auto-assign order booker
                   setShops((prev) => [...prev, newShop].sort((a, b) => a.name.localeCompare(b.name)));
                   setShopId(newShop.id);
-                  if (newShop.orderBookerId) {
-                    setOrderBookerId(newShop.orderBookerId);
+                  if (quickShopOB && quickShopOB !== 'none') {
+                    setOrderBookerId(quickShopOB);
                   }
                   setShowQuickShop(false);
                 } catch (error) {

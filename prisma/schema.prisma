@@ -26,6 +26,7 @@ model Company {
   products  Product[]
   suppliers Supplier[]
   claims    Claim[]
+  shopOrderBookers ShopCompanyOrderBooker[]
 }
 
 model Product {
@@ -56,11 +57,10 @@ model Shop {
   id            String   @id @default(cuid())
   name          String
   address       String   @default("")
-  orderBookerId String?
-  orderBooker   OrderBooker? @relation(fields: [orderBookerId], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   claims        Claim[]
+  companyOrderBookers ShopCompanyOrderBooker[]
 }
 
 model OrderBooker {
@@ -68,8 +68,8 @@ model OrderBooker {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  shops     Shop[]
   claims    Claim[]
+  shopCompanyOrderBookers ShopCompanyOrderBooker[]
 }
 
 model Claim {
@@ -93,6 +93,20 @@ model Claim {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   claimItems    ClaimItem[]
+}
+
+model ShopCompanyOrderBooker {
+  id            String   @id @default(cuid())
+  shopId        String
+  companyId     String
+  orderBookerId String?
+  shop          Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orderBooker   OrderBooker? @relation(fields: [orderBookerId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([shopId, companyId])
 }
 
 model ClaimItem {

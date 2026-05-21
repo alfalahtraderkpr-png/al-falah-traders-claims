@@ -1,13 +1,25 @@
-import { PrismaClient } from '@prisma/client';
-import { hashSync } from 'bcryptjs';
+import { PrismaClient } from '../src/generated/prisma/client'
+import { PrismaLibSql } from '@prisma/adapter-libsql'
+import { createClient } from '@libsql/client'
+import { hashSync } from 'bcryptjs'
 
-const prisma = new PrismaClient();
+function createPrismaClient() {
+  const dbUrl = process.env.DATABASE_URL ?? 'file:./db/custom.db'
+  const libsql = createClient({
+    url: dbUrl,
+    authToken: process.env.TURSO_DB_TOKEN || undefined,
+  })
+  const adapter = new PrismaLibSql(libsql)
+  return new PrismaClient({ adapter })
+}
+
+const prisma = createPrismaClient()
 
 async function main() {
-  console.log('Seeding database...');
+  console.log('Seeding database...')
 
   // Create admin user
-  const adminPassword = hashSync('admin123', 10);
+  const adminPassword = hashSync('admin123', 10)
   const admin = await prisma.user.upsert({
     where: { email: 'admin@alfalah.com' },
     update: {},
@@ -17,28 +29,28 @@ async function main() {
       password: adminPassword,
       role: 'admin',
     },
-  });
-  console.log('Created admin user:', admin.email);
+  })
+  console.log('Created admin user:', admin.email)
 
   // Create companies
   const cbl = await prisma.company.upsert({
     where: { id: 'company-cbl' },
     update: {},
     create: { id: 'company-cbl', name: 'CBL' },
-  });
+  })
 
   const cadbury = await prisma.company.upsert({
     where: { id: 'company-cadbury' },
     update: {},
     create: { id: 'company-cadbury', name: 'Cadbury' },
-  });
+  })
 
   const shan = await prisma.company.upsert({
     where: { id: 'company-shan' },
     update: {},
     create: { id: 'company-shan', name: 'Shan Foods' },
-  });
-  console.log('Created companies:', cbl.name, cadbury.name, shan.name);
+  })
+  console.log('Created companies:', cbl.name, cadbury.name, shan.name)
 
   // Create order bookers
   const orderBookerData = [
@@ -47,17 +59,17 @@ async function main() {
     { id: 'ob-kashif', name: 'Kashif Khan' },
     { id: 'ob-ali', name: 'Ali' },
     { id: 'ob-danish', name: 'Danish Ramzan' },
-  ];
+  ]
 
-  const orderBookers: Record<string, typeof orderBookerData[0]> = {};
+  const orderBookers: Record<string, typeof orderBookerData[0]> = {}
   for (const ob of orderBookerData) {
     orderBookers[ob.name] = await prisma.orderBooker.upsert({
       where: { id: ob.id },
       update: {},
       create: ob,
-    });
+    })
   }
-  console.log('Created order bookers');
+  console.log('Created order bookers')
 
   // Create suppliers
   const supplierData = [
@@ -67,17 +79,17 @@ async function main() {
     { id: 'sup-saad', name: 'Saad' },
     { id: 'sup-sami', name: 'Sami' },
     { id: 'sup-ikram', name: 'Ikram' },
-  ];
+  ]
 
-  const suppliers: Record<string, typeof supplierData[0]> = {};
+  const suppliers: Record<string, typeof supplierData[0]> = {}
   for (const s of supplierData) {
     suppliers[s.name] = await prisma.supplier.upsert({
       where: { id: s.id },
       update: {},
       create: s,
-    });
+    })
   }
-  console.log('Created suppliers');
+  console.log('Created suppliers')
 
   // Create products for CBL
   const cblProducts = [
@@ -186,7 +198,7 @@ async function main() {
     { name: 'BP Oero', price: 15, unit: 'pcs' },
     { name: 'SP Butter/Coconut', price: 50, unit: 'pcs' },
     { name: 'Belvita Kleja', price: 50, unit: 'pcs' },
-  ];
+  ]
 
   for (const p of cblProducts) {
     await prisma.product.upsert({
@@ -204,9 +216,9 @@ async function main() {
         unit: p.unit,
         companyId: cbl.id,
       },
-    });
+    })
   }
-  console.log(`Created ${cblProducts.length} CBL products`);
+  console.log(`Created ${cblProducts.length} CBL products`)
 
   // Create sample shops
   const shopData = [
@@ -216,45 +228,38 @@ async function main() {
     { id: 'shop-kanwal', name: 'Kanwal Pan Shop', address: 'Din Pur Chowk' },
     { id: 'shop-punjab', name: 'Punjab Gs', address: 'Trunk Bazar' },
     { id: 'shop-alian', name: 'Alian Sweets', address: 'Kotla Pathan' },
-  ];
+  ]
 
   for (const s of shopData) {
     await prisma.shop.upsert({
       where: { id: s.id },
       update: {},
       create: { id: s.id, name: s.name, address: s.address },
-    });
+    })
   }
-  console.log('Created shops');
+  console.log('Created shops')
 
   // Create Shop-Company-OrderBooker mappings
-  // Each shop can have different order bookers for different companies
   const shopCompanyOBData = [
-    // CH Ks - Anas for CBL & Shan, Murtaza for Cadbury
     { shopId: 'shop-chks', companyId: cbl.id, orderBookerId: orderBookers['Anas'].id },
     { shopId: 'shop-chks', companyId: shan.id, orderBookerId: orderBookers['Anas'].id },
     { shopId: 'shop-chks', companyId: cadbury.id, orderBookerId: orderBookers['Murtaza'].id },
-    // Apna Easy Load - Anas for all
     { shopId: 'shop-apna', companyId: cbl.id, orderBookerId: orderBookers['Anas'].id },
     { shopId: 'shop-apna', companyId: shan.id, orderBookerId: orderBookers['Anas'].id },
     { shopId: 'shop-apna', companyId: cadbury.id, orderBookerId: orderBookers['Anas'].id },
-    // Usama SS - Danish for CBL, Ali for Shan & Cadbury
     { shopId: 'shop-usama', companyId: cbl.id, orderBookerId: orderBookers['Danish Ramzan'].id },
     { shopId: 'shop-usama', companyId: shan.id, orderBookerId: orderBookers['Ali'].id },
     { shopId: 'shop-usama', companyId: cadbury.id, orderBookerId: orderBookers['Ali'].id },
-    // Kanwal Pan Shop - Murtaza for CBL & Cadbury, Kashif for Shan
     { shopId: 'shop-kanwal', companyId: cbl.id, orderBookerId: orderBookers['Murtaza'].id },
     { shopId: 'shop-kanwal', companyId: shan.id, orderBookerId: orderBookers['Kashif Khan'].id },
     { shopId: 'shop-kanwal', companyId: cadbury.id, orderBookerId: orderBookers['Murtaza'].id },
-    // Punjab Gs - Murtaza for all
     { shopId: 'shop-punjab', companyId: cbl.id, orderBookerId: orderBookers['Murtaza'].id },
     { shopId: 'shop-punjab', companyId: shan.id, orderBookerId: orderBookers['Murtaza'].id },
     { shopId: 'shop-punjab', companyId: cadbury.id, orderBookerId: orderBookers['Murtaza'].id },
-    // Alian Sweets - Kashif for all
     { shopId: 'shop-alian', companyId: cbl.id, orderBookerId: orderBookers['Kashif Khan'].id },
     { shopId: 'shop-alian', companyId: shan.id, orderBookerId: orderBookers['Kashif Khan'].id },
     { shopId: 'shop-alian', companyId: cadbury.id, orderBookerId: orderBookers['Kashif Khan'].id },
-  ];
+  ]
 
   for (const mapping of shopCompanyOBData) {
     await prisma.shopCompanyOrderBooker.upsert({
@@ -266,13 +271,13 @@ async function main() {
       },
       update: { orderBookerId: mapping.orderBookerId },
       create: mapping,
-    });
+    })
   }
-  console.log('Created shop-company-orderbooker mappings');
+  console.log('Created shop-company-orderbooker mappings')
 
   // Create order booker users
   for (const ob of orderBookerData) {
-    const obPassword = hashSync('password123', 10);
+    const obPassword = hashSync('password123', 10)
     await prisma.user.upsert({
       where: { email: `${ob.name.toLowerCase().replace(/\s+/g, '')}@alfalah.com` },
       update: {},
@@ -283,18 +288,18 @@ async function main() {
         role: 'orderbooker',
         orderBookerId: ob.id,
       },
-    });
+    })
   }
-  console.log('Created order booker users');
+  console.log('Created order booker users')
 
-  console.log('Seeding complete!');
+  console.log('Seeding complete!')
 }
 
 main()
   .catch((e) => {
-    console.error(e);
-    process.exit(1);
+    console.error(e)
+    process.exit(1)
   })
   .finally(async () => {
-    await prisma.$disconnect();
-  });
+    await prisma.$disconnect()
+  })

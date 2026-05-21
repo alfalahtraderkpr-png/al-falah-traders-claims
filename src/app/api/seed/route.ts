@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import { hashSync } from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 export async function POST() {
   try {
     // Create admin user
     const adminPassword = hashSync('admin123', 10);
-    await prisma.user.upsert({
+    await db.user.upsert({
       where: { email: 'admin@alfalah.com' },
       update: {},
       create: {
@@ -20,19 +18,19 @@ export async function POST() {
     });
 
     // Create companies
-    const cbl = await prisma.company.upsert({
+    const cbl = await db.company.upsert({
       where: { id: 'company-cbl' },
       update: {},
       create: { id: 'company-cbl', name: 'CBL' },
     });
 
-    await prisma.company.upsert({
+    await db.company.upsert({
       where: { id: 'company-cadbury' },
       update: {},
       create: { id: 'company-cadbury', name: 'Cadbury' },
     });
 
-    await prisma.company.upsert({
+    await db.company.upsert({
       where: { id: 'company-shan' },
       update: {},
       create: { id: 'company-shan', name: 'Shan Foods' },
@@ -48,7 +46,7 @@ export async function POST() {
     ];
 
     for (const ob of obData) {
-      await prisma.orderBooker.upsert({
+      await db.orderBooker.upsert({
         where: { id: ob.id },
         update: {},
         create: ob,
@@ -66,7 +64,7 @@ export async function POST() {
     ];
 
     for (const s of supData) {
-      await prisma.supplier.upsert({
+      await db.supplier.upsert({
         where: { id: s.id },
         update: {},
         create: s,
@@ -84,7 +82,7 @@ export async function POST() {
     ];
 
     for (const s of shopData) {
-      await prisma.shop.upsert({
+      await db.shop.upsert({
         where: { id: s.id },
         update: {},
         create: s,
@@ -101,7 +99,7 @@ export async function POST() {
     ];
 
     for (const p of sampleProducts) {
-      await prisma.product.upsert({
+      await db.product.upsert({
         where: { name_price_companyId: { name: p.name, price: p.price, companyId: cbl.id } },
         update: {},
         create: { ...p, companyId: cbl.id },

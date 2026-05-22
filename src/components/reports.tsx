@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2, Download, BarChart3, FileText } from 'lucide-react';
 
 interface Company { id: string; name: string }
 interface Supplier { id: string; name: string }
@@ -123,16 +123,19 @@ export function Reports() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold text-emerald-800">Reports</h2>
-        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleExportExcel} disabled={exporting}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in-up">
+        <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+          <BarChart3 className="h-6 w-6" />
+          Reports
+        </h2>
+        <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={handleExportExcel} disabled={exporting}>
           {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
           Export Excel
         </Button>
       </div>
 
       {/* Filters */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '80ms' }}>
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -181,38 +184,38 @@ export function Reports() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Card className="shadow-sm bg-emerald-50">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 stagger-children">
+          <Card className="shadow-sm bg-emerald-50 border-0 card-hover animate-fade-in-up">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-muted-foreground">Total Claims</p>
               <p className="text-lg font-bold text-emerald-700">{summary.totalClaims}</p>
             </CardContent>
           </Card>
-          <Card className="shadow-sm bg-yellow-50">
+          <Card className="shadow-sm bg-yellow-50 border-0 card-hover animate-fade-in-up">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-muted-foreground">Pending</p>
               <p className="text-lg font-bold text-yellow-700">{summary.byStatus.pending || 0}</p>
             </CardContent>
           </Card>
-          <Card className="shadow-sm bg-green-50">
+          <Card className="shadow-sm bg-green-50 border-0 card-hover animate-fade-in-up">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-muted-foreground">Approved</p>
               <p className="text-lg font-bold text-green-700">{summary.byStatus.approved || 0}</p>
             </CardContent>
           </Card>
-          <Card className="shadow-sm bg-orange-50">
+          <Card className="shadow-sm bg-orange-50 border-0 card-hover animate-fade-in-up">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-muted-foreground">Partial</p>
               <p className="text-lg font-bold text-orange-700">{summary.byStatus.partially_approved || 0}</p>
             </CardContent>
           </Card>
-          <Card className="shadow-sm bg-blue-50">
+          <Card className="shadow-sm bg-blue-50 border-0 card-hover animate-fade-in-up">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-muted-foreground">Cleared</p>
               <p className="text-lg font-bold text-blue-700">{summary.byStatus.cleared || 0}</p>
             </CardContent>
           </Card>
-          <Card className="shadow-sm bg-red-50">
+          <Card className="shadow-sm bg-red-50 border-0 card-hover animate-fade-in-up">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-muted-foreground">Rejected</p>
               <p className="text-lg font-bold text-red-700">{summary.byStatus.rejected || 0}</p>
@@ -223,18 +226,18 @@ export function Reports() {
 
       {/* Summary Totals */}
       {summary && (
-        <Card className="shadow-sm">
+        <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <CardContent className="p-4">
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
+              <div className="bg-emerald-50 rounded-lg p-3">
                 <p className="text-sm text-muted-foreground">Total Amount</p>
                 <p className="text-xl font-bold text-emerald-700">{formatAmount(summary.totalAmount)}</p>
               </div>
-              <div>
+              <div className="bg-green-50 rounded-lg p-3">
                 <p className="text-sm text-muted-foreground">Total Approved</p>
                 <p className="text-xl font-bold text-green-700">{formatAmount(summary.totalApproved)}</p>
               </div>
-              <div>
+              <div className="bg-red-50 rounded-lg p-3">
                 <p className="text-sm text-muted-foreground">Outstanding</p>
                 <p className="text-xl font-bold text-red-700">{formatAmount(summary.totalAmount - summary.totalApproved)}</p>
               </div>
@@ -244,12 +247,21 @@ export function Reports() {
       )}
 
       {/* Table */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '300ms' }}>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div>
+            <div className="flex justify-center py-12">
+              <div className="text-center">
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-600 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading reports...</p>
+              </div>
+            </div>
           ) : claims.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">No claims found for the selected filters</div>
+            <div className="text-center py-16">
+              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-muted-foreground text-lg font-medium">No claims found</p>
+              <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -267,18 +279,18 @@ export function Reports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {claims.map((claim) => (
-                    <tr key={claim.id} className="border-b hover:bg-gray-50">
+                  {claims.map((claim, index) => (
+                    <tr key={claim.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 20}ms` }}>
                       <td className="py-3 px-4 font-medium text-emerald-700">{claim.claimNumber}</td>
                       <td className="py-3 px-4">{new Date(claim.date).toLocaleDateString()}</td>
                       <td className="py-3 px-4">{claim.company.name}</td>
                       <td className="py-3 px-4">{claim.shop.name}</td>
                       <td className="py-3 px-4">{claim.supplier.name}</td>
                       <td className="py-3 px-4">{claim.orderBooker?.name || '-'}</td>
-                      <td className="py-3 px-4 text-right">{formatAmount(claim.totalAmount)}</td>
+                      <td className="py-3 px-4 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
                       <td className="py-3 px-4 text-right">{claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}</td>
                       <td className="py-3 px-4 text-center">
-                        <Badge className={`${statusColors[claim.status]} border text-xs`}>
+                        <Badge className={`${statusColors[claim.status]} border text-xs transition-transform hover:scale-105 cursor-default`}>
                           {statusLabels[claim.status]}
                         </Badge>
                       </td>

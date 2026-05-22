@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Share2, Printer, FileText } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Printer, FileText, Image, FileDown, MessageCircle } from 'lucide-react';
 import { Receipt } from './receipt';
 
 interface ClaimDetailProps {
@@ -119,19 +119,16 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
         backgroundColor: '#ffffff',
       });
 
-      // Convert data URL to blob
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], `claim-${claim.claimNumber}.png`, { type: 'image/png' });
 
-      // Try Web Share API first
       if (navigator.share) {
         await navigator.share({
           text: `Claim ${claim.claimNumber} - AL FALAH TRADERS`,
           files: [file],
         });
       } else {
-        // Fallback: download image and open WhatsApp
         const link = document.createElement('a');
         link.download = `claim-${claim.claimNumber}.png`;
         link.href = dataUrl;
@@ -155,16 +152,17 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in-up">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}>
+          <Button variant="outline" size="icon" onClick={onBack} className="btn-enhanced border-emerald-200 text-emerald-700 hover:bg-emerald-50">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-emerald-800">
+            <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+              <FileText className="h-6 w-6" />
               Claim {claim.claimNumber}
             </h2>
-            <Badge className={`${statusColors[claim.status]} border mt-1`}>
+            <Badge className={`${statusColors[claim.status]} border mt-1 transition-transform hover:scale-105`}>
               {statusLabels[claim.status]}
             </Badge>
           </div>
@@ -172,56 +170,56 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
       </div>
 
       {/* Claim Info */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '80ms' }}>
         <CardContent className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Date</p>
+            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
+              <p className="text-muted-foreground text-xs">Date</p>
               <p className="font-medium">{new Date(claim.date).toLocaleDateString()}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Company</p>
+            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
+              <p className="text-muted-foreground text-xs">Company</p>
               <p className="font-medium">{claim.company.name}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Shop</p>
+            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
+              <p className="text-muted-foreground text-xs">Shop</p>
               <p className="font-medium">{claim.shop.name}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Address</p>
+            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
+              <p className="text-muted-foreground text-xs">Address</p>
               <p className="font-medium">{claim.shop.address || '-'}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Supplier</p>
+            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
+              <p className="text-muted-foreground text-xs">Supplier</p>
               <p className="font-medium">{claim.supplier.name}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Order Booker</p>
+            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
+              <p className="text-muted-foreground text-xs">Order Booker</p>
               <p className="font-medium">{claim.orderBooker?.name || '-'}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Total Amount</p>
+            <div className="bg-emerald-50/50 rounded-lg p-2 transition-colors hover:bg-emerald-50">
+              <p className="text-muted-foreground text-xs">Total Amount</p>
               <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Approved Amount</p>
+            <div className="bg-green-50/50 rounded-lg p-2 transition-colors hover:bg-green-50">
+              <p className="text-muted-foreground text-xs">Approved Amount</p>
               <p className="font-bold text-green-700">{claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}</p>
             </div>
             {claim.clearedBy && (
-              <div>
-                <p className="text-muted-foreground">Cleared By</p>
+              <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
+                <p className="text-muted-foreground text-xs">Cleared By</p>
                 <p className="font-medium">{claim.clearedBy}</p>
               </div>
             )}
             {claim.clearedDate && (
-              <div>
-                <p className="text-muted-foreground">Cleared Date</p>
+              <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
+                <p className="text-muted-foreground text-xs">Cleared Date</p>
                 <p className="font-medium">{new Date(claim.clearedDate).toLocaleDateString()}</p>
               </div>
             )}
             {claim.rejectReason && (
-              <div className="col-span-2">
-                <p className="text-muted-foreground">Reject Reason</p>
+              <div className="col-span-2 bg-red-50/50 rounded-lg p-2">
+                <p className="text-muted-foreground text-xs">Reject Reason</p>
                 <p className="font-medium text-red-600">{claim.rejectReason}</p>
               </div>
             )}
@@ -230,7 +228,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
       </Card>
 
       {/* Items Table */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '160ms' }}>
         <CardHeader>
           <CardTitle className="text-lg">Claim Items</CardTitle>
         </CardHeader>
@@ -248,9 +246,9 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               </thead>
               <tbody>
                 {claim.claimItems.map((item, index) => (
-                  <tr key={item.id} className="border-b">
+                  <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
                     <td className="py-3 px-4">{index + 1}</td>
-                    <td className="py-3 px-4">{item.product.name}</td>
+                    <td className="py-3 px-4 font-medium">{item.product.name}</td>
                     <td className="py-3 px-4 text-right">Rs.{item.product.price}</td>
                     <td className="py-3 px-4 text-center">{item.quantity}</td>
                     <td className="py-3 px-4 text-right font-medium">Rs.{item.amount.toLocaleString()}</td>
@@ -283,38 +281,39 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
       </Card>
 
       {/* Action Buttons */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '240ms' }}>
         <CardHeader>
           <CardTitle className="text-lg">Receipt Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
             <Button
-              variant="outline"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md btn-enhanced"
               onClick={handleDownloadImage}
               disabled={generating}
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Image className="h-4 w-4 mr-2" />
               Download PNG
             </Button>
             <Button
-              variant="outline"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md btn-enhanced"
               onClick={handleDownloadPDF}
               disabled={generating}
             >
-              <FileText className="h-4 w-4 mr-2" />
+              <FileDown className="h-4 w-4 mr-2" />
               Download PDF
             </Button>
             <Button
-              variant="outline"
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md btn-enhanced"
               onClick={handleShareWhatsApp}
               disabled={generating}
             >
-              <Share2 className="h-4 w-4 mr-2" />
+              <MessageCircle className="h-4 w-4 mr-2" />
               WhatsApp
             </Button>
             <Button
               variant="outline"
+              className="border-gray-300 btn-enhanced"
               onClick={handlePrint}
             >
               <Printer className="h-4 w-4 mr-2" />

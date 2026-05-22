@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClaimForm } from './claim-form';
 import { ClaimDetail } from './claim-detail';
-import { Loader2, Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Banknote } from 'lucide-react';
+import { Loader2, Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Banknote, FileText, AlertTriangle } from 'lucide-react';
 
 interface ClaimListProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -247,26 +247,27 @@ export function ClaimList({ user }: ClaimListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in-up">
         <div>
-          <h2 className="text-2xl font-bold text-emerald-800">
+          <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+            <FileText className="h-6 w-6" />
             {user.role === 'orderbooker' ? 'My Claims' : 'Claims Management'}
           </h2>
           <p className="text-muted-foreground">{claims.length} claims found</p>
         </div>
         {isAdmin && (
           <Button
-            className="bg-emerald-600 hover:bg-emerald-700"
+            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced text-sm font-semibold px-5 py-2.5"
             onClick={() => setShowForm(true)}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-5 w-5 mr-2" />
             New Claim
           </Button>
         )}
       </div>
 
       {/* Search & Filters */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -279,104 +280,111 @@ export function ClaimList({ user }: ClaimListProps) {
               />
             </div>
             <Button
-              variant="outline"
+              variant={showFilters ? 'default' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
-              className="shrink-0"
+              className={`shrink-0 btn-enhanced ${showFilters ? 'bg-emerald-600 hover:bg-emerald-700' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
             >
               <Filter className="h-4 w-4 mr-2" />
               Filters
             </Button>
           </div>
 
-          {showFilters && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-4 pt-4 border-t">
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="partially_approved">Partially Approved</SelectItem>
-                  <SelectItem value="cleared">Cleared</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {isAdmin && (
-                <Select value={filterCompany} onValueChange={setFilterCompany}>
+          <div className={`grid transition-all duration-300 ease-in-out ${showFilters ? 'grid-rows-[1fr] opacity-100 mt-4 pt-4 border-t' : 'grid-rows-[0fr] opacity-0 overflow-hidden'}`}>
+            {showFilters && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Company" />
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Companies</SelectItem>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="partially_approved">Partially Approved</SelectItem>
+                    <SelectItem value="cleared">Cleared</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
 
-              {isAdmin && (
-                <Select value={filterSupplier} onValueChange={setFilterSupplier}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Supplier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Suppliers</SelectItem>
-                    {suppliers.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+                {isAdmin && (
+                  <Select value={filterCompany} onValueChange={setFilterCompany}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Companies</SelectItem>
+                      {companies.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
-              {isAdmin && (
-                <Select value={filterOrderBooker} onValueChange={setFilterOrderBooker}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Order Booker" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Order Bookers</SelectItem>
-                    {orderBookers.map((ob) => (
-                      <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+                {isAdmin && (
+                  <Select value={filterSupplier} onValueChange={setFilterSupplier}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Supplier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Suppliers</SelectItem>
+                      {suppliers.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
-              <div className="flex gap-2">
-                <Input
-                  type="date"
-                  value={filterDateFrom}
-                  onChange={(e) => setFilterDateFrom(e.target.value)}
-                  placeholder="From"
-                  className="text-xs"
-                />
-                <Input
-                  type="date"
-                  value={filterDateTo}
-                  onChange={(e) => setFilterDateTo(e.target.value)}
-                  placeholder="To"
-                  className="text-xs"
-                />
+                {isAdmin && (
+                  <Select value={filterOrderBooker} onValueChange={setFilterOrderBooker}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Order Booker" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Order Bookers</SelectItem>
+                      {orderBookers.map((ob) => (
+                        <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={(e) => setFilterDateFrom(e.target.value)}
+                    placeholder="From"
+                    className="text-xs"
+                  />
+                  <Input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={(e) => setFilterDateTo(e.target.value)}
+                    placeholder="To"
+                    className="text-xs"
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Claims Table */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+              <div className="text-center">
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-600 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading claims...</p>
+              </div>
             </div>
           ) : claims.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No claims found
+            <div className="text-center py-16">
+              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-muted-foreground text-lg font-medium">No claims found</p>
+              <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or create a new claim</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -396,61 +404,65 @@ export function ClaimList({ user }: ClaimListProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {claims.map((claim) => (
-                    <tr key={claim.id} className="border-b hover:bg-gray-50">
+                  {claims.map((claim, index) => (
+                    <tr
+                      key={claim.id}
+                      className="border-b table-row-hover animate-fade-in-up"
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
                       <td className="py-3 px-4 font-medium text-emerald-700">{claim.claimNumber}</td>
                       <td className="py-3 px-4">{new Date(claim.date).toLocaleDateString()}</td>
                       <td className="py-3 px-4">{claim.company.name}</td>
                       <td className="py-3 px-4">{claim.shop.name}</td>
                       <td className="py-3 px-4">{claim.supplier.name}</td>
                       <td className="py-3 px-4">{claim.orderBooker?.name || '-'}</td>
-                      <td className="py-3 px-4 text-right">{formatAmount(claim.totalAmount)}</td>
+                      <td className="py-3 px-4 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
                       <td className="py-3 px-4 text-right">
                         {claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <Badge className={`${statusColors[claim.status]} border text-xs`}>
+                        <Badge className={`${statusColors[claim.status]} border text-xs transition-transform duration-200 hover:scale-105 cursor-default`}>
                           {statusLabels[claim.status]}
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-1">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 btn-enhanced"
                             onClick={() => setViewClaim(claim)}
-                            title="View"
+                            title="View Details"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
                           {isAdmin && claim.status === 'pending' && (
                             <>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 text-emerald-600"
+                                className="h-8 w-8 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 btn-enhanced"
                                 onClick={() => handleApprove(claim.id)}
                                 title="Approve"
                               >
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 text-orange-600"
+                                className="h-8 w-8 border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700 btn-enhanced"
                                 onClick={() => {
                                   setActionDialog({ type: 'partial', claim });
                                   setActionValue('');
                                 }}
                                 title="Partial Approve"
                               >
-                                <CheckCircle className="h-4 w-4" />
+                                <AlertTriangle className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 text-red-600"
+                                className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 btn-enhanced"
                                 onClick={() => {
                                   setActionDialog({ type: 'reject', claim });
                                   setActionValue('');
@@ -460,18 +472,18 @@ export function ClaimList({ user }: ClaimListProps) {
                                 <XCircle className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 btn-enhanced"
                                 onClick={() => setEditClaim(claim) || setShowForm(true)}
                                 title="Edit"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 text-red-600"
+                                className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 btn-enhanced"
                                 onClick={() => handleDelete(claim.id)}
                                 title="Delete"
                               >
@@ -481,14 +493,14 @@ export function ClaimList({ user }: ClaimListProps) {
                           )}
                           {isAdmin && (claim.status === 'approved' || claim.status === 'partially_approved') && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="icon"
-                              className="h-8 w-8 text-blue-600"
+                              className="h-8 w-8 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 btn-enhanced"
                               onClick={() => {
                                 setActionDialog({ type: 'clear', claim });
                                 setActionValue('');
                               }}
-                              title="Clear"
+                              title="Clear Payment"
                             >
                               <Banknote className="h-4 w-4" />
                             </Button>
@@ -506,18 +518,18 @@ export function ClaimList({ user }: ClaimListProps) {
 
       {/* Action Dialog */}
       {actionDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <Card className="w-full max-w-md animate-scale-in shadow-xl">
             <CardHeader>
-              <CardTitle className="text-lg">
-                {actionDialog.type === 'partial' && 'Partial Approve'}
-                {actionDialog.type === 'clear' && 'Clear Claim'}
-                {actionDialog.type === 'reject' && 'Reject Claim'}
+              <CardTitle className="text-lg flex items-center gap-2">
+                {actionDialog.type === 'partial' && <><AlertTriangle className="h-5 w-5 text-orange-500" /> Partial Approve</>}
+                {actionDialog.type === 'clear' && <><Banknote className="h-5 w-5 text-blue-500" /> Clear Claim</>}
+                {actionDialog.type === 'reject' && <><XCircle className="h-5 w-5 text-red-500" /> Reject Claim</>}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Claim: {actionDialog.claim.claimNumber} — {formatAmount(actionDialog.claim.totalAmount)}
+                Claim: <strong>{actionDialog.claim.claimNumber}</strong> — {formatAmount(actionDialog.claim.totalAmount)}
               </p>
               {actionDialog.type === 'partial' && (
                 <div>
@@ -527,6 +539,8 @@ export function ClaimList({ user }: ClaimListProps) {
                     value={actionValue}
                     onChange={(e) => setActionValue(e.target.value)}
                     placeholder="Enter approved amount"
+                    className="mt-1"
+                    autoFocus
                   />
                 </div>
               )}
@@ -537,6 +551,8 @@ export function ClaimList({ user }: ClaimListProps) {
                     value={actionValue}
                     onChange={(e) => setActionValue(e.target.value)}
                     placeholder="Enter name of person who cleared"
+                    className="mt-1"
+                    autoFocus
                   />
                 </div>
               )}
@@ -547,15 +563,23 @@ export function ClaimList({ user }: ClaimListProps) {
                     value={actionValue}
                     onChange={(e) => setActionValue(e.target.value)}
                     placeholder="Enter reason for rejection"
+                    className="mt-1"
+                    autoFocus
                   />
                 </div>
               )}
-              <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setActionDialog(null)}>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => setActionDialog(null)} className="btn-enhanced">
                   Cancel
                 </Button>
                 <Button
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className={`btn-enhanced text-white shadow-md ${
+                    actionDialog.type === 'reject'
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+                      : actionDialog.type === 'partial'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
+                      : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+                  }`}
                   onClick={() => {
                     if (actionDialog.type === 'partial') {
                       handlePartialApprove(actionDialog.claim.id, Number(actionValue));

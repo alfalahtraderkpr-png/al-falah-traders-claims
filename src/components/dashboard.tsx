@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, FileText, Clock, CheckCircle2, DollarSign, XCircle, Banknote } from 'lucide-react';
+import { Loader2, FileText, Clock, CheckCircle2, DollarSign, XCircle, Banknote, TrendingUp } from 'lucide-react';
 
 interface DashboardProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -72,7 +72,10 @@ export function Dashboard({ user }: DashboardProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -86,7 +89,9 @@ export function Dashboard({ user }: DashboardProps) {
       title: 'Total Claims',
       value: data.totalClaims,
       icon: FileText,
-      color: 'bg-emerald-50 text-emerald-700',
+      gradient: 'from-emerald-500 to-emerald-700',
+      bgLight: 'bg-emerald-50',
+      textColor: 'text-emerald-700',
       iconBg: 'bg-emerald-100',
     },
     {
@@ -94,7 +99,9 @@ export function Dashboard({ user }: DashboardProps) {
       value: data.pendingClaims.count,
       subtitle: formatAmount(data.pendingClaims.totalAmount),
       icon: Clock,
-      color: 'bg-yellow-50 text-yellow-700',
+      gradient: 'from-yellow-500 to-amber-600',
+      bgLight: 'bg-yellow-50',
+      textColor: 'text-yellow-700',
       iconBg: 'bg-yellow-100',
     },
     {
@@ -102,7 +109,9 @@ export function Dashboard({ user }: DashboardProps) {
       value: data.approvedClaims.count,
       subtitle: `${formatAmount(data.approvedClaims.approvedAmount)}`,
       icon: CheckCircle2,
-      color: 'bg-green-50 text-green-700',
+      gradient: 'from-green-500 to-green-700',
+      bgLight: 'bg-green-50',
+      textColor: 'text-green-700',
       iconBg: 'bg-green-100',
     },
     {
@@ -110,7 +119,9 @@ export function Dashboard({ user }: DashboardProps) {
       value: data.clearedClaims.count,
       subtitle: formatAmount(data.clearedClaims.approvedAmount),
       icon: Banknote,
-      color: 'bg-blue-50 text-blue-700',
+      gradient: 'from-blue-500 to-blue-700',
+      bgLight: 'bg-blue-50',
+      textColor: 'text-blue-700',
       iconBg: 'bg-blue-100',
     },
     {
@@ -118,32 +129,41 @@ export function Dashboard({ user }: DashboardProps) {
       value: data.rejectedClaims.count,
       subtitle: formatAmount(data.rejectedClaims.totalAmount),
       icon: XCircle,
-      color: 'bg-red-50 text-red-700',
+      gradient: 'from-red-500 to-red-700',
+      bgLight: 'bg-red-50',
+      textColor: 'text-red-700',
       iconBg: 'bg-red-100',
     },
   ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-emerald-800">Dashboard</h2>
+      <div className="animate-fade-in-up">
+        <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+          <TrendingUp className="h-6 w-6" />
+          Dashboard
+        </h2>
         <p className="text-muted-foreground">Welcome back, {user.name}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 stagger-children">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className={`${card.color} border-0 shadow-sm`}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <Card
+              key={card.title}
+              className={`${card.bgLight} border-0 shadow-sm card-hover animate-fade-in-up cursor-default overflow-hidden relative`}
+            >
+              <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl ${card.gradient} opacity-10 rounded-bl-full`} />
+              <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
                 <CardTitle className="text-sm font-medium opacity-80">
                   {card.title}
                 </CardTitle>
-                <div className={`${card.iconBg} p-2 rounded-lg`}>
+                <div className={`${card.iconBg} p-2 rounded-lg transition-transform duration-200 hover:scale-110`}>
                   <Icon className="h-4 w-4" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="relative z-10">
                 <div className="text-2xl font-bold">{card.value}</div>
                 {card.subtitle && (
                   <p className="text-xs opacity-70 mt-1">{card.subtitle}</p>
@@ -154,16 +174,20 @@ export function Dashboard({ user }: DashboardProps) {
         })}
       </div>
 
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-emerald-600" />
-            Recent Claims
+            Recent claims
           </CardTitle>
         </CardHeader>
         <CardContent>
           {data.recentClaims.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No claims yet</p>
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-muted-foreground text-lg font-medium">No claims yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Claims will appear here once created</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -178,15 +202,19 @@ export function Dashboard({ user }: DashboardProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.recentClaims.map((claim) => (
-                    <tr key={claim.id} className="border-b hover:bg-gray-50">
+                  {data.recentClaims.map((claim, index) => (
+                    <tr
+                      key={claim.id}
+                      className="border-b table-row-hover animate-fade-in-up"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
                       <td className="py-3 px-2 font-medium text-emerald-700">{claim.claimNumber}</td>
                       <td className="py-3 px-2">{new Date(claim.date).toLocaleDateString()}</td>
                       <td className="py-3 px-2">{claim.company.name}</td>
                       <td className="py-3 px-2">{claim.shop.name}</td>
-                      <td className="py-3 px-2 text-right">{formatAmount(claim.totalAmount)}</td>
+                      <td className="py-3 px-2 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
                       <td className="py-3 px-2 text-center">
-                        <Badge className={`${statusColors[claim.status]} border text-xs`}>
+                        <Badge className={`${statusColors[claim.status]} border text-xs transition-transform duration-200 hover:scale-105`}>
                           {statusLabels[claim.status]}
                         </Badge>
                       </td>

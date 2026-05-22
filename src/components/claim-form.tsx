@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Trash2, ArrowLeft, Store, Search, X, ChevronDown, Package } from 'lucide-react';
+import { Loader2, Plus, Trash2, ArrowLeft, Store, Search, X, ChevronDown, Package, Minus, ShoppingCart } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface ClaimFormProps {
@@ -341,17 +341,18 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onCancel}>
+      <div className="flex items-center gap-3 animate-fade-in-up">
+        <Button variant="outline" size="icon" onClick={onCancel} className="btn-enhanced border-emerald-200 text-emerald-700 hover:bg-emerald-50">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="text-2xl font-bold text-emerald-800">
+        <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+          <ShoppingCart className="h-6 w-6" />
           {claim ? `Edit Claim ${claim.claimNumber}` : 'New Claim'}
         </h2>
       </div>
 
       {/* Claim Details - Compact single card */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '80ms' }}>
         <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
@@ -384,7 +385,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                           <span className="ml-1 text-xs text-purple-600 font-medium">[{selectedShop.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}]</span>
                         )}
                       </span>
-                      <button type="button" className="text-muted-foreground hover:text-foreground ml-2 shrink-0" onClick={() => { setShopId(''); setShopSearch(''); }}>
+                      <button type="button" className="text-muted-foreground hover:text-foreground ml-2 shrink-0 transition-colors" onClick={() => { setShopId(''); setShopSearch(''); }}>
                         <X className="h-4 w-4" />
                       </button>
                     </div>
@@ -398,13 +399,13 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                         onFocus={() => setShopDropdownOpen(true)}
                         className="pl-9 pr-9"
                       />
-                      <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShopDropdownOpen(!shopDropdownOpen)}>
+                      <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShopDropdownOpen(!shopDropdownOpen)}>
                         <ChevronDown className="h-4 w-4" />
                       </button>
                     </div>
                   )}
                   {shopDropdownOpen && !shopId && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto animate-scale-in">
                       {shops
                         .filter((s) => {
                           if (!shopSearch) return true;
@@ -414,7 +415,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                         .length === 0 ? (
                         <div className="px-3 py-4 text-center">
                           <p className="text-sm text-muted-foreground mb-2">No shop found</p>
-                          <Button type="button" size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setQuickShopName(shopSearch); setQuickShopAddress(''); setQuickShopOB(''); setShowQuickShop(true); setShopDropdownOpen(false); }}>
+                          <Button type="button" size="sm" className="bg-emerald-600 hover:bg-emerald-700 btn-enhanced" onClick={() => { setQuickShopName(shopSearch); setQuickShopAddress(''); setQuickShopOB(''); setShowQuickShop(true); setShopDropdownOpen(false); }}>
                             <Store className="h-3.5 w-3.5 mr-1" /> Create &quot;{shopSearch}&quot;
                           </Button>
                         </div>
@@ -426,7 +427,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                             return s.name.toLowerCase().includes(search) || (s.address && s.address.toLowerCase().includes(search));
                           })
                           .map((s) => (
-                            <button key={s.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-emerald-50 hover:text-emerald-800 transition-colors border-b last:border-b-0" onClick={() => { setShopId(s.id); setShopSearch(''); setShopDropdownOpen(false); }}>
+                            <button key={s.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-emerald-50 hover:text-emerald-800 transition-all duration-150 border-b last:border-b-0" onClick={() => { setShopId(s.id); setShopSearch(''); setShopDropdownOpen(false); }}>
                               <span className="font-medium">{s.name}</span>
                               {s.address && <span className="text-muted-foreground ml-1">({s.address})</span>}
                               {s.shopType !== 'retail' && <span className="ml-1 text-xs text-purple-600 font-medium">[{s.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}]</span>}
@@ -439,7 +440,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                     </div>
                   )}
                 </div>
-                <Button type="button" variant="outline" size="icon" className="shrink-0 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700" title="Quick Create Shop" onClick={() => { setQuickShopName(''); setQuickShopAddress(''); setQuickShopOB(''); setQuickShopType('retail'); setShowQuickShop(true); }}>
+                <Button type="button" variant="outline" size="icon" className="shrink-0 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 btn-enhanced border-emerald-200" title="Quick Create Shop" onClick={() => { setQuickShopName(''); setQuickShopAddress(''); setQuickShopOB(''); setQuickShopType('retail'); setShowQuickShop(true); }}>
                   <Store className="h-4 w-4" />
                 </Button>
               </div>
@@ -465,7 +466,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
 
           {/* Multi-tier pricing info banner */}
           {isMultiTier && shopId && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center gap-2">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
               <span className="text-sm font-medium text-purple-800">Multi-Tier Pricing Active</span>
               <span className="text-xs text-purple-600">|</span>
               <span className="text-xs text-purple-700">Shop Type: <strong>{shopTypeLabel}</strong></span>
@@ -477,20 +478,20 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       </Card>
 
       {/* Products Section - Redesigned */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '160ms' }}>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Package className="h-5 w-5 text-emerald-600" />
             Products
             {items.length > 0 && (
-              <span className="text-sm font-normal text-muted-foreground">({items.length} items)</span>
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 animate-scale-in">{items.length} items</Badge>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!companyId ? (
             <div className="text-center py-10">
-              <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <Package className="h-12 w-12 text-gray-300 mx-auto mb-3 animate-pulse" />
               <p className="text-muted-foreground">Pehle company select karo products add karne ke liye</p>
             </div>
           ) : (
@@ -513,7 +514,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
 
                 {/* Product Search Results Dropdown */}
                 {productDropdownOpen && companyId && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-72 overflow-y-auto">
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-72 overflow-y-auto animate-scale-in">
                     {productSearch && filteredProducts.length === 0 ? (
                       <div className="px-4 py-6 text-center">
                         <p className="text-sm text-muted-foreground">No product found for &quot;{productSearch}&quot;</p>
@@ -551,17 +552,17 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                           <button
                             key={product.id}
                             type="button"
-                            className="w-full text-left px-3 py-2.5 hover:bg-emerald-50 transition-colors border-b last:border-b-0 flex items-center justify-between group"
+                            className="w-full text-left px-3 py-2.5 hover:bg-emerald-50 transition-all duration-150 border-b last:border-b-0 flex items-center justify-between group"
                             onClick={() => addProductToClaim(product.id)}
                           >
                             <div className="flex-1">
-                              <span className="text-sm font-medium group-hover:text-emerald-800">{product.name}</span>
+                              <span className="text-sm font-medium group-hover:text-emerald-800 transition-colors">{product.name}</span>
                               <span className="text-xs text-muted-foreground ml-2">{getPriceLabel(product)}/{product.unit}</span>
                               {isMultiTier && product.wholesalePrice && product.lmtPrice && (
                                 <span className="text-xs text-purple-500 ml-1">(Ws:{product.wholesalePrice} / LMT:{product.lmtPrice})</span>
                               )}
                             </div>
-                            <Plus className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 shrink-0 ml-2" />
+                            <Plus className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 group-hover:scale-125 transition-all duration-200 shrink-0 ml-2" />
                           </button>
                         ))}
                       </>
@@ -578,13 +579,13 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                   <p className="text-xs text-muted-foreground mt-1">Ya &quot;+&quot; button se quantity badhao</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 stagger-children">
                   {items.map((item, index) => {
                     const product = products.find((p) => p.id === item.productId);
                     if (!product) return null;
                     const effectivePrice = getProductPrice(product);
                     return (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-white border rounded-lg hover:shadow-sm transition-shadow">
+                      <div key={index} className="flex items-center gap-3 p-3 bg-white border rounded-lg card-hover animate-fade-in-up shadow-sm">
                         {/* Product Info */}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{product.name}</p>
@@ -599,24 +600,24 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            className="h-8 w-8 rounded-md border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                            className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-red-50 hover:border-red-300 hover:text-red-600 active:scale-90 transition-all duration-150"
                             onClick={() => updateQuantity(index, item.quantity - 1)}
                           >
-                            -
+                            <Minus className="h-3.5 w-3.5" />
                           </button>
                           <Input
                             type="number"
                             min="1"
                             value={item.quantity}
                             onChange={(e) => updateQuantity(index, Math.max(1, parseInt(e.target.value) || 1))}
-                            className="w-14 h-8 text-center text-sm p-0 border-gray-300"
+                            className="w-14 h-8 text-center text-sm p-0 border-gray-300 font-medium"
                           />
                           <button
                             type="button"
-                            className="h-8 w-8 rounded-md border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                            className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-600 active:scale-90 transition-all duration-150"
                             onClick={() => updateQuantity(index, item.quantity + 1)}
                           >
-                            +
+                            <Plus className="h-3.5 w-3.5" />
                           </button>
                         </div>
 
@@ -631,7 +632,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                         {/* Delete */}
                         <button
                           type="button"
-                          className="h-8 w-8 rounded-md flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                          className="h-8 w-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 active:scale-90 transition-all duration-150 shrink-0"
                           onClick={() => removeItem(index)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -641,9 +642,9 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                   })}
 
                   {/* Total */}
-                  <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                    <span className="font-bold text-emerald-800">Total Claim Amount</span>
-                    <span className="font-bold text-lg text-emerald-700">Rs.{totalAmount.toLocaleString()}</span>
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-lg animate-fade-in-up">
+                    <span className="font-bold text-emerald-800 text-lg">Total Claim Amount</span>
+                    <span className="font-bold text-xl text-emerald-700">Rs.{totalAmount.toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -656,7 +657,10 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       <Dialog open={showQuickShop} onOpenChange={setShowQuickShop}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-emerald-800">Quick Create Shop</DialogTitle>
+            <DialogTitle className="text-emerald-800 flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              Quick Create Shop
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
@@ -675,11 +679,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                   <button
                     key={type}
                     type="button"
-                    className={`py-2 px-3 rounded-lg border text-sm font-medium transition-colors ${
+                    className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all duration-200 btn-enhanced ${
                       quickShopType === type
-                        ? type === 'retail' ? 'bg-blue-600 text-white border-blue-600'
-                          : type === 'wholesale' ? 'bg-orange-600 text-white border-orange-600'
-                          : 'bg-purple-600 text-white border-purple-600'
+                        ? type === 'retail' ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                          : type === 'wholesale' ? 'bg-orange-600 text-white border-orange-600 shadow-md'
+                          : 'bg-purple-600 text-white border-purple-600 shadow-md'
                         : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                     }`}
                     onClick={() => setQuickShopType(type)}
@@ -701,9 +705,9 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowQuickShop(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowQuickShop(false)} className="btn-enhanced">Cancel</Button>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md"
               disabled={creatingShop || !quickShopName.trim()}
               onClick={async () => {
                 setCreatingShop(true);
@@ -734,9 +738,13 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       </Dialog>
 
       {/* Save Button - Sticky at bottom on mobile */}
-      <div className="flex justify-end gap-3 pb-4">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSave} disabled={saving}>
+      <div className="flex justify-end gap-3 pb-4 animate-fade-in-up">
+        <Button variant="outline" onClick={onCancel} className="btn-enhanced px-6">Cancel</Button>
+        <Button
+          className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-lg px-8 py-2.5 text-base font-semibold"
+          onClick={handleSave}
+          disabled={saving}
+        >
           {saving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>) : claim ? 'Update Claim' : 'Create Claim'}
         </Button>
       </div>

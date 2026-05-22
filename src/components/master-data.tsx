@@ -25,22 +25,25 @@ export function MasterData({ initialTab = 'companies' }: { initialTab?: string }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-emerald-800">Master Data</h2>
+      <h2 className="text-2xl font-bold text-emerald-800 animate-fade-in-up flex items-center gap-2">
+        <Building2 className="h-6 w-6" />
+        Master Data
+      </h2>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-gray-100 p-1 rounded-lg">
-          <TabsTrigger value="companies" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-gray-100 p-1.5 rounded-xl shadow-sm animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+          <TabsTrigger value="companies" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
             <Building2 className="h-4 w-4 mr-1" /> Companies
           </TabsTrigger>
-          <TabsTrigger value="products" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+          <TabsTrigger value="products" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
             <Package className="h-4 w-4 mr-1" /> Products
           </TabsTrigger>
-          <TabsTrigger value="suppliers" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+          <TabsTrigger value="suppliers" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
             <Users className="h-4 w-4 mr-1" /> Suppliers
           </TabsTrigger>
-          <TabsTrigger value="shops" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+          <TabsTrigger value="shops" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
             <Store className="h-4 w-4 mr-1" /> Shops
           </TabsTrigger>
-          <TabsTrigger value="order-bookers" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+          <TabsTrigger value="order-bookers" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
             <UserCheck className="h-4 w-4 mr-1" /> Order Bookers
           </TabsTrigger>
         </TabsList>
@@ -112,7 +115,7 @@ function CompaniesTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Companies ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -132,15 +135,15 @@ function CompaniesTab() {
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
               </tr></thead>
               <tbody>
-                {filtered.map((item) => (
-                  <tr key={item.id} className="border-b hover:bg-gray-50">
+                {filtered.map((item, index) => (
+                  <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
                     <td className="py-2 px-4 font-medium">{item.name}</td>
-                    <td className="py-2 px-4 text-center"><Badge variant="outline">{item._count?.products || 0}</Badge></td>
+                    <td className="py-2 px-4 text-center"><Badge variant="outline" className="transition-transform hover:scale-105">{item._count?.products || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
@@ -160,7 +163,7 @@ function CompaniesTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -291,10 +294,10 @@ function ProductsTab() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Products ({filtered.length})</CardTitle>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
+          <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
             <Upload className="h-4 w-4 mr-1" /> Bulk Import
           </Button>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setEditItem(null); setForm({ name: '', price: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
+          <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setForm({ name: '', price: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Add
           </Button>
         </div>
@@ -324,17 +327,17 @@ function ProductsTab() {
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
               </tr></thead>
               <tbody>
-                {filtered.map((item) => (
-                  <tr key={item.id} className="border-b hover:bg-gray-50">
+                {filtered.map((item, index) => (
+                  <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 20}ms` }}>
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-right">Rs.{item.price}</td>
                     <td className="py-2 px-4 text-center">{item.unit}</td>
                     <td className="py-2 px-4">{item.company?.name}</td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
@@ -365,7 +368,7 @@ function ProductsTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -472,7 +475,7 @@ function ProductsTab() {
               <DialogFooter>
                 <Button variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
                 <Button
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced"
                   onClick={handleBulkImport}
                   disabled={!importFile || !importCompany || importing}
                 >
@@ -531,7 +534,7 @@ function ProductsTab() {
 
               <DialogFooter>
                 <Button
-                  className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced w-full"
                   onClick={() => {
                     setImportOpen(false);
                     setImportResult(null);
@@ -588,7 +591,7 @@ function SuppliersTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Suppliers ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -611,8 +614,8 @@ function SuppliersTab() {
                   <tr key={item.id} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
                     </td>
                   </tr>
                 ))}
@@ -630,7 +633,7 @@ function SuppliersTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -745,7 +748,7 @@ function ShopsTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Shops ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={openAddDialog}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={openAddDialog}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -780,10 +783,10 @@ function ShopsTab() {
                       </td>
                     ))}
                     <td className="py-2 px-4 text-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => openEditDialog(item)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
@@ -832,7 +835,7 @@ function ShopsTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -880,7 +883,7 @@ function OrderBookersTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Order Bookers ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -905,8 +908,8 @@ function OrderBookersTab() {
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-center"><Badge variant="outline">{item._count?.shopCompanyOrderBookers || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
                     </td>
                   </tr>
                 ))}
@@ -924,7 +927,7 @@ function OrderBookersTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

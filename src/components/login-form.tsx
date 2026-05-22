@@ -67,7 +67,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@alfalah.com"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -97,7 +97,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
             )}
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-lg btn-enhanced py-5 text-base font-semibold"
+              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-lg btn-enhanced btn-ripple py-5 text-base font-semibold rounded-xl"
               disabled={loading}
             >
               {loading ? (
@@ -109,9 +109,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
                 'Sign In'
               )}
             </Button>
-            <p className="text-xs text-center text-muted-foreground mt-4">
-              Default: admin@alfalah.com / admin123
-            </p>
           </form>
         </CardContent>
       </Card>

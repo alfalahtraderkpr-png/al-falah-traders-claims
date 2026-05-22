@@ -115,7 +115,7 @@ function CompaniesTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Companies ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -140,10 +140,10 @@ function CompaniesTab() {
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-center"><Badge variant="outline" className="transition-transform hover:scale-105">{item._count?.products || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
@@ -294,10 +294,10 @@ function ProductsTab() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Products ({filtered.length})</CardTitle>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
+          <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
             <Upload className="h-4 w-4 mr-1" /> Bulk Import
           </Button>
-          <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setForm({ name: '', price: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
+          <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setForm({ name: '', price: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Add
           </Button>
         </div>
@@ -334,10 +334,10 @@ function ProductsTab() {
                     <td className="py-2 px-4 text-center">{item.unit}</td>
                     <td className="py-2 px-4">{item.company?.name}</td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
@@ -614,8 +614,8 @@ function SuppliersTab() {
                   <tr key={item.id} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
                     </td>
                   </tr>
                 ))}
@@ -632,8 +632,8 @@ function SuppliersTab() {
             <div><Label>Name</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Supplier name" /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={handleSave}>Save</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-enhanced btn-ripple rounded-lg">Cancel</Button>
+            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -783,10 +783,10 @@ function ShopsTab() {
                       </td>
                     ))}
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => openEditDialog(item)}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => openEditDialog(item)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
@@ -834,8 +834,8 @@ function ShopsTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={handleSave}>Save</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-enhanced btn-ripple rounded-lg">Cancel</Button>
+            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -883,7 +883,7 @@ function OrderBookersTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Order Bookers ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -908,8 +908,8 @@ function OrderBookersTab() {
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-center"><Badge variant="outline">{item._count?.shopCompanyOrderBookers || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 btn-enhanced" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 btn-enhanced" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
                     </td>
                   </tr>
                 ))}
@@ -926,8 +926,8 @@ function OrderBookersTab() {
             <div><Label>Name</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Order Booker name" /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={handleSave}>Save</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-enhanced btn-ripple rounded-lg">Cancel</Button>
+            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -152,9 +152,9 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between animate-fade-in-up">
+      <div className="flex items-center justify-between animate-slide-up">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={onBack} className="btn-enhanced border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+          <Button variant="outline" size="icon" onClick={onBack} className="btn-enhanced btn-ripple border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 h-10 w-10 rounded-xl shadow-sm">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -162,7 +162,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               <FileText className="h-6 w-6" />
               Claim {claim.claimNumber}
             </h2>
-            <Badge className={`${statusColors[claim.status]} border mt-1 transition-transform hover:scale-105`}>
+            <Badge className={`${statusColors[claim.status]} border mt-1 transition-transform hover:scale-105 px-3 py-0.5`}>
               {statusLabels[claim.status]}
             </Badge>
           </div>
@@ -286,45 +286,49 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
           <CardTitle className="text-lg">Receipt Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Button
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md btn-enhanced"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
               onClick={handleDownloadImage}
               disabled={generating}
             >
-              <Image className="h-4 w-4 mr-2" />
+              <Image className="h-5 w-5 mr-2" />
               Download PNG
             </Button>
             <Button
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md btn-enhanced"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
               onClick={handleDownloadPDF}
               disabled={generating}
             >
-              <FileDown className="h-4 w-4 mr-2" />
+              <FileDown className="h-5 w-5 mr-2" />
               Download PDF
             </Button>
             <Button
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md btn-enhanced"
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
               onClick={handleShareWhatsApp}
               disabled={generating}
             >
-              <MessageCircle className="h-4 w-4 mr-2" />
+              <MessageCircle className="h-5 w-5 mr-2" />
               WhatsApp
             </Button>
             <Button
               variant="outline"
-              className="border-gray-300 btn-enhanced"
+              className="border-2 border-gray-400 btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold hover:bg-gray-50"
               onClick={handlePrint}
             >
-              <Printer className="h-4 w-4 mr-2" />
+              <Printer className="h-5 w-5 mr-2" />
               Print
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Receipt Preview */}
-      <Receipt claim={claim} ref={receiptRef} />
+      {/* Receipt Preview - centered for proper image generation */}
+      <div className="flex justify-center">
+        <div className="print-area w-full max-w-2xl">
+          <Receipt claim={claim} ref={receiptRef} />
+        </div>
+      </div>
     </div>
   );
 }

@@ -152,7 +152,7 @@ export function Dashboard({ user }: DashboardProps) {
           return (
             <Card
               key={card.title}
-              className={`${card.bgLight} border-0 shadow-sm card-hover animate-fade-in-up cursor-default overflow-hidden relative`}
+              className={`${card.bgLight} border-0 shadow-sm card-hover animate-pop-in cursor-default overflow-hidden relative`}
             >
               <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl ${card.gradient} opacity-10 rounded-bl-full`} />
               <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">

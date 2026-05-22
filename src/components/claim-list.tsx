@@ -257,7 +257,7 @@ export function ClaimList({ user }: ClaimListProps) {
         </div>
         {isAdmin && (
           <Button
-            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced text-sm font-semibold px-5 py-2.5"
+            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg btn-enhanced btn-ripple text-sm font-semibold px-6 py-3 rounded-xl"
             onClick={() => setShowForm(true)}
           >
             <Plus className="h-5 w-5 mr-2" />
@@ -426,11 +426,11 @@ export function ClaimList({ user }: ClaimListProps) {
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1.5">
                           <Button
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 btn-enhanced"
+                            className="h-9 w-9 border-blue-300 text-blue-600 hover:bg-blue-100 hover:text-blue-800 btn-enhanced btn-ripple rounded-lg"
                             onClick={() => setViewClaim(claim)}
                             title="View Details"
                           >
@@ -439,18 +439,16 @@ export function ClaimList({ user }: ClaimListProps) {
                           {isAdmin && claim.status === 'pending' && (
                             <>
                               <Button
-                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 btn-enhanced"
+                                className="h-9 w-9 bg-green-600 hover:bg-green-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
                                 onClick={() => handleApprove(claim.id)}
                                 title="Approve"
                               >
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700 btn-enhanced"
+                                className="h-9 w-9 bg-orange-500 hover:bg-orange-600 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
                                 onClick={() => {
                                   setActionDialog({ type: 'partial', claim });
                                   setActionValue('');
@@ -460,9 +458,8 @@ export function ClaimList({ user }: ClaimListProps) {
                                 <AlertTriangle className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 btn-enhanced"
+                                className="h-9 w-9 bg-red-500 hover:bg-red-600 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
                                 onClick={() => {
                                   setActionDialog({ type: 'reject', claim });
                                   setActionValue('');
@@ -474,7 +471,7 @@ export function ClaimList({ user }: ClaimListProps) {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 btn-enhanced"
+                                className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 btn-enhanced btn-ripple rounded-lg"
                                 onClick={() => setEditClaim(claim) || setShowForm(true)}
                                 title="Edit"
                               >
@@ -483,7 +480,7 @@ export function ClaimList({ user }: ClaimListProps) {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 btn-enhanced"
+                                className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
                                 onClick={() => handleDelete(claim.id)}
                                 title="Delete"
                               >
@@ -493,9 +490,8 @@ export function ClaimList({ user }: ClaimListProps) {
                           )}
                           {isAdmin && (claim.status === 'approved' || claim.status === 'partially_approved') && (
                             <Button
-                              variant="outline"
                               size="icon"
-                              className="h-8 w-8 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 btn-enhanced"
+                              className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
                               onClick={() => {
                                 setActionDialog({ type: 'clear', claim });
                                 setActionValue('');

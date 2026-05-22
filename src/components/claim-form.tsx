@@ -738,10 +738,10 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       </Dialog>
 
       {/* Save Button - Sticky at bottom on mobile */}
-      <div className="flex justify-end gap-3 pb-4 animate-fade-in-up">
-        <Button variant="outline" onClick={onCancel} className="btn-enhanced px-6">Cancel</Button>
+      <div className="flex justify-end gap-3 pb-4 animate-slide-up">
+        <Button variant="outline" onClick={onCancel} className="btn-enhanced btn-ripple px-6 h-11 rounded-xl border-gray-300 font-medium">Cancel</Button>
         <Button
-          className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-lg px-8 py-2.5 text-base font-semibold"
+          className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced btn-ripple shadow-lg px-8 py-3 text-base font-bold rounded-xl"
           onClick={handleSave}
           disabled={saving}
         >

@@ -91,9 +91,9 @@ export function ClaimList({ user }: ClaimListProps) {
         fetch('/api/suppliers'),
         fetch('/api/order-bookers'),
       ]);
-      setCompanies(await compRes.json());
-      setSuppliers(await supRes.json());
-      setOrderBookers(await obRes.json());
+      if (compRes.ok) { const data = await compRes.json(); if (Array.isArray(data)) setCompanies(data); }
+      if (supRes.ok) { const data = await supRes.json(); if (Array.isArray(data)) setSuppliers(data); }
+      if (obRes.ok) { const data = await obRes.json(); if (Array.isArray(data)) setOrderBookers(data); }
     } catch (error) {
       console.error('Failed to load filters:', error);
     }
@@ -116,7 +116,7 @@ export function ClaimList({ user }: ClaimListProps) {
       }
 
       const res = await fetch(`/api/claims?${params}`);
-      setClaims(await res.json());
+      if (res.ok) { const data = await res.json(); if (Array.isArray(data)) setClaims(data); }
     } catch (error) {
       console.error('Failed to load claims:', error);
     } finally {

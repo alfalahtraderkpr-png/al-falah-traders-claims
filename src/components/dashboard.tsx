@@ -60,8 +60,12 @@ export function Dashboard({ user }: DashboardProps) {
         params.set('orderBookerId', user.orderBookerId);
       }
       const res = await fetch(`/api/dashboard?${params}`);
-      const result = await res.json();
-      setData(result);
+      if (res.ok) {
+        const result = await res.json();
+        if (result && typeof result === 'object' && result.totalClaims !== undefined) {
+          setData(result);
+        }
+      }
     } catch (error) {
       console.error('Failed to load dashboard:', error);
     } finally {

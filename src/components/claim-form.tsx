@@ -170,9 +170,9 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
         fetch('/api/suppliers'),
         fetch('/api/order-bookers'),
       ]);
-      setShops(await shopRes.json());
-      setSuppliers(await supRes.json());
-      setOrderBookers(await obRes.json());
+      if (shopRes.ok) { const data = await shopRes.json(); if (Array.isArray(data)) setShops(data); }
+      if (supRes.ok) { const data = await supRes.json(); if (Array.isArray(data)) setSuppliers(data); }
+      if (obRes.ok) { const data = await obRes.json(); if (Array.isArray(data)) setOrderBookers(data); }
     } catch (error) {
       console.error('Failed to load dropdowns:', error);
     }
@@ -181,7 +181,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   const loadProducts = async (compId: string) => {
     try {
       const res = await fetch(`/api/products?companyId=${compId}`);
-      setProducts(await res.json());
+      if (res.ok) { const data = await res.json(); if (Array.isArray(data)) setProducts(data); }
     } catch (error) {
       console.error('Failed to load products:', error);
     }

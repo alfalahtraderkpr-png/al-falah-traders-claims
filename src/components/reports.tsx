@@ -67,9 +67,9 @@ export function Reports() {
         fetch('/api/suppliers'),
         fetch('/api/order-bookers'),
       ]);
-      setCompanies(await compRes.json());
-      setSuppliers(await supRes.json());
-      setOrderBookers(await obRes.json());
+      if (compRes.ok) { const data = await compRes.json(); if (Array.isArray(data)) setCompanies(data); }
+      if (supRes.ok) { const data = await supRes.json(); if (Array.isArray(data)) setSuppliers(data); }
+      if (obRes.ok) { const data = await obRes.json(); if (Array.isArray(data)) setOrderBookers(data); }
     } catch (e) { console.error(e); }
   }, []);
 
@@ -85,9 +85,13 @@ export function Reports() {
       if (filterDateTo) params.set('dateTo', filterDateTo);
 
       const res = await fetch(`/api/reports?${params}`);
-      const data = await res.json();
-      setClaims(data.claims);
-      setSummary(data.summary);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data === 'object') {
+          if (Array.isArray(data.claims)) setClaims(data.claims);
+          if (data.summary) setSummary(data.summary);
+        }
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, [filterStatus, filterCompany, filterSupplier, filterOrderBooker, filterDateFrom, filterDateTo]);

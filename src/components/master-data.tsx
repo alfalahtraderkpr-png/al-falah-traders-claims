@@ -70,7 +70,7 @@ function CompaniesTab() {
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/companies');
-      setItems(await res.json());
+      if (res.ok) { const data = await res.json(); if (Array.isArray(data)) setItems(data); }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -192,8 +192,8 @@ function ProductsTab() {
   const load = useCallback(async () => {
     try {
       const [prodRes, compRes] = await Promise.all([fetch('/api/products'), fetch('/api/companies')]);
-      setItems(await prodRes.json());
-      setCompanies(await compRes.json());
+      if (prodRes.ok) { const data = await prodRes.json(); if (Array.isArray(data)) setItems(data); }
+      if (compRes.ok) { const data = await compRes.json(); if (Array.isArray(data)) setCompanies(data); }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -561,7 +561,7 @@ function SuppliersTab() {
   const [formName, setFormName] = useState('');
 
   const load = useCallback(async () => {
-    try { const res = await fetch('/api/suppliers'); setItems(await res.json()); }
+    try { const res = await fetch('/api/suppliers'); if (res.ok) { const data = await res.json(); if (Array.isArray(data)) setItems(data); } }
     catch (e) { console.error(e); } finally { setLoading(false); }
   }, []);
 
@@ -661,9 +661,9 @@ function ShopsTab() {
         fetch('/api/order-bookers'),
         fetch('/api/companies'),
       ]);
-      setItems(await shopRes.json());
-      setOrderBookers(await obRes.json());
-      setCompanies(await compRes.json());
+      if (shopRes.ok) { const data = await shopRes.json(); if (Array.isArray(data)) setItems(data); }
+      if (obRes.ok) { const data = await obRes.json(); if (Array.isArray(data)) setOrderBookers(data); }
+      if (compRes.ok) { const data = await compRes.json(); if (Array.isArray(data)) setCompanies(data); }
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }, []);
 
@@ -853,7 +853,7 @@ function OrderBookersTab() {
   const [formName, setFormName] = useState('');
 
   const load = useCallback(async () => {
-    try { const res = await fetch('/api/order-bookers'); setItems(await res.json()); }
+    try { const res = await fetch('/api/order-bookers'); if (res.ok) { const data = await res.json(); if (Array.isArray(data)) setItems(data); } }
     catch (e) { console.error(e); } finally { setLoading(false); }
   }, []);
 

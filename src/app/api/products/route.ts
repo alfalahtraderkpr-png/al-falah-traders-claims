@@ -16,8 +16,12 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(products);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Get products error:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    if (errMsg.includes('connect') || errMsg.includes('fetch')) {
+      return NextResponse.json({ error: 'Database connection error. Please try again.' }, { status: 503 });
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

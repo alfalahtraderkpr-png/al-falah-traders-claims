@@ -67,6 +67,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one item is required' }, { status: 400 });
     }
 
+    // Validate that referenced entities exist
+    const [company, shop, supplier] = await Promise.all([
+      db.company.findUnique({ where: { id: companyId } }),
+      db.shop.findUnique({ where: { id: shopId } }),
+      db.supplier.findUnique({ where: { id: supplierId } }),
+    ]);
+
+    if (!company) {
+      return NextResponse.json({ error: 'Company not found. Please select a valid company.' }, { status: 400 });
+    }
+    if (!shop) {
+      return NextResponse.json({ error: 'Shop not found. Please select a valid shop.' }, { status: 400 });
+    }
+    if (!supplier) {
+      return NextResponse.json({ error: 'Supplier not found. Please select a valid supplier.' }, { status: 400 });
+    }
+
+    // Validate all products exist
+    const productIds = items.map((item: { productId: string }) => item.productId);
+    const products = await db.product.findMany({ where: { id: { in: productIds } } });
+    if (products.length !== productIds.length) {
+      const foundIds = new Set(products.map(p => p.id));
+      const missingIds = productIds.filter((id: string) => !foundIds.has(id));
+      return NextResponse.json({ 
+        error: `Some products not found. Please remove and re-add the missing products.` 
+      }, { status: 400 });
+    }
+
     // Generate claim number
     const lastClaim = await db.claim.findFirst({
       orderBy: { createdAt: 'desc' },
@@ -115,6 +143,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(claim, { status: 201 });
   } catch (error) {
     console.error('Create claim error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: `Failed to create claim: ${errMsg}` }, { status: 500 });
   }
 }

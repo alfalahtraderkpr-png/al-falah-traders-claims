@@ -315,7 +315,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       onSave();
     } catch (error) {
       console.error('Save error:', error);
-      alert('Failed to save claim');
+      alert('Network error. Please check your internet connection and try again.');
     } finally {
       setSaving(false);
     }

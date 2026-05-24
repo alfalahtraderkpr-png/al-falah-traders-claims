@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface ClaimFormProps {
   claim: ClaimData | null;
-  companies: Array<{ id: string; name: string; multiTierPricing?: boolean; claimRate?: number }>;
+  companies: Array<{ id: string; name: string; multiTierPricing?: boolean }>
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
   onSave: () => void;
   onCancel: () => void;
@@ -202,15 +202,9 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
     return product.price;
   };
 
-  const getClaimRate = (): number => {
-    const company = companies.find((c) => c.id === companyId);
-    return company?.claimRate || 78;
-  };
-
   const calculateClaimAmount = (product: Product, quantity: number): number => {
     const price = getProductPrice(product);
-    const claimRate = getClaimRate();
-    return Math.round(price * (claimRate / 100) * quantity);
+    return Math.round(price * quantity);
   };
 
   const getPriceLabel = (product: Product): string => {
@@ -473,17 +467,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
           </div>
 
           {/* Multi-tier pricing info banner */}
-          {companyId && (
-            <div className={`border rounded-lg p-3 flex items-center gap-2 flex-wrap animate-scale-in ${isMultiTier && shopId ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
-              <span className="text-sm font-medium text-blue-800">Claim Rate: <strong>{getClaimRate()}%</strong></span>
-              <span className="text-xs text-blue-600">|</span>
-              <span className="text-xs text-blue-700">Claim = Price x {getClaimRate()}% x Qty</span>
-              {isMultiTier && shopId && (
-                <>
-                  <span className="text-xs text-purple-600">|</span>
-                  <span className="text-xs text-purple-700">Shop Type: <strong>{shopTypeLabel}</strong></span>
-                </>
-              )}
+          {isMultiTier && companyId && shopId && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
+              <span className="text-sm font-medium text-purple-800">Multi-Tier Pricing Active</span>
+              <span className="text-xs text-purple-600">|</span>
+              <span className="text-xs text-purple-700">Shop Type: <strong>{shopTypeLabel}</strong></span>
             </div>
           )}
         </CardContent>
@@ -596,8 +584,6 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                     const product = products.find((p) => p.id === item.productId);
                     if (!product) return null;
                     const effectivePrice = getProductPrice(product);
-                    const claimRate = getClaimRate();
-                    const claimPerUnit = Math.round(effectivePrice * (claimRate / 100));
                     return (
                       <div key={index} className="flex items-center gap-3 p-3 bg-white border rounded-lg card-hover animate-fade-in-up shadow-sm">
                         {/* Product Info */}
@@ -606,7 +592,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                           <p className="text-xs text-muted-foreground">
                             {getPriceLabel(product)}/{product.unit}
                             {isMultiTier && <span className="text-purple-600 ml-1">({shopTypeLabel})</span>}
-                            <span className="ml-1">Claim: Rs.{claimPerUnit}/unit ({claimRate}%)</span>
+                            <span className="ml-1">= Rs.{Math.round(effectivePrice)}/unit</span>
                           </p>
                         </div>
 
@@ -638,7 +624,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                         {/* Amount */}
                         <div className="text-right min-w-[80px]">
                           <p className="font-bold text-sm text-emerald-700">Rs.{item.amount.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">Rs.{claimPerUnit} x {item.quantity}</p>
+                          <p className="text-xs text-muted-foreground">Rs.{Math.round(effectivePrice)} x {item.quantity}</p>
                         </div>
 
                         {/* Delete */}

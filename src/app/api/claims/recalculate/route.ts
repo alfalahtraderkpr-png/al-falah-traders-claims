@@ -4,7 +4,6 @@ import { db } from '@/lib/db';
 
 export async function POST() {
   try {
-    // Get all claims with their items and company info
     const claims = await db.claim.findMany({
       include: {
         company: true,
@@ -21,16 +20,14 @@ export async function POST() {
 
     for (const claim of claims) {
       try {
-        const claimRate = claim.company?.claimRate || 78;
         let newTotalAmount = 0;
 
-        // Recalculate each item amount: price × (claimRate/100) × quantity
+        // Recalculate each item: amount = price × quantity (no claim rate)
         for (const item of claim.claimItems) {
           const price = item.product.price;
-          const correctAmount = Math.round(price * (claimRate / 100) * item.quantity);
+          const correctAmount = Math.round(price * item.quantity);
           newTotalAmount += correctAmount;
 
-          // Always update the item amount
           await db.claimItem.update({
             where: { id: item.id },
             data: { amount: correctAmount },
@@ -40,7 +37,6 @@ export async function POST() {
         // Update claim total and adjust approvedAmount proportionally
         const updateData: Record<string, unknown> = { totalAmount: newTotalAmount };
 
-        // If claim was approved, adjust approvedAmount proportionally
         if (claim.approvedAmount !== null && claim.approvedAmount !== undefined && claim.totalAmount > 0) {
           const ratio = claim.approvedAmount / claim.totalAmount;
           updateData.approvedAmount = Math.round(newTotalAmount * ratio);
@@ -60,7 +56,7 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: `Recalculated ${updatedCount} claims with correct claim rates`,
+      message: `Recalculated ${updatedCount} claims (Amount = Rate x Quantity)`,
       totalClaims: claims.length,
       updatedClaims: updatedCount,
       errors: errorCount,

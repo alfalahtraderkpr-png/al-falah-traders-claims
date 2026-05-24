@@ -8,14 +8,13 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { name, claimRate, multiTierPricing } = await request.json();
+    const { name, multiTierPricing } = await request.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
     }
 
     const updateData: Record<string, unknown> = { name: name.trim() };
-    if (claimRate !== undefined) updateData.claimRate = Number(claimRate);
     if (multiTierPricing !== undefined) updateData.multiTierPricing = multiTierPricing === true;
 
     const company = await db.company.update({

@@ -4,8 +4,8 @@ import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Share2, Printer, FileText, Image, FileDown, MessageCircle } from 'lucide-react';
-import { Receipt } from './receipt';
+import { ArrowLeft, Download, Share2, Printer, FileText, Image, FileDown, MessageCircle, Package, CheckCircle, Banknote } from 'lucide-react';
+import { Receipt, ReceiptType } from './receipt';
 
 interface ClaimDetailProps {
   claim: ClaimData;
@@ -56,9 +56,44 @@ const statusLabels: Record<string, string> = {
   rejected: 'Rejected',
 };
 
+// Get prefilled WhatsApp text based on receipt type
+function getWhatsAppText(claim: ClaimData, receiptType: ReceiptType): string {
+  const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
+
+  switch (receiptType) {
+    case 'received':
+      return `\u2705 Al-Falah Traders - Expiry Stock Received\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nAmount: ${formatAmount(claim.totalAmount)}\nDate: ${new Date(claim.date).toLocaleDateString()}\n\nClaim receive ho chuki hai. JazakAllah.`;
+    case 'approved':
+      return `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmount(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
+    case 'cleared':
+      return `\uD83D\uDCB0 Al-Falah Traders - Payment Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmount(claim.approvedAmount)}` : ''}${claim.approvedAmount && claim.totalAmount - claim.approvedAmount > 0 ? `\nRemaining: ${formatAmount(claim.totalAmount - claim.approvedAmount)}` : ''}${claim.clearedBy ? `\nCleared By: ${claim.clearedBy}` : ''}\n\nPayment clear ho chuki hai. JazakAllah.`;
+    default:
+      return `Claim ${claim.claimNumber} - AL FALAH TRADERS`;
+  }
+}
+
+// Get available receipt types based on claim status
+function getAvailableReceiptTypes(status: string): { type: ReceiptType; label: string; icon: React.ReactNode; color: string; description: string }[] {
+  const types = [
+    { type: 'received' as ReceiptType, label: 'Expiry Stock Received', icon: <Package className="h-5 w-5" />, color: 'from-emerald-500 to-emerald-600', description: 'Stock receive confirmation' },
+  ];
+
+  if (status === 'approved' || status === 'partially_approved' || status === 'cleared') {
+    types.push({ type: 'approved' as ReceiptType, label: 'Claim Approved', icon: <CheckCircle className="h-5 w-5" />, color: 'from-green-500 to-green-600', description: 'Approval confirmation' });
+  }
+
+  if (status === 'cleared') {
+    types.push({ type: 'cleared' as ReceiptType, label: 'Payment Cleared', icon: <Banknote className="h-5 w-5" />, color: 'from-blue-500 to-blue-600', description: 'Payment confirmation' });
+  }
+
+  return types;
+}
+
 export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
+  const [selectedType, setSelectedType] = useState<ReceiptType>('received');
+  const availableTypes = getAvailableReceiptTypes(claim.status);
 
   const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
 
@@ -73,7 +108,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
         backgroundColor: '#ffffff',
       });
       const link = document.createElement('a');
-      link.download = `claim-${claim.claimNumber}.png`;
+      link.download = `claim-${claim.claimNumber}-${selectedType}.png`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
@@ -99,7 +134,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
       const imgWidth = 190;
       const imgHeight = (receiptRef.current.offsetHeight * imgWidth) / receiptRef.current.offsetWidth;
       pdf.addImage(dataUrl, 'PNG', 10, 10, imgWidth, imgHeight);
-      pdf.save(`claim-${claim.claimNumber}.pdf`);
+      pdf.save(`claim-${claim.claimNumber}-${selectedType}.pdf`);
     } catch (error) {
       console.error('PDF generation error:', error);
       alert('Failed to generate PDF');
@@ -108,7 +143,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
     }
   };
 
-  const handleShareWhatsApp = async () => {
+  const handleShareWhatsApp = async (receiptType: ReceiptType) => {
     if (!receiptRef.current) return;
     setGenerating(true);
     try {
@@ -119,31 +154,51 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
         backgroundColor: '#ffffff',
       });
 
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], `claim-${claim.claimNumber}.png`, { type: 'image/png' });
+      const text = encodeURIComponent(getWhatsAppText(claim, receiptType));
 
-      if (navigator.share) {
-        await navigator.share({
-          text: `Claim ${claim.claimNumber} - AL FALAH TRADERS`,
-          files: [file],
-        });
-      } else {
-        const link = document.createElement('a');
-        link.download = `claim-${claim.claimNumber}.png`;
-        link.href = dataUrl;
-        link.click();
+      // Try native share first (works on mobile)
+      if (navigator.share && navigator.canShare) {
+        try {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          const file = new File([blob], `claim-${claim.claimNumber}-${receiptType}.png`, { type: 'image/png' });
 
-        const text = encodeURIComponent(
-          `Claim ${claim.claimNumber}\nAmount: ${formatAmount(claim.totalAmount)}\nStatus: ${statusLabels[claim.status]}\nAL FALAH TRADERS`
-        );
-        window.open(`https://wa.me/?text=${text}`, '_blank');
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              text: getWhatsAppText(claim, receiptType),
+              files: [file],
+            });
+            return;
+          }
+        } catch (shareError) {
+          // If native share fails or is cancelled, fall through to WhatsApp web
+          if ((shareError as Error).name !== 'AbortError') {
+            console.log('Native share failed, falling back to WhatsApp web');
+          } else {
+            return; // User cancelled
+          }
+        }
       }
+
+      // Fallback: Download image + open WhatsApp with prefilled text
+      const link = document.createElement('a');
+      link.download = `claim-${claim.claimNumber}-${receiptType}.png`;
+      link.href = dataUrl;
+      link.click();
+
+      // Open WhatsApp with prefilled text
+      window.open(`https://wa.me/?text=${text}`, '_blank');
     } catch (error) {
       console.error('WhatsApp share error:', error);
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Quick share without image - just open WhatsApp with text
+  const handleQuickShareWhatsApp = (receiptType: ReceiptType) => {
+    const text = encodeURIComponent(getWhatsAppText(claim, receiptType));
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handlePrint = () => {
@@ -198,13 +253,21 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               <p className="font-medium">{claim.orderBooker?.name || '-'}</p>
             </div>
             <div className="bg-emerald-50/50 rounded-lg p-2 transition-colors hover:bg-emerald-50">
-              <p className="text-muted-foreground text-xs">Total Amount</p>
+              <p className="text-muted-foreground text-xs">Total Claim</p>
               <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
             </div>
-            <div className="bg-green-50/50 rounded-lg p-2 transition-colors hover:bg-green-50">
-              <p className="text-muted-foreground text-xs">Approved Amount</p>
-              <p className="font-bold text-green-700">{claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}</p>
+            <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
+              <p className="text-muted-foreground text-xs">Cleared Amount</p>
+              <p className="font-bold text-blue-700">{claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}</p>
             </div>
+            {claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
+              <div className="bg-orange-50/50 rounded-lg p-2 transition-colors hover:bg-orange-50">
+                <p className="text-muted-foreground text-xs">Remaining Pending</p>
+                <p className={`font-bold ${claim.totalAmount - claim.approvedAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {formatAmount(claim.totalAmount - claim.approvedAmount)}
+                </p>
+              </div>
+            )}
             {claim.clearedBy && (
               <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
                 <p className="text-muted-foreground text-xs">Cleared By</p>
@@ -265,11 +328,11 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
                   </td>
                 </tr>
                 {claim.approvedAmount !== null && (
-                  <tr className="bg-green-50">
+                  <tr className="bg-blue-50">
                     <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
-                      Approved:
+                      Cleared:
                     </td>
-                    <td className="py-3 px-4 text-right font-bold text-lg text-green-700">
+                    <td className="py-3 px-4 text-right font-bold text-lg text-blue-700">
                       {formatAmount(claim.approvedAmount)}
                     </td>
                   </tr>
@@ -280,13 +343,47 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '240ms' }}>
+      {/* Receipt Type Selection */}
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <CardHeader>
-          <CardTitle className="text-lg">Receipt Actions</CardTitle>
+          <CardTitle className="text-lg">Share Receipt on WhatsApp</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Receipt Type Tabs */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {availableTypes.map((t) => (
+              <button
+                key={t.type}
+                onClick={() => setSelectedType(t.type)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  selectedType === t.type
+                    ? `bg-gradient-to-r ${t.color} text-white shadow-lg scale-105`
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Selected type description */}
+          <p className="text-sm text-muted-foreground mb-4">
+            {selectedType === 'received' && 'Stock receive confirmation - share when claim is first recorded'}
+            {selectedType === 'approved' && 'Approval confirmation - share when claim is approved'}
+            {selectedType === 'cleared' && 'Payment confirmation - share when payment is cleared'}
+          </p>
+
+          {/* Action Buttons */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Button
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
+              onClick={() => handleShareWhatsApp(selectedType)}
+              disabled={generating}
+            >
+              <MessageCircle className="h-5 w-5 mr-2" />
+              WhatsApp
+            </Button>
             <Button
               className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
               onClick={handleDownloadImage}
@@ -304,14 +401,6 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               Download PDF
             </Button>
             <Button
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
-              onClick={handleShareWhatsApp}
-              disabled={generating}
-            >
-              <MessageCircle className="h-5 w-5 mr-2" />
-              WhatsApp
-            </Button>
-            <Button
               variant="outline"
               className="border-2 border-gray-400 btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold hover:bg-gray-50"
               onClick={handlePrint}
@@ -320,13 +409,25 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               Print
             </Button>
           </div>
+
+          {/* Quick Text Share */}
+          <div className="mt-3 pt-3 border-t">
+            <Button
+              variant="outline"
+              className="w-full border-2 border-green-400 text-green-700 hover:bg-green-50 btn-enhanced btn-ripple h-10 rounded-xl text-sm font-semibold"
+              onClick={() => handleQuickShareWhatsApp(selectedType)}
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Quick Share (Text Only - No Image)
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       {/* Receipt Preview - centered for proper image generation */}
       <div className="flex justify-center">
         <div className="print-area w-full max-w-2xl">
-          <Receipt claim={claim} ref={receiptRef} />
+          <Receipt claim={claim} receiptType={selectedType} ref={receiptRef} />
         </div>
       </div>
     </div>

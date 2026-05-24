@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClaimForm } from './claim-form';
 import { ClaimDetail } from './claim-detail';
-import { Loader2, Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Banknote, FileText, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Loader2, Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Banknote, FileText, AlertTriangle, RotateCcw, MessageCircle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 interface ClaimListProps {
@@ -485,6 +485,25 @@ export function ClaimList({ user }: ClaimListProps) {
                     >
                       <Eye className="h-4 w-4 mr-1" /> View
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 min-w-[70px] border-green-400 text-green-600 hover:bg-green-50 rounded-lg"
+                      onClick={() => {
+                        const formatAmt = (a: number) => `Rs. ${a.toLocaleString()}`;
+                        let text = '';
+                        if (claim.status === 'cleared') {
+                          text = `\uD83D\uDCB0 Al-Falah Traders - Payment Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nPayment clear ho chuki hai. JazakAllah.`;
+                        } else if (claim.status === 'approved' || claim.status === 'partially_approved') {
+                          text = `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
+                        } else {
+                          text = `\u2705 Al-Falah Traders - Expiry Stock Received\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nAmount: ${formatAmt(claim.totalAmount)}\nDate: ${new Date(claim.date).toLocaleDateString()}\n\nClaim receive ho chuki hai. JazakAllah.`;
+                        }
+                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                    </Button>
 
                     {isAdmin && claim.status === 'pending' && (
                       <>
@@ -716,6 +735,28 @@ export function ClaimList({ user }: ClaimListProps) {
                               title="View Details"
                             >
                               <Eye className="h-4 w-4" />
+                            </Button>
+
+                            {/* WhatsApp Quick Share */}
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 border-green-400 text-green-600 hover:bg-green-100 hover:text-green-800 btn-enhanced btn-ripple rounded-lg"
+                              onClick={() => {
+                                const formatAmt = (a: number) => `Rs. ${a.toLocaleString()}`;
+                                let text = '';
+                                if (claim.status === 'cleared') {
+                                  text = `\uD83D\uDCB0 Al-Falah Traders - Payment Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nPayment clear ho chuki hai. JazakAllah.`;
+                                } else if (claim.status === 'approved' || claim.status === 'partially_approved') {
+                                  text = `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
+                                } else {
+                                  text = `\u2705 Al-Falah Traders - Expiry Stock Received\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nAmount: ${formatAmt(claim.totalAmount)}\nDate: ${new Date(claim.date).toLocaleDateString()}\n\nClaim receive ho chuki hai. JazakAllah.`;
+                                }
+                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                              }}
+                              title="Share on WhatsApp"
+                            >
+                              <MessageCircle className="h-4 w-4" />
                             </Button>
 
                             {isAdmin && claim.status === 'pending' && (

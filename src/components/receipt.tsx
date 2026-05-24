@@ -2,6 +2,8 @@
 
 import { forwardRef } from 'react';
 
+export type ReceiptType = 'received' | 'approved' | 'cleared';
+
 interface ReceiptProps {
   claim: {
     claimNumber: string;
@@ -22,18 +24,48 @@ interface ReceiptProps {
     clearedBy: string | null;
     clearedDate: string | null;
   };
+  receiptType?: ReceiptType;
 }
 
-const statusLabels: Record<string, string> = {
-  pending: 'Pending',
-  approved: 'Approved',
-  partially_approved: 'Partially Approved',
-  cleared: 'Cleared',
-  rejected: 'Rejected',
+const receiptTypeConfig: Record<ReceiptType, { title: string; subtitle: string; icon: string; headerBg: string; headerColor: string; borderColor: string; badgeBg: string; badgeColor: string; badgeText: string }> = {
+  received: {
+    title: 'EXPIRY STOCK RECEIVED',
+    subtitle: 'Claim Receipt - Stock Received Confirmation',
+    icon: '\u2705',
+    headerBg: '#047857',
+    headerColor: '#ffffff',
+    borderColor: '#047857',
+    badgeBg: '#dcfce7',
+    badgeColor: '#166534',
+    badgeText: 'RECEIVED',
+  },
+  approved: {
+    title: 'CLAIM APPROVED',
+    subtitle: 'Claim Receipt - Approval Confirmation',
+    icon: '\u2705',
+    headerBg: '#15803d',
+    headerColor: '#ffffff',
+    borderColor: '#15803d',
+    badgeBg: '#dcfce7',
+    badgeColor: '#166534',
+    badgeText: 'APPROVED',
+  },
+  cleared: {
+    title: 'PAYMENT CLEARED',
+    subtitle: 'Claim Receipt - Payment Confirmation',
+    icon: '\uD83D\uDCB0',
+    headerBg: '#1d4ed8',
+    headerColor: '#ffffff',
+    borderColor: '#1d4ed8',
+    badgeBg: '#dbeafe',
+    badgeColor: '#1e40af',
+    badgeText: 'CLEARED',
+  },
 };
 
-export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref) => {
+export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receiptType = 'received' }, ref) => {
   const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
+  const config = receiptTypeConfig[receiptType];
 
   const infoItems = [
     { label: 'Claim #', value: claim.claimNumber },
@@ -43,11 +75,23 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
     { label: 'Address', value: claim.shop.address || '-' },
     { label: 'Supplier', value: claim.supplier.name },
     { label: 'Order Booker', value: claim.orderBooker?.name || '-' },
-    { label: 'Status', value: statusLabels[claim.status] },
   ];
 
-  if (claim.clearedBy) infoItems.push({ label: 'Cleared By', value: claim.clearedBy });
-  if (claim.clearedDate) infoItems.push({ label: 'Cleared Date', value: new Date(claim.clearedDate).toLocaleDateString() });
+  if (receiptType === 'approved' || receiptType === 'cleared') {
+    infoItems.push({ label: 'Total Claim', value: formatAmount(claim.totalAmount) });
+  }
+  if (receiptType === 'cleared' && claim.approvedAmount !== null) {
+    infoItems.push({ label: 'Cleared Amount', value: formatAmount(claim.approvedAmount) });
+  }
+  if (receiptType === 'approved' && claim.approvedAmount !== null) {
+    infoItems.push({ label: 'Approved Amount', value: formatAmount(claim.approvedAmount) });
+  }
+  if (receiptType === 'cleared' && claim.clearedBy) {
+    infoItems.push({ label: 'Cleared By', value: claim.clearedBy });
+  }
+  if (receiptType === 'cleared' && claim.clearedDate) {
+    infoItems.push({ label: 'Cleared Date', value: new Date(claim.clearedDate).toLocaleDateString() });
+  }
 
   return (
     <div ref={ref} style={{
@@ -62,15 +106,37 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
       {/* Header */}
       <div style={{
         textAlign: 'center',
-        borderBottom: '3px solid #047857',
+        borderBottom: `3px solid ${config.borderColor}`,
         paddingBottom: '16px',
         marginBottom: '20px',
       }}>
         <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#065f46', letterSpacing: '2px' }}>
           AL FALAH TRADERS
         </div>
-        <div style={{ fontSize: '13px', color: '#059669', marginTop: '4px' }}>
-          Claim Receipt
+        <div style={{
+          fontSize: '16px',
+          fontWeight: 'bold',
+          color: config.headerBg,
+          marginTop: '8px',
+        }}>
+          {config.icon} {config.title}
+        </div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+          {config.subtitle}
+        </div>
+        {/* Status Badge */}
+        <div style={{
+          display: 'inline-block',
+          marginTop: '10px',
+          padding: '4px 16px',
+          borderRadius: '20px',
+          backgroundColor: config.badgeBg,
+          color: config.badgeColor,
+          fontWeight: 'bold',
+          fontSize: '13px',
+          letterSpacing: '1px',
+        }}>
+          {config.badgeText}
         </div>
       </div>
 
@@ -113,7 +179,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
       {/* Items Table */}
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginBottom: '16px' }}>
         <thead>
-          <tr style={{ backgroundColor: '#059669' }}>
+          <tr style={{ backgroundColor: config.headerBg }}>
             <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'left', fontSize: '13px' }}>#</th>
             <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'left', fontSize: '13px' }}>Product</th>
             <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'right', fontSize: '13px' }}>Rate</th>
@@ -133,7 +199,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
           ))}
         </tbody>
         <tfoot>
-          <tr style={{ borderTop: '3px solid #059669' }}>
+          <tr style={{ borderTop: `3px solid ${config.borderColor}` }}>
             <td colSpan={4} style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
               Total Amount:
             </td>
@@ -141,12 +207,22 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
               {formatAmount(claim.totalAmount)}
             </td>
           </tr>
-          {claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
+          {receiptType === 'cleared' && claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
             <tr>
               <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
-                {claim.status === 'cleared' ? 'Cleared Amount:' : 'Approved Amount:'}
+                Cleared Amount:
               </td>
-              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: claim.status === 'cleared' ? '#1d4ed8' : '#15803d' }}>
+              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#1d4ed8' }}>
+                {formatAmount(claim.approvedAmount)}
+              </td>
+            </tr>
+          )}
+          {receiptType === 'approved' && claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
+            <tr>
+              <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
+                Approved Amount:
+              </td>
+              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#15803d' }}>
                 {formatAmount(claim.approvedAmount)}
               </td>
             </tr>
@@ -164,9 +240,66 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
         </tfoot>
       </table>
 
+      {/* Confirmation Stamp for Received */}
+      {receiptType === 'received' && (
+        <div style={{
+          textAlign: 'center',
+          margin: '20px 0',
+          padding: '12px',
+          border: '2px dashed #047857',
+          borderRadius: '8px',
+          backgroundColor: '#f0fdf4',
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#047857' }}>
+            EXPIRY STOCK RECEIVED
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+            This confirms that the above claim has been received and recorded in the system.
+          </div>
+        </div>
+      )}
+
+      {/* Approval Stamp */}
+      {receiptType === 'approved' && (
+        <div style={{
+          textAlign: 'center',
+          margin: '20px 0',
+          padding: '12px',
+          border: '2px dashed #15803d',
+          borderRadius: '8px',
+          backgroundColor: '#f0fdf4',
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#15803d' }}>
+            CLAIM APPROVED
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+            This claim has been reviewed and approved.
+          </div>
+        </div>
+      )}
+
+      {/* Payment Stamp */}
+      {receiptType === 'cleared' && (
+        <div style={{
+          textAlign: 'center',
+          margin: '20px 0',
+          padding: '12px',
+          border: '2px dashed #1d4ed8',
+          borderRadius: '8px',
+          backgroundColor: '#eff6ff',
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1d4ed8' }}>
+            PAYMENT CLEARED
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+            Payment for this claim has been cleared.
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div style={{
-        borderTop: '3px solid #047857',
+        borderTop: `3px solid ${config.borderColor}`,
         paddingTop: '12px',
         marginTop: '16px',
         textAlign: 'center',

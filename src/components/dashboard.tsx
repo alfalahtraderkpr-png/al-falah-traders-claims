@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, FileText, Clock, CheckCircle2, DollarSign, XCircle, Banknote, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, FileText, Clock, CheckCircle2, DollarSign, XCircle, Banknote, TrendingUp, RefreshCw } from 'lucide-react';
 
 interface DashboardProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -48,6 +49,8 @@ const statusLabels: Record<string, string> = {
 export function Dashboard({ user }: DashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recalculating, setRecalculating] = useState(false);
+  const [recalcResult, setRecalcResult] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboard();
@@ -70,6 +73,26 @@ export function Dashboard({ user }: DashboardProps) {
       console.error('Failed to load dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecalculate = async () => {
+    if (!confirm('Sab existing claims ki amounts recalculate karein? (Price x Claim Rate% x Qty)')) return;
+    setRecalculating(true);
+    setRecalcResult(null);
+    try {
+      const res = await fetch('/api/claims/recalculate', { method: 'POST' });
+      if (res.ok) {
+        const result = await res.json();
+        setRecalcResult(`${result.updatedClaims} claims update hue (total ${result.totalClaims} claims check kiye)`);
+        loadDashboard();
+      } else {
+        setRecalcResult('Recalculate mein error aaya!');
+      }
+    } catch (error) {
+      setRecalcResult('Network error!');
+    } finally {
+      setRecalculating(false);
     }
   };
 
@@ -143,11 +166,34 @@ export function Dashboard({ user }: DashboardProps) {
   return (
     <div className="space-y-6">
       <div className="animate-fade-in-up">
-        <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
-          <TrendingUp className="h-6 w-6" />
-          Dashboard
-        </h2>
-        <p className="text-muted-foreground">Welcome back, {user.name}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+              <TrendingUp className="h-6 w-6" />
+              Dashboard
+            </h2>
+            <p className="text-muted-foreground">Welcome back, {user.name}</p>
+          </div>
+          {user.role === 'admin' && (
+            <div className="flex flex-col items-end gap-2">
+              <Button
+                variant="outline"
+                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 btn-enhanced"
+                onClick={handleRecalculate}
+                disabled={recalculating}
+              >
+                {recalculating ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Refreshing...</>
+                ) : (
+                  <><RefreshCw className="h-4 w-4 mr-2" /> Refresh All Claims</>
+                )}
+              </Button>
+              {recalcResult && (
+                <span className="text-xs text-emerald-600 font-medium animate-scale-in">{recalcResult}</span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 stagger-children">

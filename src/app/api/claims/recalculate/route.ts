@@ -22,42 +22,36 @@ export async function POST() {
     for (const claim of claims) {
       try {
         const claimRate = claim.company?.claimRate || 78;
-        let needsUpdate = false;
         let newTotalAmount = 0;
 
-        const updatedItems = claim.claimItems.map((item) => {
+        // Recalculate each item amount: price × (claimRate/100) × quantity
+        for (const item of claim.claimItems) {
           const price = item.product.price;
           const correctAmount = Math.round(price * (claimRate / 100) * item.quantity);
-
-          if (item.amount !== correctAmount) {
-            needsUpdate = true;
-          }
-
           newTotalAmount += correctAmount;
 
-          return {
-            id: item.id,
-            amount: correctAmount,
-          };
+          // Always update the item amount
+          await db.claimItem.update({
+            where: { id: item.id },
+            data: { amount: correctAmount },
+          });
+        }
+
+        // Update claim total and adjust approvedAmount proportionally
+        const updateData: Record<string, unknown> = { totalAmount: newTotalAmount };
+
+        // If claim was approved, adjust approvedAmount proportionally
+        if (claim.approvedAmount !== null && claim.approvedAmount !== undefined && claim.totalAmount > 0) {
+          const ratio = claim.approvedAmount / claim.totalAmount;
+          updateData.approvedAmount = Math.round(newTotalAmount * ratio);
+        }
+
+        await db.claim.update({
+          where: { id: claim.id },
+          data: updateData,
         });
 
-        if (needsUpdate) {
-          // Update each claim item
-          for (const updatedItem of updatedItems) {
-            await db.claimItem.update({
-              where: { id: updatedItem.id },
-              data: { amount: updatedItem.amount },
-            });
-          }
-
-          // Update claim total
-          await db.claim.update({
-            where: { id: claim.id },
-            data: { totalAmount: newTotalAmount },
-          });
-
-          updatedCount++;
-        }
+        updatedCount++;
       } catch (itemError) {
         console.error(`Error updating claim ${claim.id}:`, itemError);
         errorCount++;

@@ -43,6 +43,11 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
+    // Calculate remaining pending amount (total claim - cleared/approved amount)
+    const totalClaimAmount = (pendingClaims._sum.totalAmount || 0) + (approvedClaims._sum.totalAmount || 0) + (partiallyApprovedClaims._sum.totalAmount || 0) + (clearedClaims._sum.totalAmount || 0);
+    const totalClearedAmount = (approvedClaims._sum.approvedAmount || 0) + (partiallyApprovedClaims._sum.approvedAmount || 0) + (clearedClaims._sum.approvedAmount || 0);
+    const remainingPendingAmount = totalClaimAmount - totalClearedAmount;
+
     return NextResponse.json({
       totalClaims,
       pendingClaims: {
@@ -63,6 +68,7 @@ export async function GET(request: NextRequest) {
         count: rejectedClaims._count,
         totalAmount: rejectedClaims._sum.totalAmount || 0,
       },
+      remainingPendingAmount,
       recentClaims,
     });
   } catch (error) {

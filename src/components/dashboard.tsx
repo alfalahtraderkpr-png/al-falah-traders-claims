@@ -16,6 +16,7 @@ interface DashboardData {
   approvedClaims: { count: number; totalAmount: number; approvedAmount: number };
   clearedClaims: { count: number; totalAmount: number; approvedAmount: number };
   rejectedClaims: { count: number; totalAmount: number };
+  remainingPendingAmount: number;
   recentClaims: Array<{
     id: string;
     claimNumber: string;
@@ -132,16 +133,6 @@ export function Dashboard({ user }: DashboardProps) {
       iconBg: 'bg-yellow-100',
     },
     {
-      title: 'Approved Claims',
-      value: data.approvedClaims.count,
-      subtitle: `${formatAmount(data.approvedClaims.approvedAmount)}`,
-      icon: CheckCircle2,
-      gradient: 'from-green-500 to-green-700',
-      bgLight: 'bg-green-50',
-      textColor: 'text-green-700',
-      iconBg: 'bg-green-100',
-    },
-    {
       title: 'Cleared Claims',
       value: data.clearedClaims.count,
       subtitle: formatAmount(data.clearedClaims.approvedAmount),
@@ -150,6 +141,15 @@ export function Dashboard({ user }: DashboardProps) {
       bgLight: 'bg-blue-50',
       textColor: 'text-blue-700',
       iconBg: 'bg-blue-100',
+    },
+    {
+      title: 'Remaining Pending',
+      value: formatAmount(data.remainingPendingAmount || 0),
+      icon: TrendingUp,
+      gradient: 'from-orange-500 to-red-600',
+      bgLight: 'bg-orange-50',
+      textColor: 'text-orange-700',
+      iconBg: 'bg-orange-100',
     },
     {
       title: 'Rejected Claims',

@@ -448,12 +448,30 @@ export function ClaimList({ user }: ClaimListProps) {
                       <p className="font-medium truncate">{claim.supplier.name}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground text-xs">Total</span>
+                      <span className="text-muted-foreground text-xs">Total Claim</span>
                       <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground text-xs">Approved</span>
-                      <p className="font-medium">{claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}</p>
+                      <span className="text-muted-foreground text-xs">
+                        {claim.status === 'cleared' ? 'Cleared' : claim.status === 'rejected' ? 'Rejected' : 'Approved'}
+                      </span>
+                      <p className={`font-medium ${claim.status === 'cleared' ? 'text-blue-700' : 'text-green-700'}`}>
+                        {claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Remaining</span>
+                      <p className={`font-medium ${claim.totalAmount - (claim.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {claim.status === 'rejected' ? '-' : formatAmount(claim.totalAmount - (claim.approvedAmount || 0))}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Status</span>
+                      <p>
+                        <Badge className={`${statusColors[claim.status]} border text-xs`}>
+                          {statusLabels[claim.status]}
+                        </Badge>
+                      </p>
                     </div>
                   </div>
 
@@ -651,10 +669,10 @@ export function ClaimList({ user }: ClaimListProps) {
                       <th className="text-left py-3 px-4 font-medium">Date</th>
                       <th className="text-left py-3 px-4 font-medium">Company</th>
                       <th className="text-left py-3 px-4 font-medium">Shop</th>
-                      <th className="text-left py-3 px-4 font-medium">Supplier</th>
                       <th className="text-left py-3 px-4 font-medium">Order Booker</th>
-                      <th className="text-right py-3 px-4 font-medium">Total</th>
-                      <th className="text-right py-3 px-4 font-medium">Approved</th>
+                      <th className="text-right py-3 px-4 font-medium">Total Claim</th>
+                      <th className="text-right py-3 px-4 font-medium">Cleared</th>
+                      <th className="text-right py-3 px-4 font-medium">Remaining</th>
                       <th className="text-center py-3 px-4 font-medium">Status</th>
                       <th className="text-center py-3 px-4 font-medium">Actions</th>
                     </tr>
@@ -670,11 +688,17 @@ export function ClaimList({ user }: ClaimListProps) {
                         <td className="py-3 px-4">{new Date(claim.date).toLocaleDateString()}</td>
                         <td className="py-3 px-4">{claim.company.name}</td>
                         <td className="py-3 px-4">{claim.shop.name}</td>
-                        <td className="py-3 px-4">{claim.supplier.name}</td>
                         <td className="py-3 px-4">{claim.orderBooker?.name || '-'}</td>
                         <td className="py-3 px-4 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
-                        <td className="py-3 px-4 text-right">
+                        <td className="py-3 px-4 text-right font-medium text-blue-700">
                           {claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-medium">
+                          {claim.status === 'rejected' ? '-' : (
+                            <span className={claim.totalAmount - (claim.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
+                              {formatAmount(claim.totalAmount - (claim.approvedAmount || 0))}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <Badge className={`${statusColors[claim.status]} border text-xs transition-transform duration-200 hover:scale-105 cursor-default`}>

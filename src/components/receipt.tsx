@@ -144,10 +144,20 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
           {claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
             <tr>
               <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
-                Approved Amount:
+                {claim.status === 'cleared' ? 'Cleared Amount:' : 'Approved Amount:'}
               </td>
-              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#15803d' }}>
+              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: claim.status === 'cleared' ? '#1d4ed8' : '#15803d' }}>
                 {formatAmount(claim.approvedAmount)}
+              </td>
+            </tr>
+          )}
+          {claim.approvedAmount !== null && claim.approvedAmount !== undefined && claim.totalAmount - claim.approvedAmount > 0 && (
+            <tr>
+              <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
+                Remaining Pending:
+              </td>
+              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#dc2626' }}>
+                {formatAmount(claim.totalAmount - claim.approvedAmount)}
               </td>
             </tr>
           )}

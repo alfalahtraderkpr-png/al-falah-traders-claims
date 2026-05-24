@@ -311,6 +311,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
   const pendingAmount = filtered.filter(c => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0);
   const clearedAmount = filtered.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0);
   const rejectedAmount = filtered.filter(c => c.status === 'rejected').reduce((s, c) => s + c.totalAmount, 0);
+  const remainingAmount = totalAmount - totalApproved;
 
   const byStatus = {
     pending: filtered.filter(c => c.status === 'pending').length,
@@ -368,11 +369,12 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
       {/* Amount Summary - hidden in print */}
       <Card className="shadow-sm print-hide-cards">
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            <div className="bg-emerald-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Amount</p><p className="text-lg font-bold text-emerald-700">{formatAmount(totalAmount)}</p></div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
+            <div className="bg-emerald-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Claim</p><p className="text-lg font-bold text-emerald-700">{formatAmount(totalAmount)}</p></div>
+            <div className="bg-blue-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Cleared Amount</p><p className="text-lg font-bold text-blue-700">{formatAmount(clearedAmount)}</p></div>
+            <div className="bg-orange-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Remaining Pending</p><p className="text-lg font-bold text-orange-700">{formatAmount(remainingAmount)}</p></div>
             <div className="bg-yellow-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Pending Amount</p><p className="text-lg font-bold text-yellow-700">{formatAmount(pendingAmount)}</p></div>
             <div className="bg-green-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Approved Amount</p><p className="text-lg font-bold text-green-700">{formatAmount(totalApproved)}</p></div>
-            <div className="bg-blue-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Cleared Amount</p><p className="text-lg font-bold text-blue-700">{formatAmount(clearedAmount)}</p></div>
           </div>
         </CardContent>
       </Card>
@@ -383,9 +385,9 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
         <span className="print-summary-item"><span className="print-summary-label">Approved:</span> <span className="print-summary-value">{byStatus.approved + byStatus.partially_approved}</span></span>
         <span className="print-summary-item"><span className="print-summary-label">Cleared:</span> <span className="print-summary-value">{byStatus.cleared}</span></span>
         <span className="print-summary-item"><span className="print-summary-label">Rejected:</span> <span className="print-summary-value">{byStatus.rejected}</span></span>
-        <span className="print-summary-item"><span className="print-summary-label">Total Amt:</span> <span className="print-summary-value">{formatAmount(totalAmount)}</span></span>
-        <span className="print-summary-item"><span className="print-summary-label">Pending Amt:</span> <span className="print-summary-value">{formatAmount(pendingAmount)}</span></span>
-        <span className="print-summary-item"><span className="print-summary-label">Cleared Amt:</span> <span className="print-summary-value">{formatAmount(clearedAmount)}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Total Claim:</span> <span className="print-summary-value">{formatAmount(totalAmount)}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Cleared:</span> <span className="print-summary-value">{formatAmount(clearedAmount)}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Remaining:</span> <span className="print-summary-value">{formatAmount(remainingAmount)}</span></span>
       </div>
 
       {/* All Claims Table */}
@@ -401,8 +403,9 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
                   <th className="text-left py-2 px-3 font-medium">Company</th>
                   <th className="text-left py-2 px-3 font-medium">Shop</th>
                   <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                  <th className="text-right py-2 px-3 font-medium">Total</th>
-                  <th className="text-right py-2 px-3 font-medium">Approved</th>
+                  <th className="text-right py-2 px-3 font-medium">Total Claim</th>
+                  <th className="text-right py-2 px-3 font-medium">Cleared</th>
+                  <th className="text-right py-2 px-3 font-medium">Remaining</th>
                   <th className="text-center py-2 px-3 font-medium">Status</th>
                 </tr></thead>
                 <tbody>
@@ -415,7 +418,14 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
                       <td className="py-2 px-3">{c.shop.name}</td>
                       <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right">{c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
+                      <td className="py-2 px-3 text-right font-medium text-blue-700">{c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
+                      <td className="py-2 px-3 text-right font-medium">
+                        {c.status === 'rejected' ? '-' : (
+                          <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
+                            {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2 px-3 text-center"><Badge className={`${statusColors[c.status]} border text-xs`}>{statusLabels[c.status]}</Badge></td>
                     </tr>
                   ))}
@@ -575,6 +585,7 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
       approvedAmount: obClaims.filter(c => c.status === 'approved' || c.status === 'partially_approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
       cleared: obClaims.filter(c => c.status === 'cleared').length,
       clearedAmount: obClaims.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
+      remainingAmount: obClaims.reduce((s, c) => s + c.totalAmount, 0) - obClaims.reduce((s, c) => s + (c.approvedAmount || 0), 0),
       rejected: obClaims.filter(c => c.status === 'rejected').length,
       rejectedAmount: obClaims.filter(c => c.status === 'rejected').reduce((s, c) => s + c.totalAmount, 0),
       clearanceRate: obClaims.length > 0 ? Math.round((obClaims.filter(c => c.status === 'cleared').length / obClaims.length) * 100) : 0,
@@ -610,32 +621,24 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
               <thead><tr className="border-b bg-gray-50 print-bg-gray">
                 <th className="text-left py-2 px-3 font-medium">Order Booker</th>
                 <th className="text-center py-2 px-3 font-medium">Total</th>
-                <th className="text-center py-2 px-3 font-medium">Pending</th>
-                <th className="text-right py-2 px-3 font-medium">Pending Amt</th>
-                <th className="text-center py-2 px-3 font-medium">Approved</th>
-                <th className="text-right py-2 px-3 font-medium">Approved Amt</th>
-                <th className="text-center py-2 px-3 font-medium">Cleared</th>
-                <th className="text-right py-2 px-3 font-medium">Cleared Amt</th>
-                <th className="text-center py-2 px-3 font-medium">Rejected</th>
+                <th className="text-right py-2 px-3 font-medium">Total Claim</th>
+                <th className="text-right py-2 px-3 font-medium">Cleared</th>
+                <th className="text-right py-2 px-3 font-medium">Remaining</th>
                 <th className="text-center py-2 px-3 font-medium">Clear %</th>
-                <th className="text-right py-2 px-3 font-medium">Total Amt</th>
               </tr></thead>
               <tbody>
                 {obStats.map(ob => (
                   <tr key={ob.id} className="border-b">
                     <td className="py-2 px-3 font-medium">{ob.name}</td>
                     <td className="py-2 px-3 text-center">{ob.totalClaims}</td>
-                    <td className="py-2 px-3 text-center text-yellow-700">{ob.pending}</td>
-                    <td className="py-2 px-3 text-right">{formatAmount(ob.pendingAmount)}</td>
-                    <td className="py-2 px-3 text-center text-green-700">{ob.approved}</td>
-                    <td className="py-2 px-3 text-right">{formatAmount(ob.approvedAmount)}</td>
-                    <td className="py-2 px-3 text-center text-blue-700">{ob.cleared}</td>
-                    <td className="py-2 px-3 text-right">{formatAmount(ob.clearedAmount)}</td>
-                    <td className="py-2 px-3 text-center text-red-700">{ob.rejected}</td>
+                    <td className="py-2 px-3 text-right font-bold">{formatAmount(ob.totalAmount)}</td>
+                    <td className="py-2 px-3 text-right text-blue-700">{formatAmount(ob.clearedAmount)}</td>
+                    <td className="py-2 px-3 text-right font-medium">
+                      <span className={ob.remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}>{formatAmount(ob.remainingAmount)}</span>
+                    </td>
                     <td className="py-2 px-3 text-center">
                       <span className={`font-medium ${ob.clearanceRate >= 50 ? 'text-green-700' : ob.clearanceRate >= 25 ? 'text-yellow-700' : 'text-red-700'}`}>{ob.clearanceRate}%</span>
                     </td>
-                    <td className="py-2 px-3 text-right font-bold">{formatAmount(ob.totalAmount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -643,15 +646,10 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
                 <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
                   <td className="py-2 px-3 font-bold">Grand Total</td>
                   <td className="py-2 px-3 text-center font-bold">{obStats.reduce((s, o) => s + o.totalClaims, 0)}</td>
-                  <td className="py-2 px-3 text-center font-bold">{obStats.reduce((s, o) => s + o.pending, 0)}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(obStats.reduce((s, o) => s + o.pendingAmount, 0))}</td>
-                  <td className="py-2 px-3 text-center font-bold">{obStats.reduce((s, o) => s + o.approved, 0)}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(obStats.reduce((s, o) => s + o.approvedAmount, 0))}</td>
-                  <td className="py-2 px-3 text-center font-bold">{obStats.reduce((s, o) => s + o.cleared, 0)}</td>
+                  <td className="py-2 px-3 text-right font-bold">{formatAmount(grandTotal)}</td>
                   <td className="py-2 px-3 text-right font-bold">{formatAmount(obStats.reduce((s, o) => s + o.clearedAmount, 0))}</td>
-                  <td className="py-2 px-3 text-center font-bold">{obStats.reduce((s, o) => s + o.rejected, 0)}</td>
+                  <td className="py-2 px-3 text-right font-bold">{formatAmount(obStats.reduce((s, o) => s + o.remainingAmount, 0))}</td>
                   <td className="py-2 px-3"></td>
-                  <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotal)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -682,14 +680,17 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
   // Group by company
   const companyGroups = companies.map(comp => {
     const compClaims = filtered.filter(c => c.companyId === comp.id);
+    const compCleared = compClaims.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0);
+    const compTotal = compClaims.reduce((s, c) => s + c.totalAmount, 0);
     return {
       id: comp.id,
       name: comp.name,
       claims: compClaims,
-      total: compClaims.reduce((s, c) => s + c.totalAmount, 0),
+      total: compTotal,
       pending: compClaims.filter(c => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0),
       approved: compClaims.filter(c => c.status === 'approved' || c.status === 'partially_approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
-      cleared: compClaims.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
+      cleared: compCleared,
+      remaining: compTotal - compClaims.reduce((s, c) => s + (c.approvedAmount || 0), 0),
     };
   }).filter(g => g.claims.length > 0).sort((a, b) => b.total - a.total);
 
@@ -724,10 +725,9 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
               <thead><tr className="border-b bg-gray-50 print-bg-gray">
                 <th className="text-left py-2 px-3 font-medium">Company</th>
                 <th className="text-center py-2 px-3 font-medium">Claims</th>
-                <th className="text-right py-2 px-3 font-medium">Total</th>
-                <th className="text-right py-2 px-3 font-medium">Pending</th>
-                <th className="text-right py-2 px-3 font-medium">Approved</th>
+                <th className="text-right py-2 px-3 font-medium">Total Claim</th>
                 <th className="text-right py-2 px-3 font-medium">Cleared</th>
+                <th className="text-right py-2 px-3 font-medium">Remaining</th>
               </tr></thead>
               <tbody>
                 {companyGroups.map(g => (
@@ -735,9 +735,10 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                     <td className="py-2 px-3 font-medium">{g.name}</td>
                     <td className="py-2 px-3 text-center">{g.claims.length}</td>
                     <td className="py-2 px-3 text-right font-bold">{formatAmount(g.total)}</td>
-                    <td className="py-2 px-3 text-right text-yellow-700">{formatAmount(g.pending)}</td>
-                    <td className="py-2 px-3 text-right text-green-700">{formatAmount(g.approved)}</td>
                     <td className="py-2 px-3 text-right text-blue-700">{formatAmount(g.cleared)}</td>
+                    <td className="py-2 px-3 text-right font-medium">
+                      <span className={g.remaining > 0 ? 'text-red-600' : 'text-green-600'}>{formatAmount(g.remaining)}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -745,10 +746,9 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                 <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
                   <td className="py-2 px-3 font-bold">Total</td>
                   <td className="py-2 px-3 text-center font-bold">{filtered.length}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(filtered.reduce((s, c) => s + c.totalAmount, 0))}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.pending, 0))}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.approved, 0))}</td>
+                  <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.total, 0))}</td>
                   <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.cleared, 0))}</td>
+                  <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.remaining, 0))}</td>
                 </tr>
               </tfoot>
             </table>
@@ -768,8 +768,9 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                   <th className="text-left py-2 px-3 font-medium">Date</th>
                   <th className="text-left py-2 px-3 font-medium">Shop</th>
                   <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                  <th className="text-right py-2 px-3 font-medium">Total</th>
-                  <th className="text-right py-2 px-3 font-medium">Approved</th>
+                  <th className="text-right py-2 px-3 font-medium">Total Claim</th>
+                  <th className="text-right py-2 px-3 font-medium">Cleared</th>
+                  <th className="text-right py-2 px-3 font-medium">Remaining</th>
                   <th className="text-center py-2 px-3 font-medium">Status</th>
                 </tr></thead>
                 <tbody>
@@ -780,7 +781,14 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                       <td className="py-2 px-3">{c.shop.name}</td>
                       <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
                       <td className="py-2 px-3 text-right">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right">{c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
+                      <td className="py-2 px-3 text-right text-blue-700">{c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
+                      <td className="py-2 px-3 text-right font-medium">
+                        {c.status === 'rejected' ? '-' : (
+                          <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
+                            {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2 px-3 text-center"><Badge className={`${statusColors[c.status]} border text-xs`}>{statusLabels[c.status]}</Badge></td>
                     </tr>
                   ))}
@@ -815,6 +823,8 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
   });
 
   const grandTotal = cleared.reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0);
+  const grandTotalClaim = cleared.reduce((s, c) => s + c.totalAmount, 0);
+  const grandRemaining = grandTotalClaim - grandTotal;
 
   return (
     <div className="space-y-4">
@@ -845,9 +855,10 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
 
       <Card className="shadow-sm">
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="bg-blue-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Cleared Claims</p><p className="text-2xl font-bold text-blue-700">{cleared.length}</p></div>
-            <div className="bg-emerald-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Cleared Amount</p><p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotal)}</p></div>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="bg-emerald-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Claim</p><p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotalClaim)}</p></div>
+            <div className="bg-blue-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Cleared Amount</p><p className="text-2xl font-bold text-blue-700">{formatAmount(grandTotal)}</p></div>
+            <div className="bg-orange-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Remaining Pending</p><p className="text-2xl font-bold text-orange-700">{formatAmount(grandRemaining)}</p></div>
           </div>
         </CardContent>
       </Card>
@@ -864,7 +875,9 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
                   <th className="text-left py-2 px-3 font-medium">Company</th>
                   <th className="text-left py-2 px-3 font-medium">Shop</th>
                   <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                  <th className="text-right py-2 px-3 font-medium">Amount</th>
+                  <th className="text-right py-2 px-3 font-medium">Total Claim</th>
+                  <th className="text-right py-2 px-3 font-medium">Cleared</th>
+                  <th className="text-right py-2 px-3 font-medium">Remaining</th>
                   <th className="text-left py-2 px-3 font-medium">Cleared By</th>
                   <th className="text-left py-2 px-3 font-medium">Cleared Date</th>
                 </tr></thead>
@@ -877,7 +890,13 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
                       <td className="py-2 px-3">{c.company.name}</td>
                       <td className="py-2 px-3">{c.shop.name}</td>
                       <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
-                      <td className="py-2 px-3 text-right font-medium">{formatAmount(c.approvedAmount || c.totalAmount)}</td>
+                      <td className="py-2 px-3 text-right font-medium">{formatAmount(c.totalAmount)}</td>
+                      <td className="py-2 px-3 text-right font-medium text-blue-700">{formatAmount(c.approvedAmount || c.totalAmount)}</td>
+                      <td className="py-2 px-3 text-right font-medium">
+                        <span className={c.totalAmount - (c.approvedAmount || c.totalAmount) > 0 ? 'text-red-600' : 'text-green-600'}>
+                          {formatAmount(c.totalAmount - (c.approvedAmount || c.totalAmount))}
+                        </span>
+                      </td>
                       <td className="py-2 px-3">{c.clearedBy || '-'}</td>
                       <td className="py-2 px-3">{c.clearedDate ? new Date(c.clearedDate).toLocaleDateString() : '-'}</td>
                     </tr>
@@ -886,7 +905,9 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
                 <tfoot>
                   <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
                     <td colSpan={6} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotal)}</td>
+                    <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotalClaim)}</td>
+                    <td className="py-2 px-3 text-right font-bold text-blue-800">{formatAmount(grandTotal)}</td>
+                    <td className="py-2 px-3 text-right font-bold text-orange-700">{formatAmount(grandRemaining)}</td>
                     <td colSpan={2}></td>
                   </tr>
                 </tfoot>
@@ -964,7 +985,8 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
                 <div><span className="text-muted-foreground text-xs">Supplier</span><p className="font-medium">{claim.supplier.name}</p></div>
                 <div><span className="text-muted-foreground text-xs">Order Booker</span><p className="font-medium">{claim.orderBooker?.name || '-'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Total Amount</span><p className="font-bold text-emerald-700 text-lg">{formatAmount(claim.totalAmount)}</p></div>
-                {claim.approvedAmount && <div><span className="text-muted-foreground text-xs">Approved Amount</span><p className="font-bold text-green-700">{formatAmount(claim.approvedAmount)}</p></div>}
+                {claim.approvedAmount && <div><span className="text-muted-foreground text-xs">Cleared Amount</span><p className="font-bold text-blue-700">{formatAmount(claim.approvedAmount)}</p></div>}
+                {claim.approvedAmount && <div><span className="text-muted-foreground text-xs">Remaining Pending</span><p className={`font-bold ${claim.totalAmount - claim.approvedAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatAmount(claim.totalAmount - claim.approvedAmount)}</p></div>}
                 {claim.clearedBy && <div><span className="text-muted-foreground text-xs">Cleared By</span><p className="font-medium">{claim.clearedBy}</p></div>}
                 {claim.clearedDate && <div><span className="text-muted-foreground text-xs">Cleared Date</span><p className="font-medium">{new Date(claim.clearedDate).toLocaleDateString()}</p></div>}
                 {claim.rejectReason && <div className="col-span-2 sm:col-span-3"><span className="text-muted-foreground text-xs">Reject Reason</span><p className="font-medium text-red-700">{claim.rejectReason}</p></div>}

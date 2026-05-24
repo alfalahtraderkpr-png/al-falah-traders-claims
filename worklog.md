@@ -104,3 +104,25 @@ Stage Summary:
 - Admin can now delete ANY claim (not just pending) - with extra warning confirmation
 - Purple RotateCcw button opens status change dropdown for each claim
 - Site deployed: https://al-falah-traders-claims.vercel.app
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix Users tab not showing Admin and Order Booker accounts
+
+Work Log:
+- Analyzed screenshot showing Admin Accounts (0) and Order Booker Accounts (0) in Users tab
+- Identified root cause: User model had `orderBookerId` field but no Prisma relation to OrderBooker model
+- API code was using `include: { orderBooker: { select: { id: true, name: true } } }` which failed silently with 500 error
+- Fixed API routes to manually resolve orderBooker data instead of relying on Prisma include
+- Added `orderBooker` relation to User model in Prisma schema with @unique constraint
+- Added `user` reverse relation to OrderBooker model
+- Fixed migrate API to split SQL statements for PostgreSQL compatibility
+- Ran migration on production database - successfully added unique constraint and foreign key
+- Verified users API returns all 8 users correctly (1 admin + 7 order bookers)
+
+Stage Summary:
+- Root cause: Missing Prisma relation between User and OrderBooker models
+- Fix: Changed API to manually resolve orderBooker names, added relation to schema
+- Production URL: https://al-falah-traders-claims.vercel.app
+- All existing users now properly returned with orderBooker info

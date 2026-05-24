@@ -33,7 +33,7 @@ interface ClaimData {
     productId: string;
     quantity: number;
     amount: number;
-    product: { name: string; price: number; unit: string };
+    product: { name: string; price: number; claimPrice: number; unit: string };
   }>;
   clearedBy: string | null;
   clearedDate: string | null;
@@ -249,7 +249,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
                   <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
                     <td className="py-3 px-4">{index + 1}</td>
                     <td className="py-3 px-4 font-medium">{item.product.name}</td>
-                    <td className="py-3 px-4 text-right">Rs.{item.product.price}</td>
+                    <td className="py-3 px-4 text-right">Rs.{item.product.claimPrice && item.product.claimPrice > 0 ? item.product.claimPrice : item.product.price}</td>
                     <td className="py-3 px-4 text-center">{item.quantity}</td>
                     <td className="py-3 px-4 text-right font-medium">Rs.{item.amount.toLocaleString()}</td>
                   </tr>

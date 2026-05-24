@@ -17,7 +17,7 @@ interface ReceiptProps {
       id: string;
       quantity: number;
       amount: number;
-      product: { name: string; price: number; unit: string };
+      product: { name: string; price: number; claimPrice: number; unit: string };
     }>;
     clearedBy: string | null;
     clearedDate: string | null;
@@ -126,7 +126,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
             <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
               <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{index + 1}</td>
               <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{item.product.name}</td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right' }}>{formatAmount(item.product.price)}</td>
+              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right' }}>{formatAmount(item.product.claimPrice && item.product.claimPrice > 0 ? item.product.claimPrice : item.product.price)}</td>
               <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>{item.quantity}</td>
               <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right', fontWeight: '600' }}>{formatAmount(item.amount)}</td>
             </tr>

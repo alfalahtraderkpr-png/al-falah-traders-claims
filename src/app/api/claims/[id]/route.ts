@@ -61,6 +61,9 @@ export async function PUT(
         if (!body.approvedAmount || body.approvedAmount <= 0) {
           return NextResponse.json({ error: 'Approved amount is required' }, { status: 400 });
         }
+        if (Number(body.approvedAmount) > claim.totalAmount) {
+          return NextResponse.json({ error: `Approved amount cannot exceed total claim amount (Rs.${claim.totalAmount})` }, { status: 400 });
+        }
         updateData = {
           approvedAmount: Number(body.approvedAmount),
           status: 'partially_approved',

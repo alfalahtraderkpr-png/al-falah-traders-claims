@@ -14,7 +14,7 @@ import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store,
 
 // Types
 interface Company { id: string; name: string; multiTierPricing?: boolean; _count?: { products: number } }
-interface Product { id: string; name: string; price: number; unit: string; companyId: string; company: { name: string } }
+interface Product { id: string; name: string; price: number; claimPrice: number; unit: string; companyId: string; company: { name: string } }
 interface Supplier { id: string; name: string; companyId?: string | null; company?: { name: string } | null }
 interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
 interface Shop { id: string; name: string; address: string; companyOrderBookers: ShopCompanyOB[] }
@@ -189,7 +189,7 @@ function ProductsTab() {
   const [filterCompany, setFilterCompany] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Product | null>(null);
-  const [form, setForm] = useState({ name: '', price: '', unit: 'pcs', companyId: '' });
+  const [form, setForm] = useState({ name: '', price: '', claimPrice: '', unit: 'pcs', companyId: '' });
 
   // Bulk import state
   const [importOpen, setImportOpen] = useState(false);
@@ -212,7 +212,13 @@ function ProductsTab() {
   const handleSave = async () => {
     if (!form.name.trim() || !form.price || !form.companyId) return;
     try {
-      const body = { name: form.name, price: Number(form.price), unit: form.unit, companyId: form.companyId };
+      const body = {
+        name: form.name,
+        price: Number(form.price),
+        claimPrice: form.claimPrice ? Number(form.claimPrice) : Number(form.price),
+        unit: form.unit,
+        companyId: form.companyId,
+      };
       if (editItem) {
         await fetch(`/api/products/${editItem.id}`, {
           method: 'PUT',
@@ -228,7 +234,7 @@ function ProductsTab() {
       }
       setDialogOpen(false);
       setEditItem(null);
-      setForm({ name: '', price: '', unit: 'pcs', companyId: '' });
+      setForm({ name: '', price: '', claimPrice: '', unit: 'pcs', companyId: '' });
       load();
     } catch (e) { console.error(e); }
   };
@@ -306,7 +312,7 @@ function ProductsTab() {
           <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
             <Upload className="h-4 w-4 mr-1" /> Bulk Import
           </Button>
-          <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setForm({ name: '', price: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
+          <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setForm({ name: '', price: '', claimPrice: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Add
           </Button>
         </div>
@@ -331,6 +337,7 @@ function ProductsTab() {
               <thead className="sticky top-0 bg-white"><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-right py-2 px-4 font-medium">Price</th>
+                <th className="text-right py-2 px-4 font-medium">Claim Rate</th>
                 <th className="text-center py-2 px-4 font-medium">Unit</th>
                 <th className="text-left py-2 px-4 font-medium">Company</th>
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
@@ -340,10 +347,11 @@ function ProductsTab() {
                   <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 20}ms` }}>
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-right">Rs.{item.price}</td>
+                    <td className="py-2 px-4 text-right font-medium text-emerald-700">Rs.{item.claimPrice || item.price}</td>
                     <td className="py-2 px-4 text-center">{item.unit}</td>
                     <td className="py-2 px-4">{item.company?.name}</td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), claimPrice: String(item.claimPrice || item.price), unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
@@ -366,13 +374,16 @@ function ProductsTab() {
             <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Product name" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Price (Rs.)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" /></div>
-              <div><Label>Unit</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="pcs" /></div>
+              <div><Label>Claim Rate (Rs.)</Label><Input type="number" value={form.claimPrice} onChange={(e) => setForm({ ...form, claimPrice: e.target.value })} placeholder="Same as price" /><p className="text-xs text-muted-foreground mt-1">Claim mein jo rate lagega (default = Price)</p></div>
             </div>
-            <div><Label>Company</Label>
-              <Select value={form.companyId} onValueChange={(v) => setForm({ ...form, companyId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
-                <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Unit</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="pcs" /></div>
+              <div><Label>Company</Label>
+                <Select value={form.companyId} onValueChange={(v) => setForm({ ...form, companyId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
+                  <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>

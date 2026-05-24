@@ -22,7 +22,6 @@ model Company {
   id              String   @id @default(cuid())
   name            String
   multiTierPricing Boolean @default(false) // Cadbury = true, others = false
-  claimRate       Float    @default(78) // Claim percentage (e.g., 78 means 78% of price is the claim amount)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   products        Product[]
@@ -34,7 +33,8 @@ model Company {
 model Product {
   id             String   @id @default(cuid())
   name           String   // e.g. "Zeera", "Coconut"
-  price          Float    // e.g. 10, 20, 50 (Retail price)
+  price          Float    // e.g. 10, 20, 50 (Retail/Trade price)
+  claimPrice     Float    @default(0) // Claim rate per unit - user sets manually (e.g. 20 for N.K Rs.20)
   wholesalePrice Float?   // Wholesale price (only for multi-tier companies like Cadbury)
   lmtPrice       Float?   // LMT price (only for multi-tier companies like Cadbury)
   unit           String   @default("pcs") // pcs, Box, Ctn

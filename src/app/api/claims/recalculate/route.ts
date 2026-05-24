@@ -7,6 +7,7 @@ export async function POST() {
     const claims = await db.claim.findMany({
       include: {
         company: true,
+        shop: true,
         claimItems: {
           include: {
             product: true,
@@ -22,10 +23,14 @@ export async function POST() {
       try {
         let newTotalAmount = 0;
 
-        // Recalculate each item: amount = price × quantity (no claim rate)
+        // Recalculate each item: amount = claimPrice × quantity (or price × quantity if claimPrice not set)
         for (const item of claim.claimItems) {
-          const price = item.product.price;
-          const correctAmount = Math.round(price * item.quantity);
+          const product = item.product;
+          // Use claimPrice if available and > 0, otherwise fall back to price
+          const effectivePrice = product.claimPrice && product.claimPrice > 0
+            ? product.claimPrice
+            : product.price;
+          const correctAmount = Math.round(effectivePrice * item.quantity);
           newTotalAmount += correctAmount;
 
           await db.claimItem.update({
@@ -34,12 +39,23 @@ export async function POST() {
           });
         }
 
-        // Update claim total and adjust approvedAmount proportionally
+        // Update claim total and adjust approvedAmount
         const updateData: Record<string, unknown> = { totalAmount: newTotalAmount };
 
-        if (claim.approvedAmount !== null && claim.approvedAmount !== undefined && claim.totalAmount > 0) {
-          const ratio = claim.approvedAmount / claim.totalAmount;
-          updateData.approvedAmount = Math.round(newTotalAmount * ratio);
+        // Fix approvedAmount: ensure it's not more than totalAmount
+        if (claim.approvedAmount !== null && claim.approvedAmount !== undefined) {
+          if (claim.totalAmount > 0) {
+            // Adjust approvedAmount proportionally
+            const ratio = claim.approvedAmount / claim.totalAmount;
+            updateData.approvedAmount = Math.round(newTotalAmount * ratio);
+          } else {
+            // Old total was 0, set approvedAmount to new total (full approval)
+            updateData.approvedAmount = newTotalAmount;
+          }
+          // Safety: never let approvedAmount exceed totalAmount
+          if ((updateData.approvedAmount as number) > newTotalAmount) {
+            updateData.approvedAmount = newTotalAmount;
+          }
         }
 
         await db.claim.update({
@@ -56,7 +72,7 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: `Recalculated ${updatedCount} claims (Amount = Rate x Quantity)`,
+      message: `Recalculated ${updatedCount} claims (Amount = Claim Rate x Quantity)`,
       totalClaims: claims.length,
       updatedClaims: updatedCount,
       errors: errorCount,

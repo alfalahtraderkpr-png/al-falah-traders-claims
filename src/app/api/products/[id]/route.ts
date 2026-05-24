@@ -8,11 +8,12 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { name, price, unit, companyId, wholesalePrice, lmtPrice } = await request.json();
+    const { name, price, claimPrice, unit, companyId, wholesalePrice, lmtPrice } = await request.json();
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name.trim();
     if (price !== undefined) data.price = Number(price);
+    if (claimPrice !== undefined) data.claimPrice = Number(claimPrice);
     if (unit !== undefined) data.unit = unit;
     if (companyId !== undefined) data.companyId = companyId;
     if (wholesalePrice !== undefined) data.wholesalePrice = wholesalePrice ? Number(wholesalePrice) : null;

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, price, unit, companyId, wholesalePrice, lmtPrice } = await request.json();
+    const { name, price, claimPrice, unit, companyId, wholesalePrice, lmtPrice } = await request.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Product name is required' }, { status: 400 });
@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         price: Number(price),
+        claimPrice: claimPrice !== undefined && claimPrice !== null ? Number(claimPrice) : Number(price),
         unit: unit || 'pcs',
         companyId,
         wholesalePrice: wholesalePrice ? Number(wholesalePrice) : null,

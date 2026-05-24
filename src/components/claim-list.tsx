@@ -42,6 +42,7 @@ interface Claim {
   approvedAmount: number | null;
   status: string;
   companyId: string;
+  shopId: string;
   supplierId: string;
   orderBookerId: string | null;
   company: { name: string };
@@ -53,7 +54,7 @@ interface Claim {
     productId: string;
     quantity: number;
     amount: number;
-    product: { name: string; price: number; unit: string };
+    product: { name: string; price: number; claimPrice: number; unit: string; wholesalePrice: number | null; lmtPrice: number | null; company: { multiTierPricing: boolean } };
   }>;
   clearedBy: string | null;
   clearedDate: string | null;

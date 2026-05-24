@@ -77,7 +77,7 @@ export function Dashboard({ user }: DashboardProps) {
   };
 
   const handleRecalculate = async () => {
-    if (!confirm('Sab existing claims ki amounts recalculate karein? (Price x Claim Rate% x Qty)')) return;
+    if (!confirm('Sab existing claims ki amounts recalculate karein? (Claim Rate x Quantity)')) return;
     setRecalculating(true);
     setRecalcResult(null);
     try {

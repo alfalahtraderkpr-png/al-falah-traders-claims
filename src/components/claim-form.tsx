@@ -22,6 +22,7 @@ interface Product {
   id: string;
   name: string;
   price: number;
+  claimPrice: number;
   wholesalePrice: number | null;
   lmtPrice: number | null;
   unit: string;
@@ -70,7 +71,7 @@ interface ClaimData {
     productId: string;
     quantity: number;
     amount: number;
-    product: { name: string; price: number; unit: string; wholesalePrice: number | null; lmtPrice: number | null; company: { multiTierPricing: boolean } };
+    product: { name: string; price: number; claimPrice: number; unit: string; wholesalePrice: number | null; lmtPrice: number | null; company: { multiTierPricing: boolean } };
   }>;
 }
 
@@ -188,6 +189,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   };
 
   const getProductPrice = (product: Product): number => {
+    // Use claimPrice if available, otherwise fall back to price
+    if (product.claimPrice && product.claimPrice > 0) {
+      return product.claimPrice;
+    }
+    // For multi-tier companies, check wholesale/LMT prices
     if (product.company?.multiTierPricing) {
       const shop = shops.find((s) => s.id === shopId);
       if (shop) {
@@ -208,6 +214,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   };
 
   const getPriceLabel = (product: Product): string => {
+    // Show claim price if set, otherwise show effective price
+    const claimPrice = product.claimPrice && product.claimPrice > 0 ? product.claimPrice : null;
+    if (claimPrice) {
+      return `Rs.${claimPrice}`;
+    }
     if (product.company?.multiTierPricing) {
       const shop = shops.find((s) => s.id === shopId);
       if (shop?.shopType === 'wholesale' && product.wholesalePrice) {

@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       // Support multiple column name formats
       const name = String(row['Name'] || row['name'] || row['Product Name'] || row['product_name'] || row['Product'] || row['product'] || '').trim();
       const priceVal = row['Price'] || row['price'] || row['Rate'] || row['rate'] || row['Amount'] || row['amount'] || 0;
+      const claimPriceVal = row['ClaimPrice'] || row['claimPrice'] || row['Claim Price'] || row['claim_price'] || row['ClaimRate'] || row['claimRate'] || row['Claim Rate'] || row['claim_rate'] || '';
       const unit = String(row['Unit'] || row['unit'] || row['UOM'] || row['uom'] || 'pcs').trim();
 
       if (!name) {
@@ -64,10 +65,12 @@ export async function POST(request: NextRequest) {
       }
 
       try {
+        const claimPriceNum = claimPriceVal !== '' ? Number(claimPriceVal) : price;
         await db.product.create({
           data: {
             name,
             price,
+            claimPrice: isNaN(claimPriceNum) ? price : claimPriceNum,
             unit: unit || 'pcs',
             companyId,
           },

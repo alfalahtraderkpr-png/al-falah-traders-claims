@@ -53,11 +53,13 @@ export async function POST() {
       `);
       results.push('Cleaned up duplicate orderBookerId values in User table');
 
-      // Add unique constraint
-      await db.$executeRawUnsafe(`
-        ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_orderBookerId_key";
-        ALTER TABLE "User" ADD CONSTRAINT "User_orderBookerId_key" UNIQUE ("orderBookerId");
-      `);
+      // Add unique constraint (split into separate statements for PostgreSQL)
+      try {
+        await db.$executeRawUnsafe(`ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_orderBookerId_key"`);
+      } catch (e2: unknown) {
+        // ignore
+      }
+      await db.$executeRawUnsafe(`ALTER TABLE "User" ADD CONSTRAINT "User_orderBookerId_key" UNIQUE ("orderBookerId")`);
       results.push('Added unique constraint on User.orderBookerId');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -70,11 +72,13 @@ export async function POST() {
 
     // Step 5: Add foreign key constraint from User.orderBookerId to OrderBooker.id
     try {
-      await db.$executeRawUnsafe(`
-        ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_orderBookerId_fkey";
-        ALTER TABLE "User" ADD CONSTRAINT "User_orderBookerId_fkey" 
-          FOREIGN KEY ("orderBookerId") REFERENCES "OrderBooker"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-      `);
+      // Add foreign key constraint (split into separate statements for PostgreSQL)
+      try {
+        await db.$executeRawUnsafe(`ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_orderBookerId_fkey"`);
+      } catch (e2: unknown) {
+        // ignore
+      }
+      await db.$executeRawUnsafe(`ALTER TABLE "User" ADD CONSTRAINT "User_orderBookerId_fkey" FOREIGN KEY ("orderBookerId") REFERENCES "OrderBooker"("id") ON DELETE SET NULL ON UPDATE CASCADE`);
       results.push('Added foreign key constraint: User.orderBookerId -> OrderBooker.id');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);

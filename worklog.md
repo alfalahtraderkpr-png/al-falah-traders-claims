@@ -71,3 +71,36 @@ Stage Summary:
 - approvedAmount > totalAmount validation added (prevents future bugs)
 - All 22 claims recalculated and verified
 - Site deployed: https://al-falah-traders-claims.vercel.app
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Add status change & delete for approved claims
+
+Work Log:
+- Added `change_status` action to claims API: allows admin to freely change claim status
+  - pending: resets approvedAmount, clearedBy, clearedDate, rejectReason
+  - approved: sets approvedAmount = totalAmount, clears other fields
+  - partially_approved: requires approvedAmount input, validates ≤ totalAmount
+  - rejected: requires rejectReason, clears cleared fields
+  - cleared: keeps existing data
+- Removed delete restriction from claims DELETE API: admin can now delete any claim
+- Added handleChangeStatus function in claim-list.tsx
+- Updated handleDelete to accept status parameter with appropriate warning messages
+- Added purple RotateCcw button for status change dropdown per claim
+- Status dropdown shows relevant options based on current status:
+  - Approved: Back to Pending, Change to Partial, Reject, Delete
+  - Partially Approved: Back to Pending, Full Approve, Change Partial Amount, Reject, Delete
+  - Cleared: Back to Pending, Back to Approved, Change to Partial
+  - Rejected: Back to Pending, Approve, Partial Approve
+- Added `change_partial` dialog type for changing to partial approve with amount input
+- Dialog shows current approved amount for reference
+- Status dropdown closes on outside click (useEffect with document click listener)
+- Action dialog closes on overlay click
+- Build successful, pushed to GitHub
+
+Stage Summary:
+- Admin can now change ANY claim status freely (pending ↔ approved ↔ partial ↔ cleared ↔ rejected)
+- Admin can now delete ANY claim (not just pending) - with extra warning confirmation
+- Purple RotateCcw button opens status change dropdown for each claim
+- Site deployed: https://al-falah-traders-claims.vercel.app

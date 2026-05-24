@@ -61,15 +61,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const user = await db.user.update({
       where: { id },
       data: updateData,
-      include: {
-        orderBooker: {
-          select: { id: true, name: true },
-        },
-      },
     });
 
+    // Manually resolve orderBooker info
+    let orderBookerInfo: { id: string; name: string } | null = null;
+    if (user.orderBookerId) {
+      const ob = await db.orderBooker.findUnique({
+        where: { id: user.orderBookerId },
+        select: { id: true, name: true },
+      });
+      orderBookerInfo = ob;
+    }
+
     const { password: _, ...safeUser } = user;
-    return NextResponse.json(safeUser);
+    return NextResponse.json({ ...safeUser, orderBooker: orderBookerInfo });
   } catch (error) {
     console.error('Update user error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

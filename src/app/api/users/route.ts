@@ -7,15 +7,26 @@ export async function GET() {
   try {
     const users = await db.user.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
-        orderBooker: {
-          select: { id: true, name: true },
-        },
-      },
     });
 
-    // Don't return passwords
-    const safeUsers = users.map(({ password, ...user }) => user);
+    // Manually resolve orderBooker names for orderbooker users
+    const obIds = users.filter(u => u.orderBookerId).map(u => u.orderBookerId!);
+    let obMap: Record<string, { id: string; name: string }> = {};
+
+    if (obIds.length > 0) {
+      const orderBookers = await db.orderBooker.findMany({
+        where: { id: { in: obIds } },
+        select: { id: true, name: true },
+      });
+      orderBookers.forEach(ob => { obMap[ob.id] = ob; });
+    }
+
+    // Don't return passwords, add orderBooker info manually
+    const safeUsers = users.map(({ password, orderBookerId, ...user }) => ({
+      ...user,
+      orderBookerId,
+      orderBooker: orderBookerId ? (obMap[orderBookerId] || null) : null,
+    }));
 
     return NextResponse.json(safeUsers);
   } catch (error) {
@@ -61,15 +72,20 @@ export async function POST(request: NextRequest) {
         role,
         orderBookerId: role === 'orderbooker' ? orderBookerId : null,
       },
-      include: {
-        orderBooker: {
-          select: { id: true, name: true },
-        },
-      },
     });
 
+    // Manually resolve orderBooker info
+    let orderBookerInfo: { id: string; name: string } | null = null;
+    if (user.orderBookerId) {
+      const ob = await db.orderBooker.findUnique({
+        where: { id: user.orderBookerId },
+        select: { id: true, name: true },
+      });
+      orderBookerInfo = ob;
+    }
+
     const { password: _, ...safeUser } = user;
-    return NextResponse.json(safeUser, { status: 201 });
+    return NextResponse.json({ ...safeUser, orderBooker: orderBookerInfo }, { status: 201 });
   } catch (error) {
     console.error('Create user error:', error);
     const errMsg = error instanceof Error ? error.message : 'Internal server error';

@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   name          String
-  email         String   @unique
+  email         String      @unique
   password      String
-  role          String   @default("admin") // "admin" or "orderbooker"
-  orderBookerId String? // if role is orderbooker, link to OrderBooker
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  role          String      @default("admin") // "admin" or "orderbooker"
+  orderBookerId String?     @unique // if role is orderbooker, link to OrderBooker
+  orderBooker   OrderBooker? @relation(fields: [orderBookerId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model Company {
@@ -75,6 +76,7 @@ model OrderBooker {
   updatedAt DateTime @updatedAt
   claims    Claim[]
   shopCompanyOrderBookers ShopCompanyOrderBooker[]
+  user      User?    // reverse relation - one order booker can have one login
 }
 
 model Claim {

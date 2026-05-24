@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Check if email already exists
     const existing = await db.user.findUnique({ where: { email } });
     if (existing) {
-      return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+      return NextResponse.json({ error: `Email "${email}" already exists. Delete the existing user first, or use a different email.` }, { status: 400 });
     }
 
     // If orderbooker role, validate orderBookerId
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (orderBookerId) {
       const existingOBUser = await db.user.findFirst({ where: { orderBookerId } });
       if (existingOBUser) {
-        return NextResponse.json({ error: 'This order booker already has a login account' }, { status: 400 });
+        return NextResponse.json({ error: `This order booker already has a login (${existingOBUser.email}). Delete it first from Users tab.` }, { status: 400 });
       }
     }
 
@@ -72,6 +72,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(safeUser, { status: 201 });
   } catch (error) {
     console.error('Create user error:', error);
+    const errMsg = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: `Failed to create user: ${errMsg}` }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
+
+    // Bulk delete all order booker users
+    if (action === 'delete_all_ob') {
+      const result = await db.user.deleteMany({
+        where: { role: 'orderbooker' },
+      });
+      return NextResponse.json({ message: `Deleted ${result.count} order booker login(s)`, deleted: result.count });
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  } catch (error) {
+    console.error('Bulk delete users error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -47,6 +47,7 @@ export function UsersManager() {
     orderBookerId: '',
   });
   const [newPassword, setNewPassword] = useState('');
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -173,6 +174,26 @@ export function UsersManager() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const handleBulkDeleteOB = async () => {
+    if (!confirm(`Sab order booker login accounts delete karein? (${users.filter(u => u.role === 'orderbooker').length} accounts)`)) return;
+    setBulkDeleting(true);
+    try {
+      const res = await fetch('/api/users?action=delete_all_ob', { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        load();
+      } else {
+        alert(data.error || 'Failed to delete');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -193,16 +214,29 @@ export function UsersManager() {
           </h2>
           <p className="text-muted-foreground">Login accounts manage karein - Admin & Order Booker</p>
         </div>
-        <Button
-          size="sm"
-          className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2"
-          onClick={() => {
-            setForm({ name: '', email: '', password: '', role: 'orderbooker', orderBookerId: '' });
-            setDialogOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-1" /> Create Login
-        </Button>
+        <div className="flex gap-2">
+          {obUsers.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-50 btn-enhanced btn-ripple rounded-lg px-4 py-2"
+              onClick={handleBulkDeleteOB}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Deleting...</> : <><Trash2 className="h-4 w-4 mr-1" /> Delete All OB Logins</>}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2"
+            onClick={() => {
+              setForm({ name: '', email: '', password: '', role: 'orderbooker', orderBookerId: '' });
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Create Login
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -298,6 +332,9 @@ export function UsersManager() {
                 <UserCheck className="h-5 w-5 text-blue-600" />
                 Order Booker Accounts ({obUsers.length})
               </CardTitle>
+              {obUsers.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">Default password: <span className="font-mono bg-gray-100 px-1 rounded">password123</span> (seed accounts) — Use Key icon to change</p>
+              )}
             </CardHeader>
             <CardContent>
               {obUsers.length === 0 ? (

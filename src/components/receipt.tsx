@@ -35,102 +35,138 @@ const statusLabels: Record<string, string> = {
 export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref) => {
   const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
 
+  const infoItems = [
+    { label: 'Claim #', value: claim.claimNumber },
+    { label: 'Date', value: new Date(claim.date).toLocaleDateString() },
+    { label: 'Company', value: claim.company.name },
+    { label: 'Shop', value: claim.shop.name },
+    { label: 'Address', value: claim.shop.address || '-' },
+    { label: 'Supplier', value: claim.supplier.name },
+    { label: 'Order Booker', value: claim.orderBooker?.name || '-' },
+    { label: 'Status', value: statusLabels[claim.status] },
+  ];
+
+  if (claim.clearedBy) infoItems.push({ label: 'Cleared By', value: claim.clearedBy });
+  if (claim.clearedDate) infoItems.push({ label: 'Cleared Date', value: new Date(claim.clearedDate).toLocaleDateString() });
+
   return (
-    <div ref={ref} className="bg-white p-6 max-w-2xl mx-auto" style={{ fontFamily: 'Arial, sans-serif' }}>
+    <div ref={ref} style={{
+      backgroundColor: '#ffffff',
+      padding: '32px',
+      maxWidth: '672px',
+      margin: '0 auto',
+      fontFamily: 'Arial, Helvetica, sans-serif',
+      width: '100%',
+      boxSizing: 'border-box',
+    }}>
       {/* Header */}
-      <div className="text-center border-b-2 border-emerald-600 pb-4 mb-4">
-        <h1 className="text-3xl font-bold text-emerald-800 tracking-wide">AL FALAH TRADERS</h1>
-        <p className="text-emerald-600 text-sm mt-1">Claim Receipt</p>
+      <div style={{
+        textAlign: 'center',
+        borderBottom: '3px solid #047857',
+        paddingBottom: '16px',
+        marginBottom: '20px',
+      }}>
+        <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#065f46', letterSpacing: '2px' }}>
+          AL FALAH TRADERS
+        </div>
+        <div style={{ fontSize: '13px', color: '#059669', marginTop: '4px' }}>
+          Claim Receipt
+        </div>
       </div>
 
-      {/* Claim Info Grid */}
-      <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-4 text-sm">
-        <div className="flex justify-between border-b border-gray-200 py-1">
-          <span className="text-gray-600">Claim #:</span>
-          <span className="font-semibold">{claim.claimNumber}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-200 py-1">
-          <span className="text-gray-600">Date:</span>
-          <span className="font-semibold">{new Date(claim.date).toLocaleDateString()}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-200 py-1">
-          <span className="text-gray-600">Company:</span>
-          <span className="font-semibold">{claim.company.name}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-200 py-1">
-          <span className="text-gray-600">Shop:</span>
-          <span className="font-semibold">{claim.shop.name}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-200 py-1">
-          <span className="text-gray-600">Address:</span>
-          <span className="font-semibold">{claim.shop.address || '-'}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-200 py-1">
-          <span className="text-gray-600">Supplier:</span>
-          <span className="font-semibold">{claim.supplier.name}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-200 py-1">
-          <span className="text-gray-600">Order Booker:</span>
-          <span className="font-semibold">{claim.orderBooker?.name || '-'}</span>
-        </div>
-        <div className="flex justify-between border-b border-gray-200 py-1">
-          <span className="text-gray-600">Status:</span>
-          <span className="font-semibold">{statusLabels[claim.status]}</span>
-        </div>
-        {claim.clearedBy && (
-          <div className="flex justify-between border-b border-gray-200 py-1">
-            <span className="text-gray-600">Cleared By:</span>
-            <span className="font-semibold">{claim.clearedBy}</span>
-          </div>
-        )}
-        {claim.clearedDate && (
-          <div className="flex justify-between border-b border-gray-200 py-1">
-            <span className="text-gray-600">Cleared Date:</span>
-            <span className="font-semibold">{new Date(claim.clearedDate).toLocaleDateString()}</span>
-          </div>
-        )}
+      {/* Claim Info - Table layout for reliable rendering */}
+      <div style={{ marginBottom: '20px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <tbody>
+            {(() => {
+              const rows = [];
+              for (let i = 0; i < infoItems.length; i += 2) {
+                rows.push(
+                  <tr key={i}>
+                    <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', color: '#6b7280', width: '25%', whiteSpace: 'nowrap' }}>
+                      {infoItems[i].label}:
+                    </td>
+                    <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '600', width: '25%' }}>
+                      {infoItems[i].value}
+                    </td>
+                    {infoItems[i + 1] ? (
+                      <>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', color: '#6b7280', width: '25%', whiteSpace: 'nowrap' }}>
+                          {infoItems[i + 1].label}:
+                        </td>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '600', width: '25%' }}>
+                          {infoItems[i + 1].value}
+                        </td>
+                      </>
+                    ) : (
+                      <td colSpan={2} style={{ padding: '6px 8px' }}></td>
+                    )}
+                  </tr>
+                );
+              }
+              return rows;
+            })()}
+          </tbody>
+        </table>
       </div>
 
       {/* Items Table */}
-      <table className="w-full text-sm mb-4">
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginBottom: '16px' }}>
         <thead>
-          <tr className="bg-emerald-600 text-white">
-            <th className="py-2 px-3 text-left">#</th>
-            <th className="py-2 px-3 text-left">Product</th>
-            <th className="py-2 px-3 text-right">Price</th>
-            <th className="py-2 px-3 text-center">Qty</th>
-            <th className="py-2 px-3 text-right">Amount</th>
+          <tr style={{ backgroundColor: '#059669' }}>
+            <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'left', fontSize: '13px' }}>#</th>
+            <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'left', fontSize: '13px' }}>Product</th>
+            <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'right', fontSize: '13px' }}>Price</th>
+            <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'center', fontSize: '13px' }}>Qty</th>
+            <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'right', fontSize: '13px' }}>Amount</th>
           </tr>
         </thead>
         <tbody>
           {claim.claimItems.map((item, index) => (
-            <tr key={item.id} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
-              <td className="py-2 px-3">{index + 1}</td>
-              <td className="py-2 px-3">{item.product.name}</td>
-              <td className="py-2 px-3 text-right">{formatAmount(item.product.price)}</td>
-              <td className="py-2 px-3 text-center">{item.quantity}</td>
-              <td className="py-2 px-3 text-right font-medium">{formatAmount(item.amount)}</td>
+            <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
+              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{index + 1}</td>
+              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{item.product.name}</td>
+              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right' }}>{formatAmount(item.product.price)}</td>
+              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>{item.quantity}</td>
+              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right', fontWeight: '600' }}>{formatAmount(item.amount)}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr className="border-t-2 border-emerald-600">
-            <td colSpan={4} className="py-2 px-3 text-right font-bold">Total Amount:</td>
-            <td className="py-2 px-3 text-right font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</td>
+          <tr style={{ borderTop: '3px solid #059669' }}>
+            <td colSpan={4} style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
+              Total Amount:
+            </td>
+            <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#047857' }}>
+              {formatAmount(claim.totalAmount)}
+            </td>
           </tr>
           {claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
             <tr>
-              <td colSpan={4} className="py-2 px-3 text-right font-bold">Approved Amount:</td>
-              <td className="py-2 px-3 text-right font-bold text-green-700">{formatAmount(claim.approvedAmount)}</td>
+              <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
+                Approved Amount:
+              </td>
+              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#15803d' }}>
+                {formatAmount(claim.approvedAmount)}
+              </td>
             </tr>
           )}
         </tfoot>
       </table>
 
       {/* Footer */}
-      <div className="border-t-2 border-emerald-600 pt-3 mt-4 text-center">
-        <p className="text-xs text-gray-500">AL FALAH TRADERS — Claim Management System</p>
-        <p className="text-xs text-gray-400 mt-1">Generated on {new Date().toLocaleDateString()}</p>
+      <div style={{
+        borderTop: '3px solid #047857',
+        paddingTop: '12px',
+        marginTop: '16px',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+          AL FALAH TRADERS — Claim Management System
+        </div>
+        <div style={{ fontSize: '10px', color: '#d1d5db', marginTop: '4px' }}>
+          Generated on {new Date().toLocaleDateString()}
+        </div>
       </div>
     </div>
   );

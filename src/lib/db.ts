@@ -1,14 +1,16 @@
 import { PrismaClient } from '@/generated/prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
-import { neon } from '@neondatabase/serverless'
+import { neonConfig } from '@neondatabase/serverless'
+
+// Force HTTP fetch mode instead of WebSocket (required for Node.js server environment)
+neonConfig.poolQueryViaFetch = true
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
 function createPrismaClient(): PrismaClient {
-  const sql = neon(process.env.DATABASE_URL!)
-  const adapter = new PrismaNeon(sql)
+  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL })
   return new PrismaClient({ adapter })
 }
 

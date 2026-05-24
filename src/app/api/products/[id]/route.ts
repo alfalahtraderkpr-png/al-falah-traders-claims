@@ -8,13 +8,15 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { name, price, unit, companyId } = await request.json();
+    const { name, price, unit, companyId, wholesalePrice, lmtPrice } = await request.json();
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name.trim();
     if (price !== undefined) data.price = Number(price);
     if (unit !== undefined) data.unit = unit;
     if (companyId !== undefined) data.companyId = companyId;
+    if (wholesalePrice !== undefined) data.wholesalePrice = wholesalePrice ? Number(wholesalePrice) : null;
+    if (lmtPrice !== undefined) data.lmtPrice = lmtPrice ? Number(lmtPrice) : null;
 
     const product = await db.product.update({
       where: { id },
@@ -29,7 +31,7 @@ export async function PUT(
     if (errMsg.includes('Unique constraint')) {
       return NextResponse.json({ error: 'Product with this name, price and company already exists' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: `Failed to update product: ${errMsg}` }, { status: 500 });
   }
 }
 

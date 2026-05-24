@@ -141,7 +141,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
         const product = products.find((p) => p.id === item.productId);
         if (product) {
           const price = getProductPrice(product);
-          return { ...item, amount: Math.round(price * 0.78 * item.quantity) };
+          return { ...item, amount: Math.round(price * item.quantity) };
         }
         return item;
       });
@@ -225,11 +225,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       const newItems = [...items];
       newItems[existingIndex].quantity += 1;
       const price = getProductPrice(product);
-      newItems[existingIndex].amount = Math.round(price * 0.78 * newItems[existingIndex].quantity);
+      newItems[existingIndex].amount = Math.round(price * newItems[existingIndex].quantity);
       setItems(newItems);
     } else {
       const price = getProductPrice(product);
-      const amount = Math.round(price * 0.78);
+      const amount = Math.round(price);
       setItems([...items, { productId, quantity: 1, amount }]);
     }
     setProductSearch('');
@@ -247,7 +247,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
     const product = products.find((p) => p.id === newItems[index].productId);
     if (product) {
       const price = getProductPrice(product);
-      newItems[index].amount = Math.round(price * 0.78 * newQty);
+      newItems[index].amount = Math.round(price * newQty);
     }
     setItems(newItems);
   };
@@ -470,7 +470,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
               <span className="text-xs text-purple-600">|</span>
               <span className="text-xs text-purple-700">Shop Type: <strong>{shopTypeLabel}</strong></span>
               <span className="text-xs text-purple-600">|</span>
-              <span className="text-xs text-purple-700">Claim Rate: <strong>78%</strong> of {shopTypeLabel} price</span>
+              <span className="text-xs text-purple-700">Price Type: <strong>{shopTypeLabel}</strong> rate</span>
             </div>
           )}
         </CardContent>
@@ -591,7 +591,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                           <p className="text-xs text-muted-foreground">
                             {getPriceLabel(product)}/{product.unit}
                             {isMultiTier && <span className="text-purple-600 ml-1">({shopTypeLabel})</span>}
-                            <span className="ml-1">x 78% = Rs.{Math.round(effectivePrice * 0.78)}/unit</span>
+                            <span className="ml-1">= Rs.{Math.round(effectivePrice)}/unit</span>
                           </p>
                         </div>
 
@@ -624,7 +624,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                         <div className="text-right min-w-[80px]">
                           <p className="font-bold text-sm text-emerald-700">Rs.{item.amount.toLocaleString()}</p>
                           {item.quantity > 1 && (
-                            <p className="text-xs text-muted-foreground">Rs.{Math.round(effectivePrice * 0.78)} x {item.quantity}</p>
+                            <p className="text-xs text-muted-foreground">Rs.{Math.round(effectivePrice)} x {item.quantity}</p>
                           )}
                         </div>
 

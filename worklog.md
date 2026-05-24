@@ -29,3 +29,45 @@ Stage Summary:
 - ClaimRate is per-company setting (default 78%), editable in Master Data
 - Receipt now shows Claim/Unit column with claim rate breakdown
 - Site deployed and verified: https://al-falah-traders-claims.vercel.app
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix Farooq claim bug + Remove 78% claimRate scenario + Add manual claimPrice per product
+
+Work Log:
+- Investigated Farooq claim (CLM-022): found approvedAmount (10,751) > totalAmount (8,362) — DATA BUG
+- Found product prices in DB are trade prices (17, 33, 8...) not retail (20, 40, 10...)
+- Found claimRate field in Company model was NEVER used in calculation code
+- Added claimPrice field to Product model in Prisma schema (user sets manually)
+- Removed claimRate from Company model in Prisma schema
+- Ran prisma generate to update Prisma client
+- Updated products POST API: added claimPrice parameter, defaults to price
+- Updated products PUT API [id]: added claimPrice support
+- Updated products bulk-import API: added ClaimPrice/ClaimRate column support
+- Updated master-data.tsx: added claimPrice to Product interface, form state, table column, add/edit dialog
+- Updated claim-form.tsx: getProductPrice() now uses claimPrice (if > 0) before falling back to price
+- Updated claim-form.tsx: getPriceLabel() shows claimPrice
+- Updated claim-form.tsx: Product and ClaimData interfaces include claimPrice
+- Updated receipt.tsx: Rate column shows claimPrice instead of product.price
+- Updated claim-detail.tsx: items table shows claimPrice, interface updated
+- Updated claim-list.tsx: Claim interface updated with shopId, claimPrice, wholesalePrice, lmtPrice
+- Fixed approvedAmount > totalAmount validation in claims [id] PUT API (partial_approve action)
+- Updated recalculate API: uses claimPrice for calculations, safety check for approvedAmount
+- Updated dashboard recalculate confirmation message
+- Created /api/migrate endpoint for Neon database schema migration
+- Pushed to GitHub (2 commits)
+- Called migration API: added claimPrice column, set 110 products claimPrice=price, removed claimRate column
+- Called recalculate API: recalculated all 22 claims, fixed approvedAmount > totalAmount bugs
+- Verified Farooq claim: approvedAmount now correctly equals totalAmount (8362)
+- Verified all 22 claims: no approvedAmount > totalAmount issues
+
+Stage Summary:
+- Farooq claim BUG FIXED: approvedAmount was 10,751 (wrong), now 8,362 (correct)
+- 78% claimRate scenario REMOVED from Company model
+- New claimPrice field added to Product model (user sets manually per product)
+- All 110 products have claimPrice = price (default, user needs to update to retail prices)
+- Claim calculation: claimPrice × quantity (fallback to price if claimPrice not set)
+- approvedAmount > totalAmount validation added (prevents future bugs)
+- All 22 claims recalculated and verified
+- Site deployed: https://al-falah-traders-claims.vercel.app

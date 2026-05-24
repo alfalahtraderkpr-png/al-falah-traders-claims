@@ -392,18 +392,124 @@
   background: #9ca3af;
 }
 
-/* Print styles */
+/* ===== Print Styles ===== */
 @media print {
+  /* Hide everything first */
   body * {
     visibility: hidden;
   }
+
+  /* Show only print area and its children */
   .print-area,
-  .print-area * {
+  .print-area *,
+  [role="tabpanel"][data-state="active"],
+  [role="tabpanel"][data-state="active"] * {
     visibility: visible;
   }
-  .print-area {
+
+  [role="tabpanel"][data-state="active"] {
     position: absolute;
     left: 0;
     top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Always show print headers */
+  .print-block {
+    display: block !important;
+  }
+
+  /* Hide non-print elements */
+  .no-print,
+  .no-print *,
+  [role="tablist"],
+  header,
+  aside,
+  nav,
+  button:not(.print-keep) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Print table styles */
+  .print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #999 !important;
+    padding: 4px 8px !important;
+  }
+
+  .print-table th {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-weight: 600 !important;
+  }
+
+  .print-bg-gray {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-bg-light {
+    background-color: #ecfdf5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Card styles for print */
+  [role="tabpanel"][data-state="active"] .shadow-sm {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  /* Avoid page breaks inside rows */
+  .print-table tr {
+    page-break-inside: avoid;
+  }
+
+  /* Keep header on each page */
+  .print-table thead {
+    display: table-header-group;
+  }
+
+  /* Print header styling */
+  .print-header h1 {
+    font-size: 18px !important;
+    color: #000 !important;
+  }
+
+  .print-header h2 {
+    font-size: 15px !important;
+    color: #333 !important;
+  }
+
+  .print-header hr {
+    border-color: #666 !important;
+  }
+
+  /* Badge printing */
+  .print-table .bg-yellow-100,
+  .print-table .bg-green-100,
+  .print-table .bg-blue-100,
+  .print-table .bg-red-100,
+  .print-table .bg-orange-100 {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

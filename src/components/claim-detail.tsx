@@ -66,7 +66,7 @@ function getWhatsAppText(claim: ClaimData, receiptType: ReceiptType): string {
     case 'approved':
       return `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmount(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
     case 'cleared':
-      return `\uD83D\uDCB0 Al-Falah Traders - Payment Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmount(claim.approvedAmount)}` : ''}${claim.approvedAmount && claim.totalAmount - claim.approvedAmount > 0 ? `\nRemaining: ${formatAmount(claim.totalAmount - claim.approvedAmount)}` : ''}${claim.clearedBy ? `\nCleared By: ${claim.clearedBy}` : ''}\n\nPayment clear ho chuki hai. JazakAllah.`;
+      return `\u2705 Al-Falah Traders - Claim Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmount(claim.approvedAmount)}` : ''}${claim.approvedAmount && claim.totalAmount - claim.approvedAmount > 0 ? `\nRemaining: ${formatAmount(claim.totalAmount - claim.approvedAmount)}` : ''}${claim.clearedBy ? `\nCleared By: ${claim.clearedBy}` : ''}\n\nClaim clear ho chuki hai. JazakAllah.`;
     default:
       return `Claim ${claim.claimNumber} - AL FALAH TRADERS`;
   }
@@ -83,7 +83,7 @@ function getAvailableReceiptTypes(status: string): { type: ReceiptType; label: s
   }
 
   if (status === 'cleared') {
-    types.push({ type: 'cleared' as ReceiptType, label: 'Payment Cleared', icon: <Banknote className="h-5 w-5" />, color: 'from-blue-500 to-blue-600', description: 'Payment confirmation' });
+    types.push({ type: 'cleared' as ReceiptType, label: 'Claim Cleared', icon: <Banknote className="h-5 w-5" />, color: 'from-blue-500 to-blue-600', description: 'Claim cleared confirmation' });
   }
 
   return types;
@@ -371,7 +371,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
           <p className="text-sm text-muted-foreground mb-4">
             {selectedType === 'received' && 'Stock receive confirmation - share when claim is first recorded'}
             {selectedType === 'approved' && 'Approval confirmation - share when claim is approved'}
-            {selectedType === 'cleared' && 'Payment confirmation - share when payment is cleared'}
+            {selectedType === 'cleared' && 'Claim cleared confirmation - share when claim is cleared'}
           </p>
 
           {/* Action Buttons */}

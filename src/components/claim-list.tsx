@@ -493,7 +493,7 @@ export function ClaimList({ user }: ClaimListProps) {
                         const formatAmt = (a: number) => `Rs. ${a.toLocaleString()}`;
                         let text = '';
                         if (claim.status === 'cleared') {
-                          text = `\uD83D\uDCB0 Al-Falah Traders - Payment Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nPayment clear ho chuki hai. JazakAllah.`;
+                          text = `\u2705 Al-Falah Traders - Claim Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nClaim clear ho chuki hai. JazakAllah.`;
                         } else if (claim.status === 'approved' || claim.status === 'partially_approved') {
                           text = `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
                         } else {
@@ -746,7 +746,7 @@ export function ClaimList({ user }: ClaimListProps) {
                                 const formatAmt = (a: number) => `Rs. ${a.toLocaleString()}`;
                                 let text = '';
                                 if (claim.status === 'cleared') {
-                                  text = `\uD83D\uDCB0 Al-Falah Traders - Payment Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nPayment clear ho chuki hai. JazakAllah.`;
+                                  text = `\u2705 Al-Falah Traders - Claim Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nClaim clear ho chuki hai. JazakAllah.`;
                                 } else if (claim.status === 'approved' || claim.status === 'partially_approved') {
                                   text = `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
                                 } else {

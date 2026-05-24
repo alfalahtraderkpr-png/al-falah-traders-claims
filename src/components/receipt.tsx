@@ -51,9 +51,9 @@ const receiptTypeConfig: Record<ReceiptType, { title: string; subtitle: string; 
     badgeText: 'APPROVED',
   },
   cleared: {
-    title: 'PAYMENT CLEARED',
-    subtitle: 'Claim Receipt - Payment Confirmation',
-    icon: '\uD83D\uDCB0',
+    title: 'CLAIM CLEARED',
+    subtitle: 'Claim Receipt - Cleared Confirmation',
+    icon: '\u2705',
     headerBg: '#1d4ed8',
     headerColor: '#ffffff',
     borderColor: '#1d4ed8',
@@ -289,10 +289,10 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receip
           backgroundColor: '#eff6ff',
         }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1d4ed8' }}>
-            PAYMENT CLEARED
+            CLAIM CLEARED
           </div>
           <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-            Payment for this claim has been cleared.
+            This claim has been cleared.
           </div>
         </div>
       )}

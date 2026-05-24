@@ -59,11 +59,13 @@ const statusLabels: Record<string, string> = {
   rejected: 'Rejected',
 };
 
-export function Reports() {
+export function Reports({ user }: { user: { id: string; name: string; email: string; role: string; orderBookerId: string | null } }) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
   const [allClaims, setAllClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const isAdmin = user.role === 'admin';
 
   // Load all data once
   const loadData = useCallback(async () => {
@@ -78,7 +80,14 @@ export function Reports() {
       if (obRes.ok) { const d = await obRes.json(); if (Array.isArray(d)) setOrderBookers(d); }
       if (claimsRes.ok) {
         const d = await claimsRes.json();
-        if (d && typeof d === 'object' && Array.isArray(d.claims)) setAllClaims(d.claims);
+        if (d && typeof d === 'object' && Array.isArray(d.claims)) {
+          // If orderbooker, only show their claims
+          if (!isAdmin && user.orderBookerId) {
+            setAllClaims(d.claims.filter((c: Claim) => c.orderBookerId === user.orderBookerId));
+          } else {
+            setAllClaims(d.claims);
+          }
+        }
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -112,10 +121,15 @@ export function Reports() {
           <BarChart3 className="h-6 w-6" />
           Reports
         </h2>
+        {!isAdmin && (
+          <Badge className="bg-blue-100 text-blue-700 border-blue-200 px-3 py-1">
+            My Claims Only
+          </Badge>
+        )}
       </div>
 
       <Tabs defaultValue="pending" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 gap-1 h-auto p-1 no-print">
+        <TabsList className={`w-full gap-1 h-auto p-1 no-print ${isAdmin ? 'grid grid-cols-4 lg:grid-cols-7' : 'grid grid-cols-3'}`}>
           <TabsTrigger value="pending" className="text-xs sm:text-sm py-2">
             <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Pending
           </TabsTrigger>
@@ -125,18 +139,22 @@ export function Reports() {
           <TabsTrigger value="aging" className="text-xs sm:text-sm py-2">
             <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Aging
           </TabsTrigger>
-          <TabsTrigger value="performance" className="text-xs sm:text-sm py-2">
-            <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />OB Report
-          </TabsTrigger>
-          <TabsTrigger value="company" className="text-xs sm:text-sm py-2 hidden sm:flex">
-            <Building2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Company
-          </TabsTrigger>
-          <TabsTrigger value="cleared" className="text-xs sm:text-sm py-2 hidden sm:flex">
-            <Banknote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Payments
-          </TabsTrigger>
-          <TabsTrigger value="detail" className="text-xs sm:text-sm py-2 hidden sm:flex">
-            <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Detail
-          </TabsTrigger>
+          {isAdmin && (
+            <>
+              <TabsTrigger value="performance" className="text-xs sm:text-sm py-2">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />OB Report
+              </TabsTrigger>
+              <TabsTrigger value="company" className="text-xs sm:text-sm py-2 hidden sm:flex">
+                <Building2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Company
+              </TabsTrigger>
+              <TabsTrigger value="cleared" className="text-xs sm:text-sm py-2 hidden sm:flex">
+                <Banknote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Payments
+              </TabsTrigger>
+              <TabsTrigger value="detail" className="text-xs sm:text-sm py-2 hidden sm:flex">
+                <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Detail
+              </TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         <div ref={printRef}>

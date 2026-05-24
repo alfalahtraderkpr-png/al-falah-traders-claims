@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/app-layout';
 import { Dashboard } from '@/components/dashboard';
 import { ClaimList } from '@/components/claim-list';
 import { MasterData } from '@/components/master-data';
+import { UsersManager } from '@/components/users-manager';
 import { Reports } from '@/components/reports';
 
 interface User {
@@ -108,8 +109,10 @@ export default function Home() {
         case 'shops':
         case 'order-bookers':
           return <MasterData initialTab={activeSection} />;
+        case 'users':
+          return <UsersManager />;
         case 'reports':
-          return <Reports />;
+          return <Reports user={user} />;
         default:
           return <Dashboard user={user} />;
       }

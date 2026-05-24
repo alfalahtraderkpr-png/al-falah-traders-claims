@@ -14,10 +14,11 @@ import {
   Menu,
   X,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-type Section = 'dashboard' | 'claims' | 'companies' | 'products' | 'suppliers' | 'shops' | 'order-bookers' | 'reports';
+type Section = 'dashboard' | 'claims' | 'companies' | 'products' | 'suppliers' | 'shops' | 'order-bookers' | 'users' | 'reports';
 
 interface AppLayoutProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -35,12 +36,14 @@ const adminNavItems = [
   { id: 'suppliers', label: 'Suppliers', icon: Users, color: 'text-orange-300' },
   { id: 'shops', label: 'Shops', icon: Store, color: 'text-pink-300' },
   { id: 'order-bookers', label: 'Order Bookers', icon: UserCheck, color: 'text-cyan-300' },
+  { id: 'users', label: 'Users', icon: Shield, color: 'text-indigo-300' },
   { id: 'reports', label: 'Reports', icon: BarChart3, color: 'text-rose-300' },
 ];
 
 const orderBookerNavItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-emerald-300' },
   { id: 'claims', label: 'My Claims', icon: FileText, color: 'text-blue-300' },
+  { id: 'reports', label: 'Reports', icon: BarChart3, color: 'text-rose-300' },
 ];
 
 export function AppLayout({ user, activeSection, onSectionChange, onLogout, children }: AppLayoutProps) {
@@ -142,7 +145,7 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
             </Button>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-emerald-800 capitalize animate-fade-in">
-                {activeSection === 'order-bookers' ? 'Order Bookers' : activeSection.replace('-', ' ')}
+                {activeSection === 'order-bookers' ? 'Order Bookers' : activeSection === 'users' ? 'Users' : activeSection.replace('-', ' ')}
               </h2>
             </div>
             <div className="flex items-center gap-3">

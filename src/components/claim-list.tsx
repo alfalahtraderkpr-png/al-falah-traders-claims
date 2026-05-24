@@ -394,191 +394,449 @@ export function ClaimList({ user }: ClaimListProps) {
         </CardContent>
       </Card>
 
-      {/* Claims Table */}
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Loader2 className="h-6 w-6 animate-spin text-emerald-600 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Loading claims...</p>
-              </div>
-            </div>
-          ) : claims.length === 0 ? (
-            <div className="text-center py-16">
-              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-muted-foreground text-lg font-medium">No claims found</p>
-              <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or create a new claim</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-left py-3 px-4 font-medium">Claim #</th>
-                    <th className="text-left py-3 px-4 font-medium">Date</th>
-                    <th className="text-left py-3 px-4 font-medium">Company</th>
-                    <th className="text-left py-3 px-4 font-medium">Shop</th>
-                    <th className="text-left py-3 px-4 font-medium">Supplier</th>
-                    <th className="text-left py-3 px-4 font-medium">Order Booker</th>
-                    <th className="text-right py-3 px-4 font-medium">Total</th>
-                    <th className="text-right py-3 px-4 font-medium">Approved</th>
-                    <th className="text-center py-3 px-4 font-medium">Status</th>
-                    <th className="text-center py-3 px-4 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {claims.map((claim, index) => (
-                    <tr
-                      key={claim.id}
-                      className="border-b table-row-hover animate-fade-in-up"
-                      style={{ animationDelay: `${index * 30}ms` }}
+      {/* Claims Cards (Mobile) / Table (Desktop) */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Loading claims...</p>
+          </div>
+        </div>
+      ) : claims.length === 0 ? (
+        <Card className="shadow-sm">
+          <CardContent className="py-16 text-center">
+            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-muted-foreground text-lg font-medium">No claims found</p>
+            <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or create a new claim</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Mobile Card View */}
+          <div className="sm:hidden space-y-3">
+            {claims.map((claim, index) => (
+              <Card
+                key={claim.id}
+                className="shadow-sm animate-fade-in-up overflow-hidden"
+                style={{ animationDelay: `${index * 30}ms` }}
+              >
+                <CardContent className="p-4">
+                  {/* Card Header: Claim # + Status */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-bold text-emerald-700 text-base">{claim.claimNumber}</span>
+                    <Badge className={`${statusColors[claim.status]} border text-xs`}>
+                      {statusLabels[claim.status]}
+                    </Badge>
+                  </div>
+
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm mb-3">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Date</span>
+                      <p className="font-medium">{new Date(claim.date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Company</span>
+                      <p className="font-medium">{claim.company.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Shop</span>
+                      <p className="font-medium truncate">{claim.shop.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Supplier</span>
+                      <p className="font-medium truncate">{claim.supplier.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Total</span>
+                      <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Approved</span>
+                      <p className="font-medium">{claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}</p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons - Full width on mobile */}
+                  <div className="flex flex-wrap gap-2 pt-3 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 min-w-[70px] border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg"
+                      onClick={() => setViewClaim(claim)}
                     >
-                      <td className="py-3 px-4 font-medium text-emerald-700">{claim.claimNumber}</td>
-                      <td className="py-3 px-4">{new Date(claim.date).toLocaleDateString()}</td>
-                      <td className="py-3 px-4">{claim.company.name}</td>
-                      <td className="py-3 px-4">{claim.shop.name}</td>
-                      <td className="py-3 px-4">{claim.supplier.name}</td>
-                      <td className="py-3 px-4">{claim.orderBooker?.name || '-'}</td>
-                      <td className="py-3 px-4 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
-                      <td className="py-3 px-4 text-right">
-                        {claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <Badge className={`${statusColors[claim.status]} border text-xs transition-transform duration-200 hover:scale-105 cursor-default`}>
-                          {statusLabels[claim.status]}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* View - always available */}
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-9 w-9 border-blue-300 text-blue-600 hover:bg-blue-100 hover:text-blue-800 btn-enhanced btn-ripple rounded-lg"
-                            onClick={() => setViewClaim(claim)}
-                            title="View Details"
-                          >
-                            <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4 mr-1" /> View
+                    </Button>
+
+                    {isAdmin && claim.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="flex-1 min-w-[70px] bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                          onClick={() => handleApprove(claim.id)}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" /> Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 min-w-[70px] bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
+                          onClick={() => { setActionDialog({ type: 'partial', claim }); setActionValue(''); }}
+                        >
+                          <AlertTriangle className="h-4 w-4 mr-1" /> Partial
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 min-w-[70px] bg-red-500 hover:bg-red-600 text-white rounded-lg"
+                          onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); }}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" /> Reject
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-[70px] border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                          onClick={() => { setEditClaim(claim); setShowForm(true); }}
+                        >
+                          <Edit className="h-4 w-4 mr-1" /> Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-[70px] border-red-300 text-red-500 hover:bg-red-50 rounded-lg"
+                          onClick={() => handleDelete(claim.id, claim.status)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Delete
+                        </Button>
+                      </>
+                    )}
+
+                    {isAdmin && claim.status === 'approved' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="flex-1 min-w-[70px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                          onClick={() => { setActionDialog({ type: 'clear', claim }); setActionValue(''); }}
+                        >
+                          <Banknote className="h-4 w-4 mr-1" /> Clear
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="flex-1 min-w-[70px] border-purple-300 text-purple-600 hover:bg-purple-50 rounded-lg">
+                              <RotateCcw className="h-4 w-4 mr-1" /> Status
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="min-w-[200px]">
+                            <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
+                              ⏳ Back to Pending
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+                              ⚠️ Change to Partial Approve
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); }} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
+                              ✖ Reject Claim
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-[70px] border-red-300 text-red-500 hover:bg-red-50 rounded-lg"
+                          onClick={() => handleDelete(claim.id, claim.status)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Delete
+                        </Button>
+                      </>
+                    )}
+
+                    {isAdmin && claim.status === 'partially_approved' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="flex-1 min-w-[70px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                          onClick={() => { setActionDialog({ type: 'clear', claim }); setActionValue(''); }}
+                        >
+                          <Banknote className="h-4 w-4 mr-1" /> Clear
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="flex-1 min-w-[70px] border-purple-300 text-purple-600 hover:bg-purple-50 rounded-lg">
+                              <RotateCcw className="h-4 w-4 mr-1" /> Status
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="min-w-[200px]">
+                            <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
+                              ⏳ Back to Pending
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'approved')} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
+                              ✅ Full Approve
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+                              ⚠️ Change Partial Amount
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); }} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
+                              ✖ Reject Claim
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-[70px] border-red-300 text-red-500 hover:bg-red-50 rounded-lg"
+                          onClick={() => handleDelete(claim.id, claim.status)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Delete
+                        </Button>
+                      </>
+                    )}
+
+                    {isAdmin && claim.status === 'cleared' && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex-1 min-w-[70px] border-purple-300 text-purple-600 hover:bg-purple-50 rounded-lg">
+                            <RotateCcw className="h-4 w-4 mr-1" /> Status
                           </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-[200px]">
+                          <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
+                            ⏳ Back to Pending
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'approved')} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
+                            ✅ Back to Approved
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+                            ⚠️ Change to Partial
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
 
-                          {isAdmin && claim.status === 'pending' && (
-                            <>
-                              <Button
-                                size="icon"
-                                className="h-9 w-9 bg-green-600 hover:bg-green-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => handleApprove(claim.id)}
-                                title="Approve"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                className="h-9 w-9 bg-orange-500 hover:bg-orange-600 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => {
-                                  setActionDialog({ type: 'partial', claim });
-                                  setActionValue('');
-                                }}
-                                title="Partial Approve"
-                              >
-                                <AlertTriangle className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                className="h-9 w-9 bg-red-500 hover:bg-red-600 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => {
-                                  setActionDialog({ type: 'reject', claim });
-                                  setActionValue('');
-                                }}
-                                title="Reject"
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => { setEditClaim(claim); setShowForm(true); }}
-                                title="Edit"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => handleDelete(claim.id, claim.status)}
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
+                    {isAdmin && claim.status === 'rejected' && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex-1 min-w-[70px] border-purple-300 text-purple-600 hover:bg-purple-50 rounded-lg">
+                            <RotateCcw className="h-4 w-4 mr-1" /> Status
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-[200px]">
+                          <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
+                            ⏳ Back to Pending
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'approved')} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
+                            ✅ Approve Claim
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+                            ⚠️ Partial Approve
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-                          {isAdmin && claim.status === 'approved' && (
-                            <>
-                              <Button
-                                size="icon"
-                                className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => {
-                                  setActionDialog({ type: 'clear', claim });
-                                  setActionValue('');
-                                }}
-                                title="Clear Payment"
-                              >
-                                <Banknote className="h-4 w-4" />
-                              </Button>
-                              {/* Change Status dropdown */}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
-                                    title="Change Status"
-                                  >
-                                    <RotateCcw className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="min-w-[200px]">
-                                  <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
-                                    ⏳ Back to Pending
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
-                                    ⚠️ Change to Partial Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); }} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
-                                    ✖ Reject Claim
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => handleDelete(claim.id, claim.status)}
-                                title="Delete Claim"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
+          {/* Desktop Table View */}
+          <Card className="hidden sm:block shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left py-3 px-4 font-medium">Claim #</th>
+                      <th className="text-left py-3 px-4 font-medium">Date</th>
+                      <th className="text-left py-3 px-4 font-medium">Company</th>
+                      <th className="text-left py-3 px-4 font-medium">Shop</th>
+                      <th className="text-left py-3 px-4 font-medium">Supplier</th>
+                      <th className="text-left py-3 px-4 font-medium">Order Booker</th>
+                      <th className="text-right py-3 px-4 font-medium">Total</th>
+                      <th className="text-right py-3 px-4 font-medium">Approved</th>
+                      <th className="text-center py-3 px-4 font-medium">Status</th>
+                      <th className="text-center py-3 px-4 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {claims.map((claim, index) => (
+                      <tr
+                        key={claim.id}
+                        className="border-b table-row-hover animate-fade-in-up"
+                        style={{ animationDelay: `${index * 30}ms` }}
+                      >
+                        <td className="py-3 px-4 font-medium text-emerald-700">{claim.claimNumber}</td>
+                        <td className="py-3 px-4">{new Date(claim.date).toLocaleDateString()}</td>
+                        <td className="py-3 px-4">{claim.company.name}</td>
+                        <td className="py-3 px-4">{claim.shop.name}</td>
+                        <td className="py-3 px-4">{claim.supplier.name}</td>
+                        <td className="py-3 px-4">{claim.orderBooker?.name || '-'}</td>
+                        <td className="py-3 px-4 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
+                        <td className="py-3 px-4 text-right">
+                          {claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <Badge className={`${statusColors[claim.status]} border text-xs transition-transform duration-200 hover:scale-105 cursor-default`}>
+                            {statusLabels[claim.status]}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {/* View - always available */}
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 border-blue-300 text-blue-600 hover:bg-blue-100 hover:text-blue-800 btn-enhanced btn-ripple rounded-lg"
+                              onClick={() => setViewClaim(claim)}
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
 
-                          {isAdmin && claim.status === 'partially_approved' && (
-                            <>
-                              <Button
-                                size="icon"
-                                className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => {
-                                  setActionDialog({ type: 'clear', claim });
-                                  setActionValue('');
-                                }}
-                                title="Clear Payment"
-                              >
-                                <Banknote className="h-4 w-4" />
-                              </Button>
-                              {/* Change Status dropdown */}
+                            {isAdmin && claim.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="icon"
+                                  className="h-9 w-9 bg-green-600 hover:bg-green-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => handleApprove(claim.id)}
+                                  title="Approve"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  className="h-9 w-9 bg-orange-500 hover:bg-orange-600 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => { setActionDialog({ type: 'partial', claim }); setActionValue(''); }}
+                                  title="Partial Approve"
+                                >
+                                  <AlertTriangle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  className="h-9 w-9 bg-red-500 hover:bg-red-600 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); }}
+                                  title="Reject"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => { setEditClaim(claim); setShowForm(true); }}
+                                  title="Edit"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => handleDelete(claim.id, claim.status)}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+
+                            {isAdmin && claim.status === 'approved' && (
+                              <>
+                                <Button
+                                  size="icon"
+                                  className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => { setActionDialog({ type: 'clear', claim }); setActionValue(''); }}
+                                  title="Clear Payment"
+                                >
+                                  <Banknote className="h-4 w-4" />
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
+                                      title="Change Status"
+                                    >
+                                      <RotateCcw className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="min-w-[200px]">
+                                    <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
+                                      ⏳ Back to Pending
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+                                      ⚠️ Change to Partial Approve
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); }} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
+                                      ✖ Reject Claim
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => handleDelete(claim.id, claim.status)}
+                                  title="Delete Claim"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+
+                            {isAdmin && claim.status === 'partially_approved' && (
+                              <>
+                                <Button
+                                  size="icon"
+                                  className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => { setActionDialog({ type: 'clear', claim }); setActionValue(''); }}
+                                  title="Clear Payment"
+                                >
+                                  <Banknote className="h-4 w-4" />
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
+                                      title="Change Status"
+                                    >
+                                      <RotateCcw className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="min-w-[200px]">
+                                    <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
+                                      ⏳ Back to Pending
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'approved')} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
+                                      ✅ Full Approve
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+                                      ⚠️ Change Partial Amount
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); }} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
+                                      ✖ Reject Claim
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
+                                  onClick={() => handleDelete(claim.id, claim.status)}
+                                  title="Delete Claim"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+
+                            {isAdmin && claim.status === 'cleared' && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
@@ -595,92 +853,53 @@ export function ClaimList({ user }: ClaimListProps) {
                                     ⏳ Back to Pending
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'approved')} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
-                                    ✅ Full Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
-                                    ⚠️ Change Partial Amount
+                                    ✅ Back to Approved
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); }} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
-                                    ✖ Reject Claim
+                                  <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+                                    ⚠️ Change to Partial
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => handleDelete(claim.id, claim.status)}
-                                title="Delete Claim"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
+                            )}
 
-                          {isAdmin && claim.status === 'cleared' && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
-                                  title="Change Status"
-                                >
-                                  <RotateCcw className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="min-w-[200px]">
-                                <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
-                                  ⏳ Back to Pending
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'approved')} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
-                                  ✅ Back to Approved
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
-                                  ⚠️ Change to Partial
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-
-                          {isAdmin && claim.status === 'rejected' && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
-                                  title="Change Status"
-                                >
-                                  <RotateCcw className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="min-w-[200px]">
-                                <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
-                                  ⏳ Back to Pending
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'approved')} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
-                                  ✅ Approve Claim
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
-                                  ⚠️ Partial Approve
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                            {isAdmin && claim.status === 'rejected' && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
+                                    title="Change Status"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="min-w-[200px]">
+                                  <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'pending')} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
+                                    ⏳ Back to Pending
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleChangeStatus(claim.id, 'approved')} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
+                                    ✅ Approve Claim
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+                                    ⚠️ Partial Approve
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* Action Dialog */}
       {actionDialog && (

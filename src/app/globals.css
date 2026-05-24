@@ -412,8 +412,8 @@
     left: 0;
     top: 0;
     width: 100%;
-    padding: 0;
-    margin: 0;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   /* Always show print headers */
@@ -433,49 +433,90 @@
     visibility: hidden !important;
   }
 
-  /* Print table styles */
+  /* === ULTRA COMPACT PRINT LAYOUT === */
+
+  /* Remove all spacing between report sections */
+  [role="tabpanel"][data-state="active"] > div {
+    gap: 4px !important;
+  }
+
+  /* Remove card chrome in print */
+  [role="tabpanel"][data-state="active"] .shadow-sm {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  [role="tabpanel"][data-state="active"] .shadow-sm > div {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Print table styles - compact */
   .print-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
   }
 
   .print-table th,
   .print-table td {
-    border: 1px solid #999 !important;
-    padding: 4px 8px !important;
+    border: 1px solid #bbb !important;
+    padding: 2px 6px !important;
+    line-height: 1.3 !important;
   }
 
   .print-table th {
-    background-color: #f3f4f6 !important;
+    background-color: #e5e7eb !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
+    font-size: 10px !important;
   }
 
   .print-bg-gray {
-    background-color: #f3f4f6 !important;
+    background-color: #e5e7eb !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   .print-bg-light {
-    background-color: #ecfdf5 !important;
+    background-color: #d1fae5 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Card styles for print */
-  [role="tabpanel"][data-state="active"] .shadow-sm {
-    box-shadow: none !important;
-    border: 1px solid #ddd !important;
-    margin-bottom: 8px !important;
+  /* Compact print summary row */
+  .print-summary {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+    padding: 4px 0 !important;
+    font-size: 11px !important;
   }
 
-  /* Page setup */
+  .print-summary-item {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .print-summary-label {
+    font-weight: 400 !important;
+    color: #555 !important;
+  }
+
+  .print-summary-value {
+    font-weight: 700 !important;
+    color: #000 !important;
+  }
+
+  /* Page setup - minimal margins */
   @page {
     size: A4 landscape;
-    margin: 12mm;
+    margin: 8mm;
   }
 
   /* Avoid page breaks inside rows */
@@ -488,19 +529,44 @@
     display: table-header-group;
   }
 
-  /* Print header styling */
+  /* Print header styling - compact */
+  .print-header {
+    margin-bottom: 4px !important;
+  }
+
   .print-header h1 {
-    font-size: 18px !important;
+    font-size: 15px !important;
     color: #000 !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
   }
 
   .print-header h2 {
-    font-size: 15px !important;
+    font-size: 12px !important;
     color: #333 !important;
+    margin: 2px 0 0 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-header p {
+    font-size: 9px !important;
+    margin: 1px 0 !important;
+    line-height: 1.2 !important;
   }
 
   .print-header hr {
     border-color: #666 !important;
+    margin: 4px 0 !important;
+  }
+
+  /* Hide summary cards in print (we use print-summary instead) */
+  .print-hide-cards {
+    display: none !important;
+  }
+
+  /* Hide decorative cards (colored bg ones) in print */
+  .print-hide-decor {
+    display: none !important;
   }
 
   /* Badge printing */
@@ -511,5 +577,20 @@
   .print-table .bg-orange-100 {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    font-size: 9px !important;
+    padding: 1px 4px !important;
+  }
+
+  /* Card headers in print - compact */
+  [role="tabpanel"][data-state="active"] .card-header,
+  [role="tabpanel"][data-state="active"] [class*="CardHeader"] {
+    padding: 2px 6px !important;
+    margin: 0 !important;
+  }
+
+  [role="tabpanel"][data-state="active"] .card-title,
+  [role="tabpanel"][data-state="active"] [class*="CardTitle"] {
+    font-size: 11px !important;
+    margin: 0 !important;
   }
 }

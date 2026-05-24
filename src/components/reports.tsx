@@ -215,8 +215,8 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
         <hr className="my-3 border-gray-400" />
       </div>
 
-      {/* Summary */}
-      <Card className="shadow-sm">
+      {/* Summary - screen: cards, print: inline compact row */}
+      <Card className="shadow-sm print-hide-cards">
         <CardContent className="p-4">
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="bg-yellow-50 rounded-lg p-3">
@@ -230,6 +230,11 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
           </div>
         </CardContent>
       </Card>
+      {/* Print-only compact summary */}
+      <div className="hidden print-block print-summary">
+        <span className="print-summary-item"><span className="print-summary-label">Pending Claims:</span> <span className="print-summary-value">{filtered.length}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Total Amount:</span> <span className="print-summary-value">{formatAmount(grandTotal)}</span></span>
+      </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
@@ -351,8 +356,8 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
         <hr className="my-3 border-gray-400" />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* Summary Cards - hidden in print */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 print-hide-decor">
         <Card className="shadow-sm bg-emerald-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total Claims</p><p className="text-xl font-bold text-emerald-700">{filtered.length}</p></CardContent></Card>
         <Card className="shadow-sm bg-yellow-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Pending</p><p className="text-xl font-bold text-yellow-700">{byStatus.pending}</p></CardContent></Card>
         <Card className="shadow-sm bg-green-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Approved</p><p className="text-xl font-bold text-green-700">{byStatus.approved + byStatus.partially_approved}</p></CardContent></Card>
@@ -360,8 +365,8 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
         <Card className="shadow-sm bg-red-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Rejected</p><p className="text-xl font-bold text-red-700">{byStatus.rejected}</p></CardContent></Card>
       </div>
 
-      {/* Amount Summary */}
-      <Card className="shadow-sm">
+      {/* Amount Summary - hidden in print */}
+      <Card className="shadow-sm print-hide-cards">
         <CardContent className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div className="bg-emerald-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Amount</p><p className="text-lg font-bold text-emerald-700">{formatAmount(totalAmount)}</p></div>
@@ -371,6 +376,17 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
           </div>
         </CardContent>
       </Card>
+      {/* Print-only compact summary */}
+      <div className="hidden print-block print-summary">
+        <span className="print-summary-item"><span className="print-summary-label">Total:</span> <span className="print-summary-value">{filtered.length}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Pending:</span> <span className="print-summary-value">{byStatus.pending}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Approved:</span> <span className="print-summary-value">{byStatus.approved + byStatus.partially_approved}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Cleared:</span> <span className="print-summary-value">{byStatus.cleared}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Rejected:</span> <span className="print-summary-value">{byStatus.rejected}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Total Amt:</span> <span className="print-summary-value">{formatAmount(totalAmount)}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Pending Amt:</span> <span className="print-summary-value">{formatAmount(pendingAmount)}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Cleared Amt:</span> <span className="print-summary-value">{formatAmount(clearedAmount)}</span></span>
+      </div>
 
       {/* All Claims Table */}
       {filtered.length > 0 && (
@@ -464,8 +480,8 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
         <hr className="my-3 border-gray-400" />
       </div>
 
-      {/* Aging Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Aging Summary Cards - hidden in print */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 print-hide-decor">
         {agingGroups.map(g => {
           const groupClaims = pending.filter(c => g.filter(getDays(c.createdAt || c.date)));
           const total = groupClaims.reduce((s, c) => s + c.totalAmount, 0);
@@ -477,6 +493,16 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
                 <p className="text-sm font-medium">{formatAmount(total)}</p>
               </CardContent>
             </Card>
+          );
+        })}
+      </div>
+      {/* Print-only compact aging summary */}
+      <div className="hidden print-block print-summary">
+        {agingGroups.map(g => {
+          const groupClaims = pending.filter(c => g.filter(getDays(c.createdAt || c.date)));
+          const total = groupClaims.reduce((s, c) => s + c.totalAmount, 0);
+          return (
+            <span key={g.label} className="print-summary-item"><span className="print-summary-label">{g.label}:</span> <span className="print-summary-value">{groupClaims.length} ({formatAmount(total)})</span></span>
           );
         })}
       </div>

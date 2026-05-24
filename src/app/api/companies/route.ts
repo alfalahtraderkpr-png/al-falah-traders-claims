@@ -17,7 +17,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name } = await request.json();
+    const { name, claimRate, multiTierPricing } = await request.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
@@ -29,7 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     const company = await db.company.create({
-      data: { name: name.trim() },
+      data: {
+        name: name.trim(),
+        claimRate: claimRate !== undefined ? Number(claimRate) : 78,
+        multiTierPricing: multiTierPricing === true,
+      },
     });
 
     return NextResponse.json(company, { status: 201 });

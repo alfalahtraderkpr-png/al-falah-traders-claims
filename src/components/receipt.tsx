@@ -9,7 +9,7 @@ interface ReceiptProps {
     totalAmount: number;
     approvedAmount: number | null;
     status: string;
-    company: { name: string };
+    company: { name: string; claimRate?: number };
     shop: { name: string; address: string };
     supplier: { name: string };
     orderBooker: { name: string } | null;
@@ -34,11 +34,13 @@ const statusLabels: Record<string, string> = {
 
 export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref) => {
   const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
+  const claimRate = claim.company?.claimRate || 78;
 
   const infoItems = [
     { label: 'Claim #', value: claim.claimNumber },
     { label: 'Date', value: new Date(claim.date).toLocaleDateString() },
     { label: 'Company', value: claim.company.name },
+    { label: 'Claim Rate', value: `${claimRate}%` },
     { label: 'Shop', value: claim.shop.name },
     { label: 'Address', value: claim.shop.address || '-' },
     { label: 'Supplier', value: claim.supplier.name },
@@ -117,24 +119,29 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
             <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'left', fontSize: '13px' }}>#</th>
             <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'left', fontSize: '13px' }}>Product</th>
             <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'right', fontSize: '13px' }}>Price</th>
+            <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'right', fontSize: '13px' }}>Claim/Unit</th>
             <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'center', fontSize: '13px' }}>Qty</th>
             <th style={{ padding: '10px 12px', color: '#ffffff', textAlign: 'right', fontSize: '13px' }}>Amount</th>
           </tr>
         </thead>
         <tbody>
-          {claim.claimItems.map((item, index) => (
-            <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{index + 1}</td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{item.product.name}</td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right' }}>{formatAmount(item.product.price)}</td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>{item.quantity}</td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right', fontWeight: '600' }}>{formatAmount(item.amount)}</td>
-            </tr>
-          ))}
+          {claim.claimItems.map((item, index) => {
+            const claimPerUnit = Math.round(item.product.price * (claimRate / 100));
+            return (
+              <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{index + 1}</td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{item.product.name}</td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right' }}>{formatAmount(item.product.price)}</td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right', color: '#059669' }}>{formatAmount(claimPerUnit)}</td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>{item.quantity}</td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', textAlign: 'right', fontWeight: '600' }}>{formatAmount(item.amount)}</td>
+              </tr>
+            );
+          })}
         </tbody>
         <tfoot>
           <tr style={{ borderTop: '3px solid #059669' }}>
-            <td colSpan={4} style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
+            <td colSpan={5} style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
               Total Amount:
             </td>
             <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#047857' }}>
@@ -143,7 +150,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim }, ref)
           </tr>
           {claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
             <tr>
-              <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
+              <td colSpan={5} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
                 Approved Amount:
               </td>
               <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#15803d' }}>

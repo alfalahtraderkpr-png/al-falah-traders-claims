@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store, UserCheck, Upload, Download, FileSpreadsheet } from 'lucide-react';
 
 // Types
-interface Company { id: string; name: string; _count?: { products: number } }
+interface Company { id: string; name: string; claimRate?: number; multiTierPricing?: boolean; _count?: { products: number } }
 interface Product { id: string; name: string; price: number; unit: string; companyId: string; company: { name: string } }
 interface Supplier { id: string; name: string; companyId?: string | null; company?: { name: string } | null }
 interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
@@ -66,6 +66,8 @@ function CompaniesTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Company | null>(null);
   const [formName, setFormName] = useState('');
+  const [formClaimRate, setFormClaimRate] = useState('78');
+  const [formMultiTier, setFormMultiTier] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -80,22 +82,25 @@ function CompaniesTab() {
   const handleSave = async () => {
     if (!formName.trim()) return;
     try {
+      const body: Record<string, unknown> = { name: formName, claimRate: Number(formClaimRate) || 78, multiTierPricing: formMultiTier };
       if (editItem) {
         await fetch(`/api/companies/${editItem.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: formName }),
+          body: JSON.stringify(body),
         });
       } else {
         await fetch('/api/companies', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: formName }),
+          body: JSON.stringify(body),
         });
       }
       setDialogOpen(false);
       setEditItem(null);
       setFormName('');
+      setFormClaimRate('78');
+      setFormMultiTier(false);
       load();
     } catch (e) { console.error(e); }
   };
@@ -115,7 +120,7 @@ function CompaniesTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Companies ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setFormClaimRate('78'); setFormMultiTier(false); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -131,6 +136,8 @@ function CompaniesTab() {
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
+                <th className="text-center py-2 px-4 font-medium">Claim Rate</th>
+                <th className="text-center py-2 px-4 font-medium">Pricing</th>
                 <th className="text-center py-2 px-4 font-medium">Products</th>
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
               </tr></thead>
@@ -138,9 +145,11 @@ function CompaniesTab() {
                 {filtered.map((item, index) => (
                   <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
                     <td className="py-2 px-4 font-medium">{item.name}</td>
+                    <td className="py-2 px-4 text-center"><Badge className="bg-blue-100 text-blue-700 border-blue-200">{item.claimRate || 78}%</Badge></td>
+                    <td className="py-2 px-4 text-center">{item.multiTierPricing ? <Badge className="bg-purple-100 text-purple-700 border-purple-200">Multi-Tier</Badge> : <span className="text-xs text-muted-foreground">Standard</span>}</td>
                     <td className="py-2 px-4 text-center"><Badge variant="outline" className="transition-transform hover:scale-105">{item._count?.products || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setFormClaimRate(String(item.claimRate || 78)); setFormMultiTier(item.multiTierPricing || false); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
@@ -160,6 +169,15 @@ function CompaniesTab() {
           <DialogHeader><DialogTitle>{editItem ? 'Edit' : 'Add'} Company</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div><Label>Name</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Company name" /></div>
+            <div>
+              <Label>Claim Rate (%)</Label>
+              <p className="text-xs text-muted-foreground mb-1">Claim amount = Price x (Claim Rate/100) x Quantity. Default: 78%</p>
+              <Input type="number" min="1" max="100" value={formClaimRate} onChange={(e) => setFormClaimRate(e.target.value)} placeholder="78" />
+            </div>
+            <div className="flex items-center gap-3">
+              <input type="checkbox" id="multiTierCheck" checked={formMultiTier} onChange={(e) => setFormMultiTier(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
+              <label htmlFor="multiTierCheck" className="text-sm font-medium">Multi-Tier Pricing (Wholesale/LMT)</label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

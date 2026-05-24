@@ -22,6 +22,7 @@ model Company {
   id              String   @id @default(cuid())
   name            String
   multiTierPricing Boolean @default(false) // Cadbury = true, others = false
+  claimRate       Float    @default(78) // Claim percentage (e.g., 78 means 78% of price is the claim amount)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   products        Product[]

@@ -91,6 +91,51 @@ export async function PUT(
         };
         break;
 
+      case 'change_status':
+        // Allow admin to change claim status freely (e.g., approved back to pending/partial)
+        if (!body.newStatus) {
+          return NextResponse.json({ error: 'New status is required' }, { status: 400 });
+        }
+        const validStatuses = ['pending', 'approved', 'partially_approved', 'cleared', 'rejected'];
+        if (!validStatuses.includes(body.newStatus)) {
+          return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+        }
+        updateData = { status: body.newStatus };
+        // Handle status-specific fields
+        if (body.newStatus === 'pending') {
+          // Reset approval when going back to pending
+          updateData.approvedAmount = null;
+          updateData.clearedBy = null;
+          updateData.clearedDate = null;
+          updateData.rejectReason = null;
+        } else if (body.newStatus === 'approved') {
+          updateData.approvedAmount = claim.totalAmount;
+          updateData.clearedBy = null;
+          updateData.clearedDate = null;
+          updateData.rejectReason = null;
+        } else if (body.newStatus === 'partially_approved') {
+          // Keep existing approvedAmount or use provided amount
+          const partialAmount = body.approvedAmount ? Number(body.approvedAmount) : claim.approvedAmount;
+          if (!partialAmount || partialAmount <= 0) {
+            return NextResponse.json({ error: 'Approved amount is required for partial approval' }, { status: 400 });
+          }
+          if (partialAmount > claim.totalAmount) {
+            return NextResponse.json({ error: `Approved amount cannot exceed total (Rs.${claim.totalAmount})` }, { status: 400 });
+          }
+          updateData.approvedAmount = partialAmount;
+          updateData.clearedBy = null;
+          updateData.clearedDate = null;
+          updateData.rejectReason = null;
+        } else if (body.newStatus === 'rejected') {
+          if (!body.rejectReason || !body.rejectReason.trim()) {
+            return NextResponse.json({ error: 'Reject reason is required' }, { status: 400 });
+          }
+          updateData.rejectReason = body.rejectReason.trim();
+          updateData.clearedBy = null;
+          updateData.clearedDate = null;
+        }
+        break;
+
       case 'update':
         // Update claim details (only if pending)
         if (claim.status !== 'pending') {
@@ -154,9 +199,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
     }
 
-    if (claim.status !== 'pending') {
-      return NextResponse.json({ error: 'Can only delete pending claims' }, { status: 400 });
-    }
+    // Allow deletion of any claim (admin can delete mistaken claims)
+    // Extra confirmation is handled on the frontend
 
     await db.claimItem.deleteMany({ where: { claimId: id } });
     await db.claim.delete({ where: { id } });

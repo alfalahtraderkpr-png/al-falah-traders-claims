@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClaimForm } from './claim-form';
 import { ClaimDetail } from './claim-detail';
-import { Loader2, Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Banknote, FileText, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Banknote, FileText, AlertTriangle, RotateCcw, ChevronDown } from 'lucide-react';
 
 interface ClaimListProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -193,8 +193,11 @@ export function ClaimList({ user }: ClaimListProps) {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this claim?')) return;
+  const handleDelete = async (id: string, status: string) => {
+    const msg = status === 'pending'
+      ? 'Are you sure you want to delete this claim?'
+      : `WARNING: This claim is ${statusLabels[status] || status}. Are you sure you want to DELETE it? This cannot be undone!`;
+    if (!confirm(msg)) return;
     try {
       const res = await fetch(`/api/claims/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -208,9 +211,38 @@ export function ClaimList({ user }: ClaimListProps) {
     }
   };
 
+  const handleChangeStatus = async (id: string, newStatus: string, extraData?: Record<string, unknown>) => {
+    try {
+      const res = await fetch(`/api/claims/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'change_status', newStatus, ...extraData }),
+      });
+      if (res.ok) {
+        loadClaims();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to change status');
+      }
+    } catch (error) {
+      console.error('Change status error:', error);
+    }
+  };
+
   // Action dialog state
   const [actionDialog, setActionDialog] = useState<{ type: string; claim: Claim } | null>(null);
   const [actionValue, setActionValue] = useState('');
+  // Status change dropdown
+  const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
+
+  // Close status dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = () => setStatusDropdown(null);
+    if (statusDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [statusDropdown]);
 
   const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
 
@@ -428,6 +460,7 @@ export function ClaimList({ user }: ClaimListProps) {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-1.5">
+                          {/* View - always available */}
                           <Button
                             variant="outline"
                             size="icon"
@@ -437,6 +470,7 @@ export function ClaimList({ user }: ClaimListProps) {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+
                           {isAdmin && claim.status === 'pending' && (
                             <>
                               <Button
@@ -473,7 +507,7 @@ export function ClaimList({ user }: ClaimListProps) {
                                 variant="outline"
                                 size="icon"
                                 className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => setEditClaim(claim) || setShowForm(true)}
+                                onClick={() => { setEditClaim(claim); setShowForm(true); }}
                                 title="Edit"
                               >
                                 <Edit className="h-4 w-4" />
@@ -482,25 +516,169 @@ export function ClaimList({ user }: ClaimListProps) {
                                 variant="outline"
                                 size="icon"
                                 className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
-                                onClick={() => handleDelete(claim.id)}
+                                onClick={() => handleDelete(claim.id, claim.status)}
                                 title="Delete"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </>
                           )}
-                          {isAdmin && (claim.status === 'approved' || claim.status === 'partially_approved') && (
-                            <Button
-                              size="icon"
-                              className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
-                              onClick={() => {
-                                setActionDialog({ type: 'clear', claim });
-                                setActionValue('');
-                              }}
-                              title="Clear Payment"
-                            >
-                              <Banknote className="h-4 w-4" />
-                            </Button>
+
+                          {isAdmin && claim.status === 'approved' && (
+                            <>
+                              <Button
+                                size="icon"
+                                className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
+                                onClick={() => {
+                                  setActionDialog({ type: 'clear', claim });
+                                  setActionValue('');
+                                }}
+                                title="Clear Payment"
+                              >
+                                <Banknote className="h-4 w-4" />
+                              </Button>
+                              {/* Change Status dropdown */}
+                              <div className="relative">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
+                                  onClick={(e) => { e.stopPropagation(); setStatusDropdown(statusDropdown === claim.id ? null : claim.id); }}
+                                  title="Change Status"
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
+                                {statusDropdown === claim.id && (
+                                  <div className="absolute z-50 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg min-w-[180px] animate-scale-in">
+                                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-yellow-50 text-yellow-700 border-b" onClick={() => { handleChangeStatus(claim.id, 'pending'); setStatusDropdown(null); }}>
+                                      ⏳ Back to Pending
+                                    </button>
+                                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 text-orange-700 border-b" onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); setStatusDropdown(null); }}>
+                                      ⚠️ Change to Partial Approve
+                                    </button>
+                                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-700" onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); setStatusDropdown(null); }}>
+                                      ✖ Reject Claim
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
+                                onClick={() => handleDelete(claim.id, claim.status)}
+                                title="Delete Claim"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+
+                          {isAdmin && claim.status === 'partially_approved' && (
+                            <>
+                              <Button
+                                size="icon"
+                                className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm btn-enhanced btn-ripple rounded-lg"
+                                onClick={() => {
+                                  setActionDialog({ type: 'clear', claim });
+                                  setActionValue('');
+                                }}
+                                title="Clear Payment"
+                              >
+                                <Banknote className="h-4 w-4" />
+                              </Button>
+                              {/* Change Status dropdown */}
+                              <div className="relative">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
+                                  onClick={(e) => { e.stopPropagation(); setStatusDropdown(statusDropdown === claim.id ? null : claim.id); }}
+                                  title="Change Status"
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
+                                {statusDropdown === claim.id && (
+                                  <div className="absolute z-50 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg min-w-[180px] animate-scale-in">
+                                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-yellow-50 text-yellow-700 border-b" onClick={() => { handleChangeStatus(claim.id, 'pending'); setStatusDropdown(null); }}>
+                                      ⏳ Back to Pending
+                                    </button>
+                                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 text-green-700 border-b" onClick={() => { handleChangeStatus(claim.id, 'approved'); setStatusDropdown(null); }}>
+                                      ✅ Full Approve
+                                    </button>
+                                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 text-orange-700 border-b" onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); setStatusDropdown(null); }}>
+                                      ⚠️ Change Partial Amount
+                                    </button>
+                                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-700" onClick={() => { setActionDialog({ type: 'reject', claim }); setActionValue(''); setStatusDropdown(null); }}>
+                                      ✖ Reject Claim
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 hover:text-red-700 btn-enhanced btn-ripple rounded-lg"
+                                onClick={() => handleDelete(claim.id, claim.status)}
+                                title="Delete Claim"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+
+                          {isAdmin && claim.status === 'cleared' && (
+                            <div className="relative">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
+                                onClick={(e) => { e.stopPropagation(); setStatusDropdown(statusDropdown === claim.id ? null : claim.id); }}
+                                title="Change Status"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                              {statusDropdown === claim.id && (
+                                <div className="absolute z-50 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg min-w-[180px] animate-scale-in">
+                                  <button className="w-full text-left px-3 py-2 text-sm hover:bg-yellow-50 text-yellow-700 border-b" onClick={() => { handleChangeStatus(claim.id, 'pending'); setStatusDropdown(null); }}>
+                                    ⏳ Back to Pending
+                                  </button>
+                                  <button className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 text-green-700 border-b" onClick={() => { handleChangeStatus(claim.id, 'approved'); setStatusDropdown(null); }}>
+                                    ✅ Back to Approved
+                                  </button>
+                                  <button className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 text-orange-700" onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); setStatusDropdown(null); }}>
+                                    ⚠️ Change to Partial
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {isAdmin && claim.status === 'rejected' && (
+                            <div className="relative">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 border-purple-300 text-purple-600 hover:bg-purple-100 hover:text-purple-800 btn-enhanced btn-ripple rounded-lg"
+                                onClick={(e) => { e.stopPropagation(); setStatusDropdown(statusDropdown === claim.id ? null : claim.id); }}
+                                title="Change Status"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                              {statusDropdown === claim.id && (
+                                <div className="absolute z-50 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg min-w-[180px] animate-scale-in">
+                                  <button className="w-full text-left px-3 py-2 text-sm hover:bg-yellow-50 text-yellow-700 border-b" onClick={() => { handleChangeStatus(claim.id, 'pending'); setStatusDropdown(null); }}>
+                                    ⏳ Back to Pending
+                                  </button>
+                                  <button className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 text-green-700 border-b" onClick={() => { handleChangeStatus(claim.id, 'approved'); setStatusDropdown(null); }}>
+                                    ✅ Approve Claim
+                                  </button>
+                                  <button className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 text-orange-700" onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); setStatusDropdown(null); }}>
+                                    ⚠️ Partial Approve
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </td>
@@ -515,30 +693,35 @@ export function ClaimList({ user }: ClaimListProps) {
 
       {/* Action Dialog */}
       {actionDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <Card className="w-full max-w-md animate-scale-in shadow-xl">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setActionDialog(null)}>
+          <Card className="w-full max-w-md animate-scale-in shadow-xl" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 {actionDialog.type === 'partial' && <><AlertTriangle className="h-5 w-5 text-orange-500" /> Partial Approve</>}
+                {actionDialog.type === 'change_partial' && <><AlertTriangle className="h-5 w-5 text-orange-500" /> Change to Partial Approve</>}
                 {actionDialog.type === 'clear' && <><Banknote className="h-5 w-5 text-blue-500" /> Clear Claim</>}
                 {actionDialog.type === 'reject' && <><XCircle className="h-5 w-5 text-red-500" /> Reject Claim</>}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Claim: <strong>{actionDialog.claim.claimNumber}</strong> — {formatAmount(actionDialog.claim.totalAmount)}
+                Claim: <strong>{actionDialog.claim.claimNumber}</strong> — Total: {formatAmount(actionDialog.claim.totalAmount)}
+                {actionDialog.claim.approvedAmount && actionDialog.claim.status !== 'pending' && (
+                  <span className="ml-2 text-green-600">(Current Approved: {formatAmount(actionDialog.claim.approvedAmount)})</span>
+                )}
               </p>
-              {actionDialog.type === 'partial' && (
+              {(actionDialog.type === 'partial' || actionDialog.type === 'change_partial') && (
                 <div>
                   <label className="text-sm font-medium">Approved Amount (Rs.)</label>
                   <Input
                     type="number"
                     value={actionValue}
                     onChange={(e) => setActionValue(e.target.value)}
-                    placeholder="Enter approved amount"
+                    placeholder={`Enter approved amount (max: ${actionDialog.claim.totalAmount})`}
                     className="mt-1"
                     autoFocus
                   />
+                  <p className="text-xs text-muted-foreground mt-1">Total claim amount: {formatAmount(actionDialog.claim.totalAmount)}</p>
                 </div>
               )}
               {actionDialog.type === 'clear' && (
@@ -573,13 +756,15 @@ export function ClaimList({ user }: ClaimListProps) {
                   className={`btn-enhanced text-white shadow-md ${
                     actionDialog.type === 'reject'
                       ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
-                      : actionDialog.type === 'partial'
+                      : actionDialog.type === 'partial' || actionDialog.type === 'change_partial'
                       ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
                       : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
                   }`}
                   onClick={() => {
                     if (actionDialog.type === 'partial') {
                       handlePartialApprove(actionDialog.claim.id, Number(actionValue));
+                    } else if (actionDialog.type === 'change_partial') {
+                      handleChangeStatus(actionDialog.claim.id, 'partially_approved', { approvedAmount: Number(actionValue) });
                     } else if (actionDialog.type === 'clear') {
                       handleClear(actionDialog.claim.id, actionValue);
                     } else if (actionDialog.type === 'reject') {
@@ -587,7 +772,7 @@ export function ClaimList({ user }: ClaimListProps) {
                     }
                     setActionDialog(null);
                   }}
-                  disabled={!actionValue.trim()}
+                  disabled={(actionDialog.type === 'clear' || actionDialog.type === 'reject') ? !actionValue.trim() : !actionValue}
                 >
                   Confirm
                 </Button>

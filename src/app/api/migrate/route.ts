@@ -43,6 +43,48 @@ export async function POST() {
       results.push(`Warning removing claimRate: ${msg}`);
     }
 
+    // Step 4: Add unique constraint on User.orderBookerId if not exists
+    try {
+      // First, set any duplicate orderBookerId to NULL (shouldn't happen but safety)
+      await db.$executeRawUnsafe(`
+        UPDATE "User" SET "orderBookerId" = NULL WHERE "orderBookerId" IS NOT NULL AND id NOT IN (
+          SELECT MIN(id) FROM "User" WHERE "orderBookerId" IS NOT NULL GROUP BY "orderBookerId"
+        );
+      `);
+      results.push('Cleaned up duplicate orderBookerId values in User table');
+
+      // Add unique constraint
+      await db.$executeRawUnsafe(`
+        ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_orderBookerId_key";
+        ALTER TABLE "User" ADD CONSTRAINT "User_orderBookerId_key" UNIQUE ("orderBookerId");
+      `);
+      results.push('Added unique constraint on User.orderBookerId');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('already exists') || msg.includes('duplicate')) {
+        results.push('Unique constraint on User.orderBookerId already exists');
+      } else {
+        results.push(`Warning adding unique constraint on orderBookerId: ${msg}`);
+      }
+    }
+
+    // Step 5: Add foreign key constraint from User.orderBookerId to OrderBooker.id
+    try {
+      await db.$executeRawUnsafe(`
+        ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_orderBookerId_fkey";
+        ALTER TABLE "User" ADD CONSTRAINT "User_orderBookerId_fkey" 
+          FOREIGN KEY ("orderBookerId") REFERENCES "OrderBooker"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      `);
+      results.push('Added foreign key constraint: User.orderBookerId -> OrderBooker.id');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('already exists') || msg.includes('duplicate')) {
+        results.push('Foreign key constraint on User.orderBookerId already exists');
+      } else {
+        results.push(`Warning adding foreign key constraint: ${msg}`);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Migration completed',

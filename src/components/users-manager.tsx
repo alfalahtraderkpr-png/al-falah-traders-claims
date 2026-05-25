@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Plus, Trash2, Key, Shield, UserCheck, Search, Copy, Check } from 'lucide-react';
+import { Loader2, Plus, Trash2, Key, Shield, UserCheck, Search, Copy, Check, Lock, Mail, Calendar, User, Eye } from 'lucide-react';
 
 interface OrderBooker {
   id: string;
@@ -23,6 +23,39 @@ interface UserItem {
   orderBookerId: string | null;
   orderBooker: { id: string; name: string } | null;
   createdAt: string;
+}
+
+// Action Button Component - Icon top, text bottom
+function ActionButton({
+  icon: Icon,
+  label,
+  onClick,
+  variant = 'default',
+  disabled = false,
+}: {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+  variant?: 'blue' | 'red' | 'green' | 'amber';
+  disabled?: boolean;
+}) {
+  const colorMap = {
+    blue: 'border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300',
+    red: 'border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300',
+    green: 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300',
+    amber: 'border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex flex-col items-center justify-center gap-0.5 px-3 py-2 rounded-xl border-2 bg-white transition-all duration-200 active:scale-95 ${colorMap[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <Icon className="h-4 w-4" />
+      <span className="text-[10px] font-semibold leading-tight">{label}</span>
+    </button>
+  );
 }
 
 export function UsersManager() {
@@ -212,28 +245,25 @@ export function UsersManager() {
           </h2>
           <p className="text-muted-foreground">Login accounts manage karein - Admin & Order Booker</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {obUsers.length > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-red-300 text-red-600 hover:bg-red-50 btn-enhanced btn-ripple rounded-lg px-4 py-2"
+            <ActionButton
+              icon={Trash2}
+              label="Delete All OB"
+              variant="red"
               onClick={handleBulkDeleteOB}
               disabled={bulkDeleting}
-            >
-              {bulkDeleting ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Deleting...</> : <><Trash2 className="h-4 w-4 mr-1" /> Delete All OB Logins</>}
-            </Button>
+            />
           )}
-          <Button
-            size="sm"
-            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2"
+          <ActionButton
+            icon={Plus}
+            label="Create Login"
+            variant="green"
             onClick={() => {
               setForm({ name: '', email: '', password: '', role: 'orderbooker', orderBookerId: '' });
               setDialogOpen(true);
             }}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Create Login
-          </Button>
+          />
         </div>
       </div>
 
@@ -255,151 +285,124 @@ export function UsersManager() {
       ) : (
         <>
           {/* Admin Users */}
-          <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-            <CardHeader className="pb-3">
+          <Card className="shadow-sm animate-fade-in-up border-emerald-200" style={{ animationDelay: '100ms' }}>
+            <CardHeader className="pb-3 bg-gradient-to-r from-emerald-50 to-emerald-100/50 rounded-t-lg">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="h-5 w-5 text-emerald-600" />
+                <div className="bg-emerald-600 text-white rounded-lg p-1.5">
+                  <Shield className="h-4 w-4" />
+                </div>
                 Admin Accounts ({adminUsers.length})
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {adminUsers.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">Koi admin account nahi mila</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-gray-50">
-                        <th className="text-left py-2 px-4 font-medium">Name</th>
-                        <th className="text-left py-2 px-4 font-medium">Email</th>
-                        <th className="text-center py-2 px-4 font-medium">Role</th>
-                        <th className="text-left py-2 px-4 font-medium">Created</th>
-                        <th className="text-center py-2 px-4 font-medium">Password</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {adminUsers.map((user) => (
-                        <tr key={user.id} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium">{user.name}</td>
-                          <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Admin 🔒</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-xs text-muted-foreground">
-                            {new Date(user.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg gap-1"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setNewPassword('');
-                                setPasswordDialogOpen(true);
-                              }}
-                              title="Change Password"
-                            >
-                              <Key className="h-4 w-4" /> Change
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-3">
+                  {adminUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50/80 to-white rounded-xl border border-emerald-100 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-emerald-800">{user.name}</p>
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                              <Lock className="h-2.5 w-2.5 mr-0.5" /> Permanent
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
+                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ActionButton
+                          icon={Key}
+                          label="Password"
+                          variant="blue"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setNewPassword('');
+                            setPasswordDialogOpen(true);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* Order Booker Users */}
-          <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-            <CardHeader className="pb-3">
+          <Card className="shadow-sm animate-fade-in-up border-blue-200" style={{ animationDelay: '150ms' }}>
+            <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-t-lg">
               <CardTitle className="text-lg flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-blue-600" />
+                <div className="bg-blue-600 text-white rounded-lg p-1.5">
+                  <UserCheck className="h-4 w-4" />
+                </div>
                 Order Booker Accounts ({obUsers.length})
               </CardTitle>
               {obUsers.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">Default password: <span className="font-mono bg-gray-100 px-1 rounded">password123</span> (seed accounts) — Use Key icon to change</p>
+                <p className="text-xs text-muted-foreground mt-1">Default password: <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">password123</span> (seed accounts)</p>
               )}
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {obUsers.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">Koi order booker login nahi mila</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-gray-50">
-                        <th className="text-left py-2 px-4 font-medium">Name</th>
-                        <th className="text-left py-2 px-4 font-medium">Order Booker</th>
-                        <th className="text-left py-2 px-4 font-medium">Email</th>
-                        <th className="text-center py-2 px-4 font-medium">Role</th>
-                        <th className="text-left py-2 px-4 font-medium">Created</th>
-                        <th className="text-center py-2 px-4 font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {obUsers.map((user) => (
-                        <tr key={user.id} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium">{user.name}</td>
-                          <td className="py-3 px-4">
-                            <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                              {user.orderBooker?.name || 'N/A'}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground text-xs">{user.email}</span>
-                              <button
-                                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                                onClick={() => copyToClipboard(user.email, `email-${user.id}`)}
-                                title="Copy email"
-                              >
-                                {copied === `email-${user.id}` ? (
-                                  <Check className="h-3 w-3 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3 w-3 text-gray-400" />
-                                )}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge className="bg-blue-100 text-blue-700 border-blue-200">Order Booker</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-xs text-muted-foreground">
-                            {new Date(user.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg"
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setNewPassword('');
-                                  setPasswordDialogOpen(true);
-                                }}
-                                title="Change Password"
-                              >
-                                <Key className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 border-red-300 text-red-500 hover:bg-red-50 rounded-lg"
-                                onClick={() => handleDelete(user)}
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-3">
+                  {obUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50/80 to-white rounded-xl border border-blue-100 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-blue-800">{user.name}</p>
+                            {user.orderBooker?.name && (
+                              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0">
+                                {user.orderBooker.name}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            <span
+                              className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={() => copyToClipboard(user.email, `email-${user.id}`)}
+                              title="Click to copy email"
+                            >
+                              {copied === `email-${user.id}` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                              {user.email}
+                            </span>
+                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ActionButton
+                          icon={Key}
+                          label="Password"
+                          variant="blue"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setNewPassword('');
+                            setPasswordDialogOpen(true);
+                          }}
+                        />
+                        <ActionButton
+                          icon={Trash2}
+                          label="Delete"
+                          variant="red"
+                          onClick={() => handleDelete(user)}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -407,24 +410,24 @@ export function UsersManager() {
 
           {/* Order Bookers without login */}
           {availableOrderBookers.length > 0 && (
-            <Card className="shadow-sm border-dashed border-amber-300 bg-amber-50/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <Card className="shadow-sm border-dashed border-amber-300 bg-gradient-to-br from-amber-50/50 to-orange-50/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2 text-amber-700">
-                  <UserCheck className="h-5 w-5" />
+                  <div className="bg-amber-500 text-white rounded-lg p-1.5">
+                    <User className="h-4 w-4" />
+                  </div>
                   Order Bookers without Login ({availableOrderBookers.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-3">
-                  In order bookers ka login account nahi hai. &quot;Create Login&quot; button se unka account banayein.
+                  In order bookers ka login account nahi hai. &quot;+&quot; button se unka account banayein.
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                   {availableOrderBookers.map((ob) => (
-                    <Button
+                    <button
                       key={ob.id}
-                      variant="outline"
-                      size="sm"
-                      className="border-amber-300 text-amber-700 hover:bg-amber-100 rounded-lg"
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-amber-300 bg-white hover:bg-amber-50 hover:border-amber-400 transition-all active:scale-95 group"
                       onClick={() => {
                         setForm({
                           name: ob.name,
@@ -436,8 +439,14 @@ export function UsersManager() {
                         setDialogOpen(true);
                       }}
                     >
-                      <Plus className="h-3 w-3 mr-1" /> {ob.name}
-                    </Button>
+                      <div className="h-9 w-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm group-hover:bg-amber-200 transition-colors">
+                        {ob.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-xs font-medium text-amber-800">{ob.name}</span>
+                      <span className="flex items-center gap-0.5 text-[10px] text-amber-600">
+                        <Plus className="h-3 w-3" /> Create
+                      </span>
+                    </button>
                   ))}
                 </div>
               </CardContent>

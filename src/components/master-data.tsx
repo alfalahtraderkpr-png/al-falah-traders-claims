@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store, UserCheck, Upload, Download, FileSpreadsheet } from 'lucide-react';
+
+import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store, UserCheck, Upload, Download, FileSpreadsheet, Truck } from 'lucide-react';
 
 // Types
 interface Company { id: string; name: string; multiTierPricing?: boolean; _count?: { products: number } }
@@ -19,6 +19,14 @@ interface Supplier { id: string; name: string; companyId?: string | null; compan
 interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
 interface Shop { id: string; name: string; address: string; companyOrderBookers: ShopCompanyOB[] }
 interface OrderBooker { id: string; name: string; _count?: { shopCompanyOrderBookers: number } }
+
+const masterDataTabs = [
+  { value: 'companies', label: 'Companies', icon: Building2 },
+  { value: 'products', label: 'Products', icon: Package },
+  { value: 'suppliers', label: 'Suppliers', icon: Truck },
+  { value: 'shops', label: 'Shops', icon: Store },
+  { value: 'order-bookers', label: 'Order Bookers', icon: UserCheck },
+];
 
 export function MasterData({ initialTab = 'companies' }: { initialTab?: string }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -29,31 +37,46 @@ export function MasterData({ initialTab = 'companies' }: { initialTab?: string }
         <Building2 className="h-6 w-6" />
         Master Data
       </h2>
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-gray-100 p-1.5 rounded-xl shadow-sm animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-          <TabsTrigger value="companies" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
-            <Building2 className="h-4 w-4 mr-1" /> Companies
-          </TabsTrigger>
-          <TabsTrigger value="products" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
-            <Package className="h-4 w-4 mr-1" /> Products
-          </TabsTrigger>
-          <TabsTrigger value="suppliers" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
-            <Users className="h-4 w-4 mr-1" /> Suppliers
-          </TabsTrigger>
-          <TabsTrigger value="shops" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
-            <Store className="h-4 w-4 mr-1" /> Shops
-          </TabsTrigger>
-          <TabsTrigger value="order-bookers" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg">
-            <UserCheck className="h-4 w-4 mr-1" /> Order Bookers
-          </TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="companies"><CompaniesTab /></TabsContent>
-        <TabsContent value="products"><ProductsTab /></TabsContent>
-        <TabsContent value="suppliers"><SuppliersTab /></TabsContent>
-        <TabsContent value="shops"><ShopsTab /></TabsContent>
-        <TabsContent value="order-bookers"><OrderBookersTab /></TabsContent>
-      </Tabs>
+      {/* iOS-style Sliding Tab Navigation */}
+      <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <div className="relative flex items-center bg-gray-200/80 backdrop-blur-sm rounded-xl p-1.5 overflow-x-auto scrollbar-hide gap-0.5">
+          {/* Sliding white indicator */}
+          <div
+            className="absolute top-1.5 h-[calc(100%-12px)] bg-white rounded-lg shadow-md border border-gray-100/50 transition-all duration-300 ease-out z-0"
+            style={{
+              width: `${100 / masterDataTabs.length}%`,
+              left: `calc(${(masterDataTabs.findIndex(t => t.value === activeTab) / masterDataTabs.length) * 100}% + 6px)`,
+              maxWidth: `calc(${100 / masterDataTabs.length}% - 4px)`,
+            }}
+          />
+          {/* Tab buttons */}
+          {masterDataTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-1 ${
+                  isActive ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden text-[10px]">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'companies' && <CompaniesTab />}
+      {activeTab === 'products' && <ProductsTab />}
+      {activeTab === 'suppliers' && <SuppliersTab />}
+      {activeTab === 'shops' && <ShopsTab />}
+      {activeTab === 'order-bookers' && <OrderBookersTab />}
     </div>
   );
 }

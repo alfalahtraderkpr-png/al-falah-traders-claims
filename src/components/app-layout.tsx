@@ -14,7 +14,6 @@ import {
   X,
   Truck,
   Shield,
-  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -50,7 +49,6 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isAdmin = user.role === 'admin';
   const navItems = isAdmin ? adminNavItems : orderBookerNavItems;
-  const activeIndex = navItems.findIndex(item => item.id === activeSection);
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -69,8 +67,8 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-emerald-800/50">
-          <div className="flex items-center gap-3 animate-slide-in-left">
+        <div className="flex items-center justify-between p-4 border-b border-emerald-800/50 shrink-0">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
               <span className="font-bold text-sm">AF</span>
             </div>
@@ -89,19 +87,8 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
           </Button>
         </div>
 
-        {/* Navigation with sliding indicator */}
-        <nav className="flex-1 py-3 px-2 overflow-y-auto relative">
-          {/* Sliding indicator pill */}
-          {activeIndex >= 0 && (
-            <div
-              className="absolute left-2 right-2 h-10 bg-emerald-700/60 rounded-lg transition-all duration-300 ease-out z-0"
-              style={{
-                top: `${12 + activeIndex * 44}px`,
-              }}
-            />
-          )}
-
-          {/* Nav items */}
+        {/* Navigation */}
+        <nav className="flex-1 py-3 px-2 overflow-y-auto">
           {navItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -112,16 +99,15 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
                   onSectionChange(item.id);
                   setSidebarOpen(false);
                 }}
-                className={`relative z-10 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-200 mb-1 ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 mb-0.5 ${
                   isActive
-                    ? 'text-white font-medium'
-                    : 'text-emerald-200/70 hover:text-white hover:bg-emerald-800/30'
+                    ? 'bg-white/15 text-white font-medium shadow-sm'
+                    : 'text-emerald-200/70 hover:text-white hover:bg-white/5'
                 }`}
-                style={{ animationDelay: `${index * 40}ms` }}
               >
                 <div className={`flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200 ${
                   isActive 
-                    ? 'bg-white/15' 
+                    ? 'bg-emerald-500/30' 
                     : ''
                 }`}>
                   <Icon className={`h-4 w-4 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
@@ -133,7 +119,7 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
         </nav>
 
         {/* User info & Logout */}
-        <div className="p-3 border-t border-emerald-800/50">
+        <div className="p-3 border-t border-emerald-800/50 shrink-0">
           <div className="flex items-center gap-3 mb-3 px-2 py-2 rounded-lg bg-emerald-800/30">
             <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-full flex items-center justify-center text-xs font-bold shadow-sm">
               {user.name.charAt(0)}
@@ -155,8 +141,8 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b shadow-sm sticky top-0 z-30">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="bg-white border-b shadow-sm sticky top-0 z-30 shrink-0">
           <div className="flex items-center justify-between px-4 py-3">
             <Button
               variant="ghost"
@@ -184,8 +170,8 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <div className="page-enter">
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 md:p-6 page-enter">
             {children}
           </div>
         </main>

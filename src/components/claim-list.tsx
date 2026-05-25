@@ -413,7 +413,7 @@ export function ClaimList({ user }: ClaimListProps) {
       ) : (
         <>
           {/* Mobile Card View */}
-          <div className="sm:hidden space-y-3">
+          <div className="sm:hidden space-y-3 overflow-y-auto max-h-[calc(100vh-250px)] pb-4">
             {claims.map((claim, index) => (
               <Card
                 key={claim.id}
@@ -680,9 +680,9 @@ export function ClaimList({ user }: ClaimListProps) {
           {/* Desktop Table View */}
           <Card className="hidden sm:block shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[calc(100vh-280px)]">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 z-10">
                     <tr className="border-b bg-gray-50">
                       <th className="text-left py-3 px-4 font-medium">Claim #</th>
                       <th className="text-left py-3 px-4 font-medium">Date</th>

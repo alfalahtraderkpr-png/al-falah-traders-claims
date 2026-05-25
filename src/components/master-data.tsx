@@ -153,9 +153,9 @@ function CompaniesTab() {
           </div>
         </div>
         {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
-              <thead><tr className="border-b bg-gray-50">
+              <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-center py-2 px-4 font-medium">Pricing</th>
                 <th className="text-center py-2 px-4 font-medium">Products</th>
@@ -355,9 +355,9 @@ function ProductsTab() {
           </Select>
         </div>
         {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
-          <div className="overflow-x-auto max-h-96 overflow-y-auto">
+          <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-white"><tr className="border-b bg-gray-50">
+              <thead className="sticky top-0 bg-white z-10"><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-right py-2 px-4 font-medium">Price</th>
                 <th className="text-right py-2 px-4 font-medium">Claim Rate</th>
@@ -646,9 +646,9 @@ function SuppliersTab() {
           </div>
         </div>
         {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
-              <thead><tr className="border-b bg-gray-50">
+              <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
               </tr></thead>
@@ -803,9 +803,9 @@ function ShopsTab() {
           </div>
         </div>
         {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
-              <thead><tr className="border-b bg-gray-50">
+              <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-left py-2 px-4 font-medium">Address</th>
                 {companies.map((c) => (
@@ -938,9 +938,9 @@ function OrderBookersTab() {
           </div>
         </div>
         {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
-              <thead><tr className="border-b bg-gray-50">
+              <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-center py-2 px-4 font-medium">Assignments</th>
                 <th className="text-center py-2 px-4 font-medium">Actions</th>

@@ -111,12 +111,10 @@ export function UsersManager() {
   };
 
   const handleDelete = async (user: UserItem) => {
+    // Admin accounts can never be deleted
     if (user.role === 'admin') {
-      const adminCount = users.filter((u) => u.role === 'admin').length;
-      if (adminCount <= 1) {
-        alert('Last admin delete nahi ho sakta!');
-        return;
-      }
+      alert('Admin account delete nahi ho sakta! Yeh permanent hai.');
+      return;
     }
     if (!confirm(`"${user.name}" ka login delete karein?`)) return;
     try {
@@ -276,7 +274,7 @@ export function UsersManager() {
                         <th className="text-left py-2 px-4 font-medium">Email</th>
                         <th className="text-center py-2 px-4 font-medium">Role</th>
                         <th className="text-left py-2 px-4 font-medium">Created</th>
-                        <th className="text-center py-2 px-4 font-medium">Actions</th>
+                        <th className="text-center py-2 px-4 font-medium">Password</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -285,36 +283,25 @@ export function UsersManager() {
                           <td className="py-3 px-4 font-medium">{user.name}</td>
                           <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
                           <td className="py-3 px-4 text-center">
-                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Admin</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Admin 🔒</Badge>
                           </td>
                           <td className="py-3 px-4 text-xs text-muted-foreground">
                             {new Date(user.createdAt).toLocaleDateString()}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg"
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setNewPassword('');
-                                  setPasswordDialogOpen(true);
-                                }}
-                                title="Change Password"
-                              >
-                                <Key className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 border-red-300 text-red-500 hover:bg-red-50 rounded-lg"
-                                onClick={() => handleDelete(user)}
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg gap-1"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setNewPassword('');
+                                setPasswordDialogOpen(true);
+                              }}
+                              title="Change Password"
+                            >
+                              <Key className="h-4 w-4" /> Change
+                            </Button>
                           </td>
                         </tr>
                       ))}

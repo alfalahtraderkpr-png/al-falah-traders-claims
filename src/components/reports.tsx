@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Printer, FileText, BarChart3, Clock, Users, Building2, Banknote, ClipboardList, Search } from 'lucide-react';
 
 interface Company { id: string; name: string }
@@ -64,8 +63,27 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
   const [allClaims, setAllClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('pending');
 
   const isAdmin = user.role === 'admin';
+
+  const adminTabs = [
+    { value: 'pending', label: 'Pending', icon: Clock },
+    { value: 'summary', label: 'Summary', icon: BarChart3 },
+    { value: 'aging', label: 'Aging', icon: Clock },
+    { value: 'performance', label: 'OB Report', icon: Users },
+    { value: 'company', label: 'Company', icon: Building2 },
+    { value: 'cleared', label: 'Payments', icon: Banknote },
+    { value: 'detail', label: 'Detail', icon: ClipboardList },
+  ];
+
+  const obTabs = [
+    { value: 'pending', label: 'Pending', icon: Clock },
+    { value: 'summary', label: 'Summary', icon: BarChart3 },
+    { value: 'aging', label: 'Aging', icon: Clock },
+  ];
+
+  const tabs = isAdmin ? adminTabs : obTabs;
 
   // Load all data once
   const loadData = useCallback(async () => {
@@ -128,45 +146,48 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
         )}
       </div>
 
-      <Tabs defaultValue="pending" className="space-y-4">
-        <TabsList className={`w-full gap-1 h-auto p-1 no-print ${isAdmin ? 'grid grid-cols-4 lg:grid-cols-7' : 'grid grid-cols-3'}`}>
-          <TabsTrigger value="pending" className="text-xs sm:text-sm py-2">
-            <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Pending
-          </TabsTrigger>
-          <TabsTrigger value="summary" className="text-xs sm:text-sm py-2">
-            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Summary
-          </TabsTrigger>
-          <TabsTrigger value="aging" className="text-xs sm:text-sm py-2">
-            <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Aging
-          </TabsTrigger>
-          {isAdmin && (
-            <>
-              <TabsTrigger value="performance" className="text-xs sm:text-sm py-2">
-                <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />OB Report
-              </TabsTrigger>
-              <TabsTrigger value="company" className="text-xs sm:text-sm py-2 hidden sm:flex">
-                <Building2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Company
-              </TabsTrigger>
-              <TabsTrigger value="cleared" className="text-xs sm:text-sm py-2 hidden sm:flex">
-                <Banknote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Payments
-              </TabsTrigger>
-              <TabsTrigger value="detail" className="text-xs sm:text-sm py-2 hidden sm:flex">
-                <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Detail
-              </TabsTrigger>
-            </>
-          )}
-        </TabsList>
-
-        <div ref={printRef}>
-          <TabsContent value="pending"><PendingClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} /></TabsContent>
-          <TabsContent value="summary"><ClaimsSummaryReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} /></TabsContent>
-          <TabsContent value="aging"><ClaimsAgingReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} /></TabsContent>
-          <TabsContent value="performance"><OBPerformanceReport orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} /></TabsContent>
-          <TabsContent value="company"><CompanyClaimsReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} /></TabsContent>
-          <TabsContent value="cleared"><ClearedPaymentReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} /></TabsContent>
-          <TabsContent value="detail"><ClaimDetailReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} /></TabsContent>
+      {/* iOS-style Sliding Tab Navigation */}
+      <div className="no-print">
+        <div className="relative flex items-center bg-gray-200/80 backdrop-blur-sm rounded-xl p-1.5 overflow-x-auto scrollbar-hide gap-0.5">
+          {/* Sliding white indicator */}
+          <div
+            className="absolute top-1.5 h-[calc(100%-12px)] bg-white rounded-lg shadow-md border border-gray-100/50 transition-all duration-300 ease-out z-0"
+            style={{
+              width: `${100 / tabs.length}%`,
+              left: `calc(${(tabs.findIndex(t => t.value === activeTab) / tabs.length) * 100}% + 6px)`,
+              maxWidth: `calc(${100 / tabs.length}% - 4px)`,
+            }}
+          />
+          {/* Tab buttons */}
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-1 ${
+                  isActive ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden text-[10px]">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
-      </Tabs>
+      </div>
+
+      <div ref={printRef}>
+        {activeTab === 'pending' && <PendingClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+        {activeTab === 'summary' && <ClaimsSummaryReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+        {activeTab === 'aging' && <ClaimsAgingReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+        {activeTab === 'performance' && isAdmin && <OBPerformanceReport orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+        {activeTab === 'company' && isAdmin && <CompanyClaimsReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+        {activeTab === 'cleared' && isAdmin && <ClearedPaymentReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+        {activeTab === 'detail' && isAdmin && <ClaimDetailReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+      </div>
     </div>
   );
 }

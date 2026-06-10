@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface ClaimFormProps {
   claim: ClaimData | null;
-  companies: Array<{ id: string; name: string; multiTierPricing?: boolean }>
+  companies: Array<{ id: string; name: string; multiTierPricing?: boolean; claimDeductionPercent?: number }>
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
   onSave: () => void;
   onCancel: () => void;
@@ -66,6 +66,8 @@ interface ClaimData {
   supplierId: string;
   orderBookerId: string | null;
   totalAmount: number;
+  deductionAmount: number;
+  netAmount: number;
   claimItems: Array<{
     id: string;
     productId: string;
@@ -268,6 +270,12 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
 
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
+  // Deduction calculation
+  const deductionPercent = selectedCompany?.claimDeductionPercent || 0;
+  const hasDeduction = deductionPercent > 0;
+  const deductionAmount = hasDeduction ? Math.round(totalAmount * deductionPercent / 100) : 0;
+  const netAmount = totalAmount - deductionAmount;
+
   const handleSave = async () => {
     if (!companyId || !shopId || !supplierId) {
       alert('Please fill in Company, Shop and Supplier');
@@ -280,22 +288,26 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
 
     setSaving(true);
     try {
+      const claimPayload = {
+        date,
+        companyId,
+        shopId,
+        supplierId,
+        orderBookerId: orderBookerId || null,
+        items: items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          amount: i.amount,
+        })),
+      };
+
       if (claim) {
         const res = await fetch(`/api/claims/${claim.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'update',
-            date,
-            companyId,
-            shopId,
-            supplierId,
-            orderBookerId: orderBookerId || null,
-            items: items.map((i) => ({
-              productId: i.productId,
-              quantity: i.quantity,
-              amount: i.amount,
-            })),
+            ...claimPayload,
           }),
         });
         if (!res.ok) {
@@ -307,18 +319,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
         const res = await fetch('/api/claims', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            date,
-            companyId,
-            shopId,
-            supplierId,
-            orderBookerId: orderBookerId || null,
-            items: items.map((i) => ({
-              productId: i.productId,
-              quantity: i.quantity,
-              amount: i.amount,
-            })),
-          }),
+          body: JSON.stringify(claimPayload),
         });
         if (!res.ok) {
           const data = await res.json();
@@ -381,7 +382,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                 </SelectTrigger>
                 <SelectContent>
                   {companies.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}{c.multiTierPricing ? ' (Multi-Tier)' : ''}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{c.name}{c.multiTierPricing ? ' (Multi-Tier)' : ''}{c.claimDeductionPercent && c.claimDeductionPercent > 0 ? ` (${c.claimDeductionPercent}% Ded.)` : ''}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -484,6 +485,15 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
               <span className="text-sm font-medium text-purple-800">Multi-Tier Pricing Active</span>
               <span className="text-xs text-purple-600">|</span>
               <span className="text-xs text-purple-700">Shop Type: <strong>{shopTypeLabel}</strong></span>
+            </div>
+          )}
+
+          {/* Deduction info banner */}
+          {hasDeduction && companyId && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
+              <span className="text-sm font-medium text-amber-800">Claim Deduction: {deductionPercent}%</span>
+              <span className="text-xs text-amber-600">|</span>
+              <span className="text-xs text-amber-700">Total pe {deductionPercent}% minus hoga, net amount hi claim hoga</span>
             </div>
           )}
         </CardContent>
@@ -656,6 +666,20 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
                     <span className="font-bold text-emerald-800 text-lg">Total Claim Amount</span>
                     <span className="font-bold text-xl text-emerald-700">Rs.{totalAmount.toLocaleString()}</span>
                   </div>
+
+                  {/* Deduction Section */}
+                  {hasDeduction && (
+                    <div className="space-y-2 animate-scale-in">
+                      <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <span className="font-medium text-amber-800">Deduction ({deductionPercent}%)</span>
+                        <span className="font-bold text-amber-700 text-lg">- Rs.{deductionAmount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                        <span className="font-bold text-blue-800 text-lg">Net Claim Amount</span>
+                        <span className="font-bold text-2xl text-blue-700">Rs.{netAmount.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>

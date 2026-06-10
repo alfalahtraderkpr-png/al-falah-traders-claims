@@ -17,7 +17,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, multiTierPricing } = await request.json();
+    const { name, multiTierPricing, claimDeductionPercent } = await request.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         multiTierPricing: multiTierPricing === true,
+        claimDeductionPercent: claimDeductionPercent ? Number(claimDeductionPercent) : 0,
       },
     });
 

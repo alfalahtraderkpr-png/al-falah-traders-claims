@@ -58,7 +58,11 @@ export async function POST() {
         }
 
         // Update claim total and adjust approvedAmount
-        const updateData: Record<string, unknown> = { totalAmount: newTotalAmount };
+        const deductionPercent = claim.company?.claimDeductionPercent || 0;
+        const deductionAmount = deductionPercent > 0 ? Math.round(newTotalAmount * deductionPercent / 100) : 0;
+        const netAmount = newTotalAmount - deductionAmount;
+
+        const updateData: Record<string, unknown> = { totalAmount: newTotalAmount, deductionAmount, netAmount };
 
         // Fix approvedAmount: ensure it's not more than totalAmount
         if (claim.approvedAmount !== null && claim.approvedAmount !== undefined) {

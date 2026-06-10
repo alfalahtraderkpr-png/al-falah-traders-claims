@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store, UserCheck, Upload, Download, FileSpreadsheet, Truck } from 'lucide-react';
 
 // Types
-interface Company { id: string; name: string; multiTierPricing?: boolean; _count?: { products: number } }
+interface Company { id: string; name: string; multiTierPricing?: boolean; claimDeductionPercent?: number; _count?: { products: number } }
 interface Product { id: string; name: string; price: number; claimPrice: number; wholesalePrice: number | null; lmtPrice: number | null; unit: string; companyId: string; company: { name: string; multiTierPricing?: boolean } }
 interface Supplier { id: string; name: string; companyId?: string | null; company?: { name: string } | null }
 interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
@@ -90,6 +90,7 @@ function CompaniesTab() {
   const [editItem, setEditItem] = useState<Company | null>(null);
   const [formName, setFormName] = useState('');
   const [formMultiTier, setFormMultiTier] = useState(false);
+  const [formDeductionPercent, setFormDeductionPercent] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -104,7 +105,7 @@ function CompaniesTab() {
   const handleSave = async () => {
     if (!formName.trim()) return;
     try {
-      const body: Record<string, unknown> = { name: formName, multiTierPricing: formMultiTier };
+      const body: Record<string, unknown> = { name: formName, multiTierPricing: formMultiTier, claimDeductionPercent: formDeductionPercent ? Number(formDeductionPercent) : 0 };
       if (editItem) {
         await fetch(`/api/companies/${editItem.id}`, {
           method: 'PUT',
@@ -122,6 +123,7 @@ function CompaniesTab() {
       setEditItem(null);
       setFormName('');
       setFormMultiTier(false);
+      setFormDeductionPercent('');
       load();
     } catch (e) { console.error(e); }
   };
@@ -141,7 +143,7 @@ function CompaniesTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Companies ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setFormMultiTier(false); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setFormMultiTier(false); setFormDeductionPercent(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -158,6 +160,7 @@ function CompaniesTab() {
               <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-center py-2 px-4 font-medium">Pricing</th>
+                <th className="text-center py-2 px-4 font-medium">Deduction %</th>
                 <th className="text-center py-2 px-4 font-medium">Products</th>
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
               </tr></thead>
@@ -166,9 +169,10 @@ function CompaniesTab() {
                   <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-center">{item.multiTierPricing ? <Badge className="bg-purple-100 text-purple-700 border-purple-200">Multi-Tier</Badge> : <span className="text-xs text-muted-foreground">Standard</span>}</td>
+                    <td className="py-2 px-4 text-center">{item.claimDeductionPercent && item.claimDeductionPercent > 0 ? <Badge className="bg-amber-100 text-amber-700 border-amber-200">{item.claimDeductionPercent}%</Badge> : <span className="text-xs text-muted-foreground">-</span>}</td>
                     <td className="py-2 px-4 text-center"><Badge variant="outline" className="transition-transform hover:scale-105">{item._count?.products || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setFormMultiTier(item.multiTierPricing || false); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setFormMultiTier(item.multiTierPricing || false); setFormDeductionPercent(item.claimDeductionPercent ? String(item.claimDeductionPercent) : ''); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
@@ -191,6 +195,11 @@ function CompaniesTab() {
             <div className="flex items-center gap-3">
               <input type="checkbox" id="multiTierCheck" checked={formMultiTier} onChange={(e) => setFormMultiTier(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
               <label htmlFor="multiTierCheck" className="text-sm font-medium">Multi-Tier Pricing (Wholesale/LMT)</label>
+            </div>
+            <div>
+              <Label>Claim Deduction %</Label>
+              <Input type="number" min="0" max="100" step="0.1" value={formDeductionPercent} onChange={(e) => setFormDeductionPercent(e.target.value)} placeholder="e.g., 22 for 22%" />
+              <p className="text-xs text-muted-foreground mt-1">Company ke claims mein kitna % minus hoga (e.g., Shan Masala = 22%). 0 ya blank = no deduction.</p>
             </div>
           </div>
           <DialogFooter>

@@ -25,13 +25,15 @@ interface Claim {
   claimNumber: string;
   date: string;
   totalAmount: number;
+  deductionAmount: number;
+  netAmount: number;
   approvedAmount: number | null;
   status: string;
   companyId: string;
   shopId: string;
   supplierId: string;
   orderBookerId: string | null;
-  company: { name: string };
+  company: { name: string; claimDeductionPercent?: number };
   shop: { name: string; address: string; shopType?: string };
   supplier: { name: string };
   orderBooker: { name: string } | null;
@@ -262,7 +264,7 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
     return true;
   });
 
-  const grandTotal = filtered.reduce((s, c) => s + c.totalAmount, 0);
+  const grandTotal = filtered.reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
   const selectedOB = orderBookers.find(o => o.id === filterOB);
   const selectedComp = companies.find(c => c.id === filterCompany);
 
@@ -361,7 +363,14 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
                       <td className="py-2 px-3">{claim.supplier.name}</td>
                       <td className="py-2 px-3">{claim.orderBooker?.name || '-'}</td>
                       <td className="py-2 px-3 text-center">{claim.claimItems.length}</td>
-                      <td className="py-2 px-3 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
+                      <td className="py-2 px-3 text-right font-medium">
+                        {claim.deductionAmount > 0 ? (
+                          <div>
+                            <div className="text-blue-700">{formatAmount(claim.netAmount)}</div>
+                            <div className="text-xs text-amber-600">-{formatAmount(claim.deductionAmount)} ({claim.company.claimDeductionPercent}%)</div>
+                          </div>
+                        ) : formatAmount(claim.totalAmount)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -399,11 +408,11 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
     return true;
   });
 
-  const totalAmount = filtered.reduce((s, c) => s + c.totalAmount, 0);
+  const totalAmount = filtered.reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
   const totalApproved = filtered.reduce((s, c) => s + (c.approvedAmount || 0), 0);
-  const pendingAmount = filtered.filter(c => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0);
-  const clearedAmount = filtered.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0);
-  const rejectedAmount = filtered.filter(c => c.status === 'rejected').reduce((s, c) => s + c.totalAmount, 0);
+  const pendingAmount = filtered.filter(c => c.status === 'pending').reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
+  const clearedAmount = filtered.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
+  const rejectedAmount = filtered.filter(c => c.status === 'rejected').reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
   const remainingAmount = totalAmount - totalApproved;
 
   const byStatus = {

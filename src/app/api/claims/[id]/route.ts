@@ -42,7 +42,7 @@ export async function PUT(
     const body = await request.json();
     const { action } = body;
 
-    const claim = await db.claim.findUnique({ where: { id } });
+    const claim = await db.claim.findUnique({ where: { id }, include: { company: true } });
     if (!claim) {
       return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
     }
@@ -52,7 +52,7 @@ export async function PUT(
     switch (action) {
       case 'approve':
         updateData = {
-          approvedAmount: claim.totalAmount,
+          approvedAmount: claim.netAmount || claim.totalAmount, // Approve based on net amount (after deduction)
           status: 'approved',
         };
         break;
@@ -61,8 +61,8 @@ export async function PUT(
         if (!body.approvedAmount || body.approvedAmount <= 0) {
           return NextResponse.json({ error: 'Approved amount is required' }, { status: 400 });
         }
-        if (Number(body.approvedAmount) > claim.totalAmount) {
-          return NextResponse.json({ error: `Approved amount cannot exceed total claim amount (Rs.${claim.totalAmount})` }, { status: 400 });
+        if (Number(body.approvedAmount) > claim.netAmount) {
+          return NextResponse.json({ error: `Approved amount cannot exceed net claim amount (Rs.${claim.netAmount})` }, { status: 400 });
         }
         updateData = {
           approvedAmount: Number(body.approvedAmount),
@@ -109,7 +109,7 @@ export async function PUT(
           updateData.clearedDate = null;
           updateData.rejectReason = null;
         } else if (body.newStatus === 'approved') {
-          updateData.approvedAmount = claim.totalAmount;
+          updateData.approvedAmount = claim.netAmount || claim.totalAmount; // Approve based on net amount
           updateData.clearedBy = null;
           updateData.clearedDate = null;
           updateData.rejectReason = null;
@@ -119,8 +119,8 @@ export async function PUT(
           if (!partialAmount || partialAmount <= 0) {
             return NextResponse.json({ error: 'Approved amount is required for partial approval' }, { status: 400 });
           }
-          if (partialAmount > claim.totalAmount) {
-            return NextResponse.json({ error: `Approved amount cannot exceed total (Rs.${claim.totalAmount})` }, { status: 400 });
+          if (partialAmount > claim.netAmount) {
+            return NextResponse.json({ error: `Approved amount cannot exceed net amount (Rs.${claim.netAmount})` }, { status: 400 });
           }
           updateData.approvedAmount = partialAmount;
           updateData.clearedBy = null;
@@ -144,6 +144,13 @@ export async function PUT(
         const { date, companyId, shopId, supplierId, orderBookerId, items } = body;
         if (items && items.length > 0) {
           const totalAmount = items.reduce((sum: number, item: { amount: number }) => sum + (item.amount || 0), 0);
+
+          // Calculate deduction based on company's claimDeductionPercent
+          const updatedCompany = companyId ? await db.company.findUnique({ where: { id: companyId } }) : claim.company;
+          const deductionPercent = (updatedCompany?.claimDeductionPercent || 0);
+          const deductionAmount = deductionPercent > 0 ? Math.round(totalAmount * deductionPercent / 100) : 0;
+          const netAmount = totalAmount - deductionAmount;
+
           // Delete old items and create new ones
           await db.claimItem.deleteMany({ where: { claimId: id } });
           updateData = {
@@ -153,6 +160,8 @@ export async function PUT(
             ...(supplierId && { supplierId }),
             ...(orderBookerId !== undefined && { orderBookerId: orderBookerId || null }),
             totalAmount,
+            deductionAmount,
+            netAmount,
             claimItems: {
               create: items.map((item: { productId: string; quantity: number; amount: number }) => ({
                 productId: item.productId,

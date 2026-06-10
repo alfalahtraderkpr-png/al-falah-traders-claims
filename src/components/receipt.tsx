@@ -9,9 +9,11 @@ interface ReceiptProps {
     claimNumber: string;
     date: string;
     totalAmount: number;
+    deductionAmount: number;
+    netAmount: number;
     approvedAmount: number | null;
     status: string;
-    company: { name: string };
+    company: { name: string; claimDeductionPercent?: number };
     shop: { name: string; address: string };
     supplier: { name: string };
     orderBooker: { name: string } | null;
@@ -207,6 +209,26 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receip
               {formatAmount(claim.totalAmount)}
             </td>
           </tr>
+          {claim.deductionAmount > 0 && (
+            <tr style={{ backgroundColor: '#fffbeb' }}>
+              <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
+                Deduction ({claim.company.claimDeductionPercent}%):
+              </td>
+              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#b45309' }}>
+                - {formatAmount(claim.deductionAmount)}
+              </td>
+            </tr>
+          )}
+          {claim.deductionAmount > 0 && (
+            <tr style={{ backgroundColor: '#eff6ff' }}>
+              <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
+                Net Amount:
+              </td>
+              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px', color: '#1d4ed8' }}>
+                {formatAmount(claim.netAmount)}
+              </td>
+            </tr>
+          )}
           {receiptType === 'cleared' && claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
             <tr>
               <td colSpan={4} style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>

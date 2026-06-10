@@ -115,6 +115,11 @@ export async function POST(request: NextRequest) {
     // Calculate total
     const totalAmount = items.reduce((sum: number, item: { amount: number }) => sum + (item.amount || 0), 0);
 
+    // Calculate deduction if company has claimDeductionPercent
+    const deductionPercent = company.claimDeductionPercent || 0;
+    const deductionAmount = deductionPercent > 0 ? Math.round(totalAmount * deductionPercent / 100) : 0;
+    const netAmount = totalAmount - deductionAmount;
+
     const claim = await db.claim.create({
       data: {
         claimNumber,
@@ -124,6 +129,8 @@ export async function POST(request: NextRequest) {
         supplierId,
         orderBookerId: orderBookerId || null,
         totalAmount,
+        deductionAmount,
+        netAmount,
         status: 'pending',
         claimItems: {
           create: items.map((item: { productId: string; quantity: number; amount: number }) => ({

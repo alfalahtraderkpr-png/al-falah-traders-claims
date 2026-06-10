@@ -18,13 +18,15 @@ interface ClaimData {
   claimNumber: string;
   date: string;
   totalAmount: number;
+  deductionAmount: number;
+  netAmount: number;
   approvedAmount: number | null;
   status: string;
   companyId: string;
   shopId: string;
   supplierId: string;
   orderBookerId: string | null;
-  company: { name: string };
+  company: { name: string; claimDeductionPercent?: number };
   shop: { name: string; address: string };
   supplier: { name: string };
   orderBooker: { name: string } | null;
@@ -62,7 +64,7 @@ function getWhatsAppText(claim: ClaimData, receiptType: ReceiptType): string {
 
   switch (receiptType) {
     case 'received':
-      return `\u2705 Al-Falah Traders - Expiry Stock Received\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nAmount: ${formatAmount(claim.totalAmount)}\nDate: ${new Date(claim.date).toLocaleDateString()}\n\nClaim receive ho chuki hai. JazakAllah.`;
+      return `\u2705 Al-Falah Traders - Expiry Stock Received\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nAmount: ${formatAmount(claim.netAmount || claim.totalAmount)}${claim.deductionAmount > 0 ? `\nDeduction: ${formatAmount(claim.deductionAmount)} (${claim.company.claimDeductionPercent}%)\nTotal: ${formatAmount(claim.totalAmount)}` : ''}\nDate: ${new Date(claim.date).toLocaleDateString()}\n\nClaim receive ho chuki hai. JazakAllah.`;
     case 'approved':
       return `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmount(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
     case 'cleared':
@@ -256,6 +258,18 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               <p className="text-muted-foreground text-xs">Total Claim</p>
               <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
             </div>
+            {claim.deductionAmount > 0 && (
+              <div className="bg-amber-50/50 rounded-lg p-2 transition-colors hover:bg-amber-50">
+                <p className="text-muted-foreground text-xs">Deduction ({claim.company.claimDeductionPercent}%)</p>
+                <p className="font-bold text-amber-700">- {formatAmount(claim.deductionAmount)}</p>
+              </div>
+            )}
+            {claim.deductionAmount > 0 && (
+              <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
+                <p className="text-muted-foreground text-xs">Net Amount</p>
+                <p className="font-bold text-blue-700">{formatAmount(claim.netAmount)}</p>
+              </div>
+            )}
             <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
               <p className="text-muted-foreground text-xs">Cleared Amount</p>
               <p className="font-bold text-blue-700">{claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}</p>
@@ -327,6 +341,26 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
                     {formatAmount(claim.totalAmount)}
                   </td>
                 </tr>
+                {claim.deductionAmount > 0 && (
+                  <tr className="bg-amber-50">
+                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
+                      Deduction ({claim.company.claimDeductionPercent}%):
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-lg text-amber-700">
+                      - {formatAmount(claim.deductionAmount)}
+                    </td>
+                  </tr>
+                )}
+                {claim.deductionAmount > 0 && (
+                  <tr className="bg-blue-50">
+                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
+                      Net Amount:
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-lg text-blue-700">
+                      {formatAmount(claim.netAmount)}
+                    </td>
+                  </tr>
+                )}
                 {claim.approvedAmount !== null && (
                   <tr className="bg-blue-50">
                     <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">

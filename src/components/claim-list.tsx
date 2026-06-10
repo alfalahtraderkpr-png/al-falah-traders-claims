@@ -31,7 +31,7 @@ const statusLabels: Record<string, string> = {
   rejected: 'Rejected',
 };
 
-interface Company { id: string; name: string }
+interface Company { id: string; name: string; multiTierPricing?: boolean; claimDeductionPercent?: number }
 interface Supplier { id: string; name: string }
 interface OrderBooker { id: string; name: string }
 
@@ -40,13 +40,15 @@ interface Claim {
   claimNumber: string;
   date: string;
   totalAmount: number;
+  deductionAmount: number;
+  netAmount: number;
   approvedAmount: number | null;
   status: string;
   companyId: string;
   shopId: string;
   supplierId: string;
   orderBookerId: string | null;
-  company: { name: string };
+  company: { name: string; claimDeductionPercent?: number };
   shop: { id: string; name: string; address: string };
   supplier: { name: string };
   orderBooker: { name: string } | null;
@@ -451,6 +453,18 @@ export function ClaimList({ user }: ClaimListProps) {
                       <span className="text-muted-foreground text-xs">Total Claim</span>
                       <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
                     </div>
+                    {claim.deductionAmount > 0 && (
+                      <div>
+                        <span className="text-muted-foreground text-xs">Deduction ({claim.company.claimDeductionPercent}%)</span>
+                        <p className="font-bold text-amber-700">-{formatAmount(claim.deductionAmount)}</p>
+                      </div>
+                    )}
+                    {claim.deductionAmount > 0 && (
+                      <div>
+                        <span className="text-muted-foreground text-xs">Net Amount</span>
+                        <p className="font-bold text-blue-700">{formatAmount(claim.netAmount)}</p>
+                      </div>
+                    )}
                     <div>
                       <span className="text-muted-foreground text-xs">
                         {claim.status === 'cleared' ? 'Cleared' : claim.status === 'rejected' ? 'Rejected' : 'Approved'}
@@ -708,7 +722,14 @@ export function ClaimList({ user }: ClaimListProps) {
                         <td className="py-3 px-4">{claim.company.name}</td>
                         <td className="py-3 px-4">{claim.shop.name}</td>
                         <td className="py-3 px-4">{claim.orderBooker?.name || '-'}</td>
-                        <td className="py-3 px-4 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
+                        <td className="py-3 px-4 text-right font-medium">
+                          {claim.deductionAmount > 0 ? (
+                            <div>
+                              <div className="text-blue-700">{formatAmount(claim.netAmount)}</div>
+                              <div className="text-xs text-amber-600">-{formatAmount(claim.deductionAmount)} ({claim.company.claimDeductionPercent}%)</div>
+                            </div>
+                          ) : formatAmount(claim.totalAmount)}
+                        </td>
                         <td className="py-3 px-4 text-right font-medium text-blue-700">
                           {claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
                         </td>

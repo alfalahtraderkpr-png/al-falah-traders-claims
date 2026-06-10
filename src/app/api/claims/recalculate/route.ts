@@ -10,7 +10,9 @@ export async function POST() {
         shop: true,
         claimItems: {
           include: {
-            product: true,
+            product: {
+              include: { company: true },
+            },
           },
         },
       },
@@ -23,13 +25,29 @@ export async function POST() {
       try {
         let newTotalAmount = 0;
 
-        // Recalculate each item: amount = claimPrice × quantity (or price × quantity if claimPrice not set)
+        // Recalculate each item with multi-tier pricing support
         for (const item of claim.claimItems) {
           const product = item.product;
-          // Use claimPrice if available and > 0, otherwise fall back to price
-          const effectivePrice = product.claimPrice && product.claimPrice > 0
-            ? product.claimPrice
-            : product.price;
+          let effectivePrice: number;
+
+          // Multi-tier pricing: check wholesale/LMT prices FIRST (same logic as claim-form.tsx)
+          if (product.company?.multiTierPricing && claim.shop?.shopType) {
+            if (claim.shop.shopType === 'wholesale' && product.wholesalePrice) {
+              effectivePrice = product.wholesalePrice;
+            } else if (claim.shop.shopType === 'lmt' && product.lmtPrice) {
+              effectivePrice = product.lmtPrice;
+            } else if (product.claimPrice && product.claimPrice > 0) {
+              effectivePrice = product.claimPrice;
+            } else {
+              effectivePrice = product.price;
+            }
+          } else {
+            // Standard pricing: use claimPrice if available, otherwise price
+            effectivePrice = product.claimPrice && product.claimPrice > 0
+              ? product.claimPrice
+              : product.price;
+          }
+
           const correctAmount = Math.round(effectivePrice * item.quantity);
           newTotalAmount += correctAmount;
 
@@ -72,7 +90,7 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: `Recalculated ${updatedCount} claims (Amount = Claim Rate x Quantity)`,
+      message: `Recalculated ${updatedCount} claims (with multi-tier pricing support)`,
       totalClaims: claims.length,
       updatedClaims: updatedCount,
       errors: errorCount,

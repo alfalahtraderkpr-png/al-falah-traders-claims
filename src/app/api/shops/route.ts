@@ -24,7 +24,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, address, companyOrderBookers } = await request.json();
+    const { name, address, shopType, companyOrderBookers } = await request.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Shop name is required' }, { status: 400 });
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         address: address || '',
+        shopType: shopType || 'retail',
       },
       include: {
         companyOrderBookers: {

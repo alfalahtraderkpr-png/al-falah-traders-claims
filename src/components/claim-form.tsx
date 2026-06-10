@@ -189,11 +189,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   };
 
   const getProductPrice = (product: Product): number => {
-    // Use claimPrice if available, otherwise fall back to price
-    if (product.claimPrice && product.claimPrice > 0) {
-      return product.claimPrice;
-    }
-    // For multi-tier companies, check wholesale/LMT prices
+    // For multi-tier companies, check wholesale/LMT prices FIRST (they override claimPrice)
     if (product.company?.multiTierPricing) {
       const shop = shops.find((s) => s.id === shopId);
       if (shop) {
@@ -205,6 +201,10 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
         }
       }
     }
+    // Use claimPrice if available, otherwise fall back to price
+    if (product.claimPrice && product.claimPrice > 0) {
+      return product.claimPrice;
+    }
     return product.price;
   };
 
@@ -214,11 +214,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   };
 
   const getPriceLabel = (product: Product): string => {
-    // Show claim price if set, otherwise show effective price
-    const claimPrice = product.claimPrice && product.claimPrice > 0 ? product.claimPrice : null;
-    if (claimPrice) {
-      return `Rs.${claimPrice}`;
-    }
+    // For multi-tier companies, show the tier price first
     if (product.company?.multiTierPricing) {
       const shop = shops.find((s) => s.id === shopId);
       if (shop?.shopType === 'wholesale' && product.wholesalePrice) {
@@ -227,6 +223,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       if (shop?.shopType === 'lmt' && product.lmtPrice) {
         return `LMT:Rs.${product.lmtPrice}`;
       }
+    }
+    // Show claim price if set, otherwise show effective price
+    const claimPrice = product.claimPrice && product.claimPrice > 0 ? product.claimPrice : null;
+    if (claimPrice) {
+      return `Rs.${claimPrice}`;
     }
     return `Rs.${product.price}`;
   };

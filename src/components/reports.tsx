@@ -32,7 +32,7 @@ interface Claim {
   supplierId: string;
   orderBookerId: string | null;
   company: { name: string };
-  shop: { name: string; address: string };
+  shop: { name: string; address: string; shopType?: string };
   supplier: { name: string };
   orderBooker: { name: string } | null;
   claimItems: ClaimItem[];

@@ -35,7 +35,13 @@ export async function GET(request: NextRequest) {
         shop: true,
         supplier: true,
         orderBooker: true,
-        claimItems: { include: { product: true } },
+        claimItems: {
+          include: {
+            product: {
+              include: { company: true },
+            },
+          },
+        },
       },
     });
 

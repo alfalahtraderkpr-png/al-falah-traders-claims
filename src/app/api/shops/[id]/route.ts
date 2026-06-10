@@ -8,11 +8,12 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { name, address, companyOrderBookers } = await request.json();
+    const { name, address, shopType, companyOrderBookers } = await request.json();
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name.trim();
     if (address !== undefined) data.address = address;
+    if (shopType !== undefined) data.shopType = shopType;
 
     const shop = await db.shop.update({
       where: { id },

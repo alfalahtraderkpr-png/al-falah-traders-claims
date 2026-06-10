@@ -14,10 +14,10 @@ import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store,
 
 // Types
 interface Company { id: string; name: string; multiTierPricing?: boolean; _count?: { products: number } }
-interface Product { id: string; name: string; price: number; claimPrice: number; unit: string; companyId: string; company: { name: string } }
+interface Product { id: string; name: string; price: number; claimPrice: number; wholesalePrice: number | null; lmtPrice: number | null; unit: string; companyId: string; company: { name: string; multiTierPricing?: boolean } }
 interface Supplier { id: string; name: string; companyId?: string | null; company?: { name: string } | null }
 interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
-interface Shop { id: string; name: string; address: string; companyOrderBookers: ShopCompanyOB[] }
+interface Shop { id: string; name: string; address: string; shopType?: string; companyOrderBookers: ShopCompanyOB[] }
 interface OrderBooker { id: string; name: string; _count?: { shopCompanyOrderBookers: number } }
 
 const masterDataTabs = [
@@ -212,7 +212,7 @@ function ProductsTab() {
   const [filterCompany, setFilterCompany] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Product | null>(null);
-  const [form, setForm] = useState({ name: '', price: '', claimPrice: '', unit: 'pcs', companyId: '' });
+  const [form, setForm] = useState({ name: '', price: '', claimPrice: '', wholesalePrice: '', lmtPrice: '', unit: 'pcs', companyId: '' });
 
   // Bulk import state
   const [importOpen, setImportOpen] = useState(false);
@@ -235,10 +235,14 @@ function ProductsTab() {
   const handleSave = async () => {
     if (!form.name.trim() || !form.price || !form.companyId) return;
     try {
+      const selectedCompany = companies.find(c => c.id === form.companyId);
+      const isMultiTier = selectedCompany?.multiTierPricing || false;
       const body = {
         name: form.name,
         price: Number(form.price),
         claimPrice: form.claimPrice ? Number(form.claimPrice) : Number(form.price),
+        wholesalePrice: isMultiTier && form.wholesalePrice ? Number(form.wholesalePrice) : null,
+        lmtPrice: isMultiTier && form.lmtPrice ? Number(form.lmtPrice) : null,
         unit: form.unit,
         companyId: form.companyId,
       };
@@ -257,7 +261,7 @@ function ProductsTab() {
       }
       setDialogOpen(false);
       setEditItem(null);
-      setForm({ name: '', price: '', claimPrice: '', unit: 'pcs', companyId: '' });
+      setForm({ name: '', price: '', claimPrice: '', wholesalePrice: '', lmtPrice: '', unit: 'pcs', companyId: '' });
       load();
     } catch (e) { console.error(e); }
   };
@@ -361,6 +365,8 @@ function ProductsTab() {
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-right py-2 px-4 font-medium">Price</th>
                 <th className="text-right py-2 px-4 font-medium">Claim Rate</th>
+                <th className="text-right py-2 px-4 font-medium">Wholesale</th>
+                <th className="text-right py-2 px-4 font-medium">LMT</th>
                 <th className="text-center py-2 px-4 font-medium">Unit</th>
                 <th className="text-left py-2 px-4 font-medium">Company</th>
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
@@ -371,10 +377,12 @@ function ProductsTab() {
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-right">Rs.{item.price}</td>
                     <td className="py-2 px-4 text-right font-medium text-emerald-700">Rs.{item.claimPrice || item.price}</td>
+                    <td className="py-2 px-4 text-right">{item.wholesalePrice ? `Rs.${item.wholesalePrice}` : <span className="text-xs text-muted-foreground">-</span>}</td>
+                    <td className="py-2 px-4 text-right">{item.lmtPrice ? `Rs.${item.lmtPrice}` : <span className="text-xs text-muted-foreground">-</span>}</td>
                     <td className="py-2 px-4 text-center">{item.unit}</td>
                     <td className="py-2 px-4">{item.company?.name}</td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), claimPrice: String(item.claimPrice || item.price), unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), claimPrice: String(item.claimPrice || item.price), wholesalePrice: item.wholesalePrice ? String(item.wholesalePrice) : '', lmtPrice: item.lmtPrice ? String(item.lmtPrice) : '', unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
@@ -404,10 +412,23 @@ function ProductsTab() {
               <div><Label>Company</Label>
                 <Select value={form.companyId} onValueChange={(v) => setForm({ ...form, companyId: v })}>
                   <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
-                  <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.multiTierPricing ? ' (Multi-Tier)' : ''}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
+            {/* Multi-tier pricing fields - shown when selected company has multiTierPricing */}
+            {form.companyId && companies.find(c => c.id === form.companyId)?.multiTierPricing && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200">Multi-Tier Pricing</Badge>
+                  <span className="text-xs text-purple-600">Enter wholesale and LMT prices for this product</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label className="text-purple-800">Wholesale Price (Rs.)</Label><Input type="number" value={form.wholesalePrice} onChange={(e) => setForm({ ...form, wholesalePrice: e.target.value })} placeholder="0" className="border-purple-300 focus:border-purple-500" /><p className="text-xs text-muted-foreground mt-1">For wholesale shops</p></div>
+                  <div><Label className="text-purple-800">LMT Price (Rs.)</Label><Input type="number" value={form.lmtPrice} onChange={(e) => setForm({ ...form, lmtPrice: e.target.value })} placeholder="0" className="border-purple-300 focus:border-purple-500" /><p className="text-xs text-muted-foreground mt-1">For LMT shops</p></div>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
@@ -693,7 +714,7 @@ function ShopsTab() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Shop | null>(null);
-  const [form, setForm] = useState({ name: '', address: '' });
+  const [form, setForm] = useState({ name: '', address: '', shopType: 'retail' });
   // Company-orderbooker mappings: { companyId: orderBookerId | '' }
   const [companyOBMap, setCompanyOBMap] = useState<Record<string, string>>({});
 
@@ -714,7 +735,7 @@ function ShopsTab() {
 
   const openAddDialog = () => {
     setEditItem(null);
-    setForm({ name: '', address: '' });
+    setForm({ name: '', address: '', shopType: 'retail' });
     // Initialize companyOBMap with empty values for each company
     const initialMap: Record<string, string> = {};
     companies.forEach((c) => { initialMap[c.id] = ''; });
@@ -724,7 +745,7 @@ function ShopsTab() {
 
   const openEditDialog = (shop: Shop) => {
     setEditItem(shop);
-    setForm({ name: shop.name, address: shop.address });
+    setForm({ name: shop.name, address: shop.address, shopType: shop.shopType || 'retail' });
     // Populate companyOBMap from existing mappings
     const map: Record<string, string> = {};
     companies.forEach((c) => { map[c.id] = ''; });
@@ -746,6 +767,7 @@ function ShopsTab() {
       const body = {
         name: form.name,
         address: form.address,
+        shopType: form.shopType,
         companyOrderBookers: cobArray,
       };
 
@@ -764,7 +786,7 @@ function ShopsTab() {
       }
       setDialogOpen(false);
       setEditItem(null);
-      setForm({ name: '', address: '' });
+      setForm({ name: '', address: '', shopType: 'retail' });
       setCompanyOBMap({});
       load();
     } catch (e) { console.error(e); }
@@ -808,6 +830,7 @@ function ShopsTab() {
               <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
                 <th className="text-left py-2 px-4 font-medium">Name</th>
                 <th className="text-left py-2 px-4 font-medium">Address</th>
+                <th className="text-center py-2 px-4 font-medium">Type</th>
                 {companies.map((c) => (
                   <th key={c.id} className="text-left py-2 px-4 font-medium whitespace-nowrap">{c.name} OB</th>
                 ))}
@@ -818,6 +841,7 @@ function ShopsTab() {
                   <tr key={item.id} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4">{item.address || '-'}</td>
+                    <td className="py-2 px-4 text-center">{item.shopType && item.shopType !== 'retail' ? <Badge className={item.shopType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}>{item.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}</Badge> : <span className="text-xs text-muted-foreground">Retail</span>}</td>
                     {companies.map((c) => (
                       <td key={c.id} className="py-2 px-4">
                         <span className={getOBForCompany(item, c.id) !== '-' ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}>
@@ -847,6 +871,28 @@ function ShopsTab() {
           <div className="space-y-4 py-4">
             <div><Label>Shop Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Shop name" /></div>
             <div><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Address" /></div>
+            <div>
+              <Label>Shop Type *</Label>
+              <p className="text-xs text-muted-foreground mb-2">Affects claim rate for multi-tier companies like Cadbury</p>
+              <div className="grid grid-cols-3 gap-2">
+                {['retail', 'wholesale', 'lmt'].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all duration-200 ${
+                      form.shopType === type
+                        ? type === 'retail' ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                          : type === 'wholesale' ? 'bg-orange-600 text-white border-orange-600 shadow-md'
+                          : 'bg-purple-600 text-white border-purple-600 shadow-md'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    }`}
+                    onClick={() => setForm({ ...form, shopType: type })}
+                  >
+                    {type === 'retail' ? 'Retail' : type === 'wholesale' ? 'Wholesale' : 'LMT'}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="border-t pt-4">
               <Label className="text-base font-semibold text-emerald-800">Order Bookers by Company</Label>

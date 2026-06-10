@@ -17,7 +17,7 @@ export async function GET(
         supplier: true,
         orderBooker: true,
         claimItems: {
-          include: { product: true },
+          include: { product: { include: { company: true } } },
         },
       },
     });
@@ -176,7 +176,7 @@ export async function PUT(
         shop: true,
         supplier: true,
         orderBooker: true,
-        claimItems: { include: { product: true } },
+        claimItems: { include: { product: { include: { company: true } } } },
       },
     });
 

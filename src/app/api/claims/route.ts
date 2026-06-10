@@ -42,7 +42,9 @@ export async function GET(request: NextRequest) {
         orderBooker: true,
         claimItems: {
           include: {
-            product: true,
+            product: {
+              include: { company: true },
+            },
           },
         },
       },
@@ -136,7 +138,7 @@ export async function POST(request: NextRequest) {
         shop: true,
         supplier: true,
         orderBooker: true,
-        claimItems: { include: { product: true } },
+        claimItems: { include: { product: { include: { company: true } } } },
       },
     });
 

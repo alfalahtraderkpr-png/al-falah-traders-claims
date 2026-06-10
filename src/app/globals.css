@@ -407,6 +407,8 @@
     visibility: visible;
   }
 
+  /* Position print areas to fill the page */
+  .print-area,
   [role="tabpanel"][data-state="active"] {
     position: absolute;
     left: 0;
@@ -436,11 +438,13 @@
   /* === ULTRA COMPACT PRINT LAYOUT === */
 
   /* Remove all spacing between report sections */
+  .print-area > div,
   [role="tabpanel"][data-state="active"] > div {
     gap: 4px !important;
   }
 
   /* Remove card chrome in print */
+  .print-area .shadow-sm,
   [role="tabpanel"][data-state="active"] .shadow-sm {
     box-shadow: none !important;
     border: none !important;
@@ -448,6 +452,7 @@
     padding: 0 !important;
   }
 
+  .print-area .shadow-sm > div,
   [role="tabpanel"][data-state="active"] .shadow-sm > div {
     padding: 0 !important;
     margin: 0 !important;
@@ -582,12 +587,16 @@
   }
 
   /* Card headers in print - compact */
+  .print-area .card-header,
+  .print-area [class*="CardHeader"],
   [role="tabpanel"][data-state="active"] .card-header,
   [role="tabpanel"][data-state="active"] [class*="CardHeader"] {
     padding: 2px 6px !important;
     margin: 0 !important;
   }
 
+  .print-area .card-title,
+  .print-area [class*="CardTitle"],
   [role="tabpanel"][data-state="active"] .card-title,
   [role="tabpanel"][data-state="active"] [class*="CardTitle"] {
     font-size: 11px !important;

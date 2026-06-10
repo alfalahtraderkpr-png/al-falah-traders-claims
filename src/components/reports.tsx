@@ -179,7 +179,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
         </div>
       </div>
 
-      <div ref={printRef}>
+      <div ref={printRef} className="print-area">
         {activeTab === 'pending' && <PendingClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
         {activeTab === 'summary' && <ClaimsSummaryReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
         {activeTab === 'aging' && <ClaimsAgingReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}

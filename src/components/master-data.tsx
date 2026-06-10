@@ -311,18 +311,38 @@ function ProductsTab() {
   };
 
   const handleDownloadTemplate = () => {
-    // Create a sample Excel template
-    const templateData = [
-      { Name: 'Zeera', Price: 10, Unit: 'pcs' },
-      { Name: 'Coconut', Price: 50, Unit: 'pcs' },
-      { Name: 'NanKhatai', Price: 320, Unit: 'Box' },
-    ];
+    // Check if selected company is multi-tier
+    const selectedComp = companies.find(c => c.id === importCompany);
+    const isMultiTier = selectedComp?.multiTierPricing || false;
+
+    // Create template based on company type
+    let templateData;
+    let colWidths;
+
+    if (isMultiTier) {
+      // Multi-tier template with Wholesale & LMT price columns
+      templateData = [
+        { Name: 'Dairy Milk', Price: 150, ClaimPrice: 140, WholesalePrice: 120, LMTPrice: 130, Unit: 'pcs' },
+        { Name: '5 Star', Price: 50, ClaimPrice: 45, WholesalePrice: 40, LMTPrice: 42, Unit: 'pcs' },
+        { Name: 'Perk', Price: 20, ClaimPrice: 18, WholesalePrice: 15, LMTPrice: 16, Unit: 'pcs' },
+      ];
+      colWidths = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 10 }];
+    } else {
+      // Standard template
+      templateData = [
+        { Name: 'Zeera', Price: 10, Unit: 'pcs' },
+        { Name: 'Coconut', Price: 50, Unit: 'pcs' },
+        { Name: 'NanKhatai', Price: 320, Unit: 'Box' },
+      ];
+      colWidths = [{ wch: 25 }, { wch: 12 }, { wch: 10 }];
+    }
     const ws = XLSX.utils.json_to_sheet(templateData);
     // Set column widths
-    ws['!cols'] = [{ wch: 25 }, { wch: 12 }, { wch: 10 }];
+    ws['!cols'] = colWidths;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Products');
-    XLSX.writeFile(wb, 'product-import-template.xlsx');
+    const filename = isMultiTier ? 'product-import-template-multitier.xlsx' : 'product-import-template.xlsx';
+    XLSX.writeFile(wb, filename);
   };
 
   const filtered = items.filter((i) => {
@@ -449,26 +469,9 @@ function ProductsTab() {
 
           {!importResult ? (
             <div className="space-y-4 py-4">
-              {/* Step 1: Download Template */}
-              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                <h4 className="font-medium text-emerald-800 mb-2">Step 1: Download Template</h4>
-                <p className="text-sm text-emerald-700 mb-3">
-                  Download the Excel template, fill in your products, and upload it back.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-100"
-                  onClick={handleDownloadTemplate}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Template (.xlsx)
-                </Button>
-              </div>
-
-              {/* Step 2: Select Company */}
+              {/* Step 1: Select Company (PEHLE company select karo) */}
               <div>
-                <Label className="text-sm font-medium">Step 2: Select Company *</Label>
+                <Label className="text-sm font-medium">Step 1: Select Company *</Label>
                 <p className="text-xs text-muted-foreground mb-2">All products will be added to this company</p>
                 <Select value={importCompany} onValueChange={setImportCompany}>
                   <SelectTrigger>
@@ -476,17 +479,48 @@ function ProductsTab() {
                   </SelectTrigger>
                   <SelectContent>
                     {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>{c.name}{c.multiTierPricing ? ' (Multi-Tier)' : ''}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Step 2: Download Template (company ke hisaab se) */}
+              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                <h4 className="font-medium text-emerald-800 mb-2">Step 2: Download Template</h4>
+                <p className="text-sm text-emerald-700 mb-3">
+                  {importCompany ? (
+                    companies.find(c => c.id === importCompany)?.multiTierPricing
+                      ? 'Multi-Tier company ke liye template mein WholesalePrice aur LMTPrice columns honge.'
+                      : 'Download the Excel template, fill in your products, and upload it back.'
+                  ) : 'Pehle company select karo, phir template download karo.'}
+                </p>
+                {importCompany && companies.find(c => c.id === importCompany)?.multiTierPricing && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge className="bg-purple-100 text-purple-700 border-purple-200">Multi-Tier Company</Badge>
+                    <span className="text-xs text-purple-600">Template mein WholesalePrice aur LMTPrice columns honge</span>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-100"
+                  onClick={handleDownloadTemplate}
+                  disabled={!importCompany}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Template (.xlsx)
+                </Button>
+                {!importCompany && <p className="text-xs text-amber-600 mt-2">Company select karo template download karne ke liye</p>}
               </div>
 
               {/* Step 3: Upload File */}
               <div>
                 <Label className="text-sm font-medium">Step 3: Upload Excel File *</Label>
                 <p className="text-xs text-muted-foreground mb-2">
-                  File must have columns: <strong>Name, Price, Unit</strong> (Unit is optional, default: pcs)
+                  {importCompany && companies.find(c => c.id === importCompany)?.multiTierPricing
+                    ? <>File must have columns: <strong>Name, Price</strong> (WholesalePrice, LMTPrice for multi-tier, Unit optional)</>
+                    : <>File must have columns: <strong>Name, Price, Unit</strong> (Unit is optional, default: pcs)</>}
                 </p>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors">
                   <input
@@ -530,9 +564,19 @@ function ProductsTab() {
                   <tbody className="text-gray-600">
                     <tr><td className="py-1">Name</td><td className="py-1">Yes</td><td className="py-1">Zeera</td></tr>
                     <tr><td className="py-1">Price</td><td className="py-1">Yes</td><td className="py-1">10</td></tr>
+                    <tr><td className="py-1">ClaimPrice</td><td className="py-1">No</td><td className="py-1">9</td></tr>
+                    {importCompany && companies.find(c => c.id === importCompany)?.multiTierPricing && (
+                      <>
+                        <tr className="text-purple-700 font-medium"><td className="py-1">WholesalePrice</td><td className="py-1">Multi-Tier</td><td className="py-1">8</td></tr>
+                        <tr className="text-purple-700 font-medium"><td className="py-1">LMTPrice</td><td className="py-1">Multi-Tier</td><td className="py-1">8.5</td></tr>
+                      </>
+                    )}
                     <tr><td className="py-1">Unit</td><td className="py-1">No</td><td className="py-1">pcs / Box / Ctn</td></tr>
                   </tbody>
                 </table>
+                {importCompany && companies.find(c => c.id === importCompany)?.multiTierPricing && (
+                  <p className="mt-2 text-purple-600 font-medium">Multi-Tier: WholesalePrice & LMTPrice columns fill karo for wholesale/LMT shops ke liye alag rates</p>
+                )}
                 <p className="mt-2 text-amber-600 font-medium">Note: Same product with different prices = separate rows (e.g., Zeera Rs.10, Zeera Rs.20)</p>
               </div>
 

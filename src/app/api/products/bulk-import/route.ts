@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
+    const isMultiTier = company.multiTierPricing || false;
+
     // Read file buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
       const name = String(row['Name'] || row['name'] || row['Product Name'] || row['product_name'] || row['Product'] || row['product'] || '').trim();
       const priceVal = row['Price'] || row['price'] || row['Rate'] || row['rate'] || row['Amount'] || row['amount'] || 0;
       const claimPriceVal = row['ClaimPrice'] || row['claimPrice'] || row['Claim Price'] || row['claim_price'] || row['ClaimRate'] || row['claimRate'] || row['Claim Rate'] || row['claim_rate'] || '';
+      const wholesalePriceVal = row['WholesalePrice'] || row['wholesalePrice'] || row['Wholesale Price'] || row['wholesale_price'] || row['WsPrice'] || row['wsPrice'] || '';
+      const lmtPriceVal = row['LMTPrice'] || row['lmtPrice'] || row['LMT Price'] || row['lmt_price'] || row['LmtPrice'] || row['lmtprice'] || '';
       const unit = String(row['Unit'] || row['unit'] || row['UOM'] || row['uom'] || 'pcs').trim();
 
       if (!name) {
@@ -66,11 +70,28 @@ export async function POST(request: NextRequest) {
 
       try {
         const claimPriceNum = claimPriceVal !== '' ? Number(claimPriceVal) : price;
+        const wholesalePriceNum = isMultiTier && wholesalePriceVal !== '' ? Number(wholesalePriceVal) : null;
+        const lmtPriceNum = isMultiTier && lmtPriceVal !== '' ? Number(lmtPriceVal) : null;
+
+        // Validate multi-tier prices
+        if (wholesalePriceNum !== null && (isNaN(wholesalePriceNum) || wholesalePriceNum < 0)) {
+          errors.push(`Row ${i + 2}: Invalid wholesale price "${wholesalePriceVal}" for "${name}"`);
+          skipped++;
+          continue;
+        }
+        if (lmtPriceNum !== null && (isNaN(lmtPriceNum) || lmtPriceNum < 0)) {
+          errors.push(`Row ${i + 2}: Invalid LMT price "${lmtPriceVal}" for "${name}"`);
+          skipped++;
+          continue;
+        }
+
         await db.product.create({
           data: {
             name,
             price,
             claimPrice: isNaN(claimPriceNum) ? price : claimPriceNum,
+            wholesalePrice: wholesalePriceNum,
+            lmtPrice: lmtPriceNum,
             unit: unit || 'pcs',
             companyId,
           },

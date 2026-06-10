@@ -270,6 +270,12 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
 
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
+  // Get the selected company's multi-tier status
+  const selectedCompany = companies.find((c) => c.id === companyId);
+  const isMultiTier = selectedCompany?.multiTierPricing || false;
+  const selectedShop = shops.find((s) => s.id === shopId);
+  const shopTypeLabel = selectedShop?.shopType === 'wholesale' ? 'Wholesale' : selectedShop?.shopType === 'lmt' ? 'LMT' : 'Retail';
+
   // Deduction calculation
   const deductionPercent = selectedCompany?.claimDeductionPercent || 0;
   const hasDeduction = deductionPercent > 0;
@@ -335,12 +341,6 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       setSaving(false);
     }
   };
-
-  // Get the selected company's multi-tier status
-  const selectedCompany = companies.find((c) => c.id === companyId);
-  const isMultiTier = selectedCompany?.multiTierPricing || false;
-  const selectedShop = shops.find((s) => s.id === shopId);
-  const shopTypeLabel = selectedShop?.shopType === 'wholesale' ? 'Wholesale' : selectedShop?.shopType === 'lmt' ? 'LMT' : 'Retail';
 
   // Filtered products for search
   const filteredProducts = products.filter((p) => {

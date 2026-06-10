@@ -86,16 +86,23 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
   const tabs = isAdmin ? adminTabs : obTabs;
 
   // Load all data once
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const [compRes, obRes, claimsRes] = await Promise.all([
         fetch('/api/companies'),
         fetch('/api/order-bookers'),
         fetch('/api/reports'),
       ]);
       if (compRes.ok) { const d = await compRes.json(); if (Array.isArray(d)) setCompanies(d); }
+      else { console.error('Companies API error:', compRes.status); }
+
       if (obRes.ok) { const d = await obRes.json(); if (Array.isArray(d)) setOrderBookers(d); }
+      else { console.error('Order Bookers API error:', obRes.status); }
+
       if (claimsRes.ok) {
         const d = await claimsRes.json();
         if (d && typeof d === 'object' && Array.isArray(d.claims)) {
@@ -105,9 +112,42 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
           } else {
             setAllClaims(d.claims);
           }
+        } else if (Array.isArray(d)) {
+          // Fallback: if API returns array directly (like /api/claims)
+          if (!isAdmin && user.orderBookerId) {
+            setAllClaims(d.filter((c: Claim) => c.orderBookerId === user.orderBookerId));
+          } else {
+            setAllClaims(d);
+          }
+        }
+        console.log('Reports: Loaded', allClaims.length, 'claims from API');
+      } else {
+        // Fallback: try /api/claims if /api/reports fails
+        console.error('Reports API error:', claimsRes.status, '- falling back to /api/claims');
+        try {
+          const fallbackRes = await fetch('/api/claims');
+          if (fallbackRes.ok) {
+            const d = await fallbackRes.json();
+            if (Array.isArray(d)) {
+              if (!isAdmin && user.orderBookerId) {
+                setAllClaims(d.filter((c: Claim) => c.orderBookerId === user.orderBookerId));
+              } else {
+                setAllClaims(d);
+              }
+              console.log('Reports: Loaded', d.length, 'claims from fallback /api/claims');
+            }
+          } else {
+            setLoadError('Failed to load claims data. Please refresh the page.');
+          }
+        } catch (fallbackErr) {
+          console.error('Fallback claims API error:', fallbackErr);
+          setLoadError('Network error. Please check your connection and refresh.');
         }
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error('Reports load error:', e);
+      setLoadError('Failed to load reports. Please refresh the page.');
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -126,6 +166,20 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto mb-3" />
           <p className="text-muted-foreground">Loading reports...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <FileText className="h-12 w-12 text-red-300 mx-auto mb-3" />
+          <p className="text-red-600 font-medium mb-2">{loadError}</p>
+          <Button onClick={loadData} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -488,7 +542,8 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
   const [filterCompany, setFilterCompany] = useState('all');
 
   const pending = allClaims.filter(c => {
-    if (c.status !== 'pending') return false;
+    // Include claims that are not yet cleared - pending, approved, and partially_approved
+    if (c.status === 'cleared' || c.status === 'rejected') return false;
     if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
     if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
     return true;
@@ -573,6 +628,7 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
                     <th className="text-left py-2 px-3 font-medium">Shop</th>
                     <th className="text-left py-2 px-3 font-medium">Days</th>
                     <th className="text-right py-2 px-3 font-medium">Amount</th>
+                    <th className="text-center py-2 px-3 font-medium">Status</th>
                   </tr></thead>
                   <tbody>
                     {groupClaims.map(c => (
@@ -583,6 +639,7 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
                         <td className="py-2 px-3">{c.shop.name}</td>
                         <td className="py-2 px-3"><Badge variant="outline" className="text-xs">{getDays(c.createdAt || c.date)}d</Badge></td>
                         <td className="py-2 px-3 text-right font-medium">{formatAmount(c.totalAmount)}</td>
+                        <td className="py-2 px-3 text-center"><Badge className={`${statusColors[c.status]} border text-xs`}>{statusLabels[c.status]}</Badge></td>
                       </tr>
                     ))}
                   </tbody>

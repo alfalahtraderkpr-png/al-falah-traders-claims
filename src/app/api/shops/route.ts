@@ -49,12 +49,13 @@ export async function POST(request: NextRequest) {
     // Create company-orderbooker mappings if provided
     if (companyOrderBookers && Array.isArray(companyOrderBookers)) {
       for (const mapping of companyOrderBookers) {
-        if (mapping.companyId && mapping.orderBookerId) {
+        if (mapping.companyId) {
           await db.shopCompanyOrderBooker.create({
             data: {
               shopId: shop.id,
               companyId: mapping.companyId,
-              orderBookerId: mapping.orderBookerId,
+              orderBookerId: mapping.orderBookerId || null,
+              shopType: mapping.shopType || 'retail',
             },
           });
         }

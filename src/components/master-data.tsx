@@ -16,7 +16,7 @@ import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store,
 interface Company { id: string; name: string; multiTierPricing?: boolean; claimDeductionPercent?: number; _count?: { products: number } }
 interface Product { id: string; name: string; price: number; claimPrice: number; wholesalePrice: number | null; lmtPrice: number | null; unit: string; companyId: string; company: { name: string; multiTierPricing?: boolean } }
 interface Supplier { id: string; name: string; companyId?: string | null; company?: { name: string } | null }
-interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
+interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; shopType?: string; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
 interface Shop { id: string; name: string; address: string; shopType?: string; companyOrderBookers: ShopCompanyOB[] }
 interface OrderBooker { id: string; name: string; _count?: { shopCompanyOrderBookers: number } }
 
@@ -768,8 +768,8 @@ function ShopsTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Shop | null>(null);
   const [form, setForm] = useState({ name: '', address: '', shopType: 'retail' });
-  // Company-orderbooker mappings: { companyId: orderBookerId | '' }
-  const [companyOBMap, setCompanyOBMap] = useState<Record<string, string>>({});
+  // Company settings: { companyId: { orderBookerId: string, shopType: string } }
+  const [companySettings, setCompanySettings] = useState<Record<string, { orderBookerId: string; shopType: string }>>({});
 
   const load = useCallback(async () => {
     try {
@@ -789,33 +789,36 @@ function ShopsTab() {
   const openAddDialog = () => {
     setEditItem(null);
     setForm({ name: '', address: '', shopType: 'retail' });
-    // Initialize companyOBMap with empty values for each company
-    const initialMap: Record<string, string> = {};
-    companies.forEach((c) => { initialMap[c.id] = ''; });
-    setCompanyOBMap(initialMap);
+    // Initialize companySettings with default values for each company
+    const initialSettings: Record<string, { orderBookerId: string; shopType: string }> = {};
+    companies.forEach((c) => { initialSettings[c.id] = { orderBookerId: '', shopType: 'retail' }; });
+    setCompanySettings(initialSettings);
     setDialogOpen(true);
   };
 
   const openEditDialog = (shop: Shop) => {
     setEditItem(shop);
     setForm({ name: shop.name, address: shop.address, shopType: shop.shopType || 'retail' });
-    // Populate companyOBMap from existing mappings
-    const map: Record<string, string> = {};
-    companies.forEach((c) => { map[c.id] = ''; });
+    // Populate companySettings from existing mappings
+    const settings: Record<string, { orderBookerId: string; shopType: string }> = {};
+    companies.forEach((c) => { settings[c.id] = { orderBookerId: '', shopType: 'retail' }; });
     shop.companyOrderBookers?.forEach((cob) => {
-      map[cob.companyId] = cob.orderBookerId || '';
+      settings[cob.companyId] = {
+        orderBookerId: cob.orderBookerId || '',
+        shopType: cob.shopType || 'retail',
+      };
     });
-    setCompanyOBMap(map);
+    setCompanySettings(settings);
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
     try {
-      // Build companyOrderBookers array from the map
-      const cobArray = Object.entries(companyOBMap)
-        .filter(([, obId]) => obId) // only include if order booker is assigned
-        .map(([companyId, orderBookerId]) => ({ companyId, orderBookerId }));
+      // Build companyOrderBookers array from settings — include all companies that have any setting
+      const cobArray = Object.entries(companySettings)
+        .filter(([, setting]) => setting.orderBookerId || setting.shopType !== 'retail')
+        .map(([companyId, setting]) => ({ companyId, orderBookerId: setting.orderBookerId || '', shopType: setting.shopType || 'retail' }));
 
       const body = {
         name: form.name,
@@ -840,7 +843,7 @@ function ShopsTab() {
       setDialogOpen(false);
       setEditItem(null);
       setForm({ name: '', address: '', shopType: 'retail' });
-      setCompanyOBMap({});
+      setCompanySettings({});
       load();
     } catch (e) { console.error(e); }
   };
@@ -860,6 +863,12 @@ function ShopsTab() {
   const getOBForCompany = (shop: Shop, companyId: string) => {
     const mapping = shop.companyOrderBookers?.find((cob) => cob.companyId === companyId);
     return mapping?.orderBooker?.name || '-';
+  };
+
+  // Get shop type for a shop+company
+  const getTypeForCompany = (shop: Shop, companyId: string) => {
+    const mapping = shop.companyOrderBookers?.find((cob) => cob.companyId === companyId);
+    return mapping?.shopType || null;
   };
 
   return (
@@ -885,7 +894,7 @@ function ShopsTab() {
                 <th className="text-left py-2 px-4 font-medium">Address</th>
                 <th className="text-center py-2 px-4 font-medium">Type</th>
                 {companies.map((c) => (
-                  <th key={c.id} className="text-left py-2 px-4 font-medium whitespace-nowrap">{c.name} OB</th>
+                  <th key={c.id} className="text-left py-2 px-4 font-medium whitespace-nowrap">{c.name}</th>
                 ))}
                 <th className="text-center py-2 px-4 font-medium">Actions</th>
               </tr></thead>
@@ -895,13 +904,24 @@ function ShopsTab() {
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4">{item.address || '-'}</td>
                     <td className="py-2 px-4 text-center">{item.shopType && item.shopType !== 'retail' ? <Badge className={item.shopType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}>{item.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}</Badge> : <span className="text-xs text-muted-foreground">Retail</span>}</td>
-                    {companies.map((c) => (
-                      <td key={c.id} className="py-2 px-4">
-                        <span className={getOBForCompany(item, c.id) !== '-' ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}>
-                          {getOBForCompany(item, c.id)}
-                        </span>
-                      </td>
-                    ))}
+                    {companies.map((c) => {
+                      const compType = getTypeForCompany(item, c.id);
+                      const compOB = getOBForCompany(item, c.id);
+                      return (
+                        <td key={c.id} className="py-2 px-4">
+                          <div className="flex flex-col gap-0.5">
+                            {compType && compType !== 'retail' ? (
+                              <Badge className={`text-[10px] px-1.5 py-0 w-fit ${compType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>
+                                {compType === 'wholesale' ? 'Ws' : 'LMT'}
+                              </Badge>
+                            ) : null}
+                            <span className={`text-xs ${compOB !== '-' ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}`}>
+                              {compOB}
+                            </span>
+                          </div>
+                        </td>
+                      );
+                    })}
                     <td className="py-2 px-4 text-center">
                       <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => openEditDialog(item)}>
                         <Edit2 className="h-4 w-4" />
@@ -948,28 +968,63 @@ function ShopsTab() {
             </div>
 
             <div className="border-t pt-4">
-              <Label className="text-base font-semibold text-emerald-800">Order Bookers by Company</Label>
-              <p className="text-xs text-muted-foreground mt-1 mb-3">Assign order bookers for each company. Same shop can have different order bookers for different companies.</p>
-              <div className="space-y-3">
+              <Label className="text-base font-semibold text-emerald-800">Company Settings</Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">Per company: Shop Type (affects pricing for multi-tier companies) aur Order Booker assign karo.</p>
+              <div className="space-y-4">
                 {companies.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3">
-                    <div className="w-28 shrink-0">
+                  <div key={c.id} className="border rounded-lg p-3 bg-gray-50/50">
+                    <div className="flex items-center gap-2 mb-2">
                       <Badge variant="outline" className="text-xs font-medium">{c.name}</Badge>
+                      {c.multiTierPricing && <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px]">Multi-Tier</Badge>}
                     </div>
-                    <Select
-                      value={companyOBMap[c.id] || 'none'}
-                      onValueChange={(v) => setCompanyOBMap({ ...companyOBMap, [c.id]: v === 'none' ? '' : v })}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select Order Booker" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {orderBookers.map((ob) => (
-                          <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-3">
+                      {/* Shop Type per company */}
+                      <div className="flex-1">
+                        <p className="text-[10px] text-muted-foreground mb-1">Shop Type</p>
+                        <div className="flex gap-1">
+                          {['retail', 'wholesale', 'lmt'].map((type) => (
+                            <button
+                              key={type}
+                              type="button"
+                              className={`py-1.5 px-2 rounded text-[11px] font-medium transition-all ${
+                                (companySettings[c.id]?.shopType || 'retail') === type
+                                  ? type === 'retail' ? 'bg-blue-600 text-white'
+                                    : type === 'wholesale' ? 'bg-orange-600 text-white'
+                                    : 'bg-purple-600 text-white'
+                                  : 'bg-white text-gray-500 border border-gray-300 hover:bg-gray-100'
+                              }`}
+                              onClick={() => setCompanySettings({
+                                ...companySettings,
+                                [c.id]: { ...companySettings[c.id], shopType: type }
+                              })}
+                            >
+                              {type === 'retail' ? 'Retail' : type === 'wholesale' ? 'Ws' : 'LMT'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Order Booker per company */}
+                      <div className="flex-1">
+                        <p className="text-[10px] text-muted-foreground mb-1">Order Booker</p>
+                        <Select
+                          value={companySettings[c.id]?.orderBookerId || 'none'}
+                          onValueChange={(v) => setCompanySettings({
+                            ...companySettings,
+                            [c.id]: { ...companySettings[c.id], orderBookerId: v === 'none' ? '' : v }
+                          })}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select OB" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {orderBookers.map((ob) => (
+                              <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

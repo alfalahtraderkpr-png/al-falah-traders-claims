@@ -110,6 +110,7 @@ model ShopCompanyOrderBooker {
   shopId        String
   companyId     String
   orderBookerId String?
+  shopType      String   @default("retail") // retail, wholesale, lmt — per company override
   shop          Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
   company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orderBooker   OrderBooker? @relation(fields: [orderBookerId], references: [id])

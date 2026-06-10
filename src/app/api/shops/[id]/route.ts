@@ -41,6 +41,7 @@ export async function PUT(
               shopId: id,
               companyId: mapping.companyId,
               orderBookerId: mapping.orderBookerId || null,
+              shopType: mapping.shopType || 'retail',
             },
           });
         }

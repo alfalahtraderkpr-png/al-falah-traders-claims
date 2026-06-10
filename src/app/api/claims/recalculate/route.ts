@@ -7,7 +7,11 @@ export async function POST() {
     const claims = await db.claim.findMany({
       include: {
         company: true,
-        shop: true,
+        shop: {
+          include: {
+            companyOrderBookers: true,
+          },
+        },
         claimItems: {
           include: {
             product: {
@@ -30,11 +34,17 @@ export async function POST() {
           const product = item.product;
           let effectivePrice: number;
 
+          // Get company-specific shop type from ShopCompanyOrderBooker, fallback to shop.shopType
+          const companyMapping = claim.shop?.companyOrderBookers?.find(
+            (cob) => cob.companyId === claim.companyId
+          );
+          const effectiveShopType = companyMapping?.shopType || claim.shop?.shopType || 'retail';
+
           // Multi-tier pricing: check wholesale/LMT prices FIRST (same logic as claim-form.tsx)
-          if (product.company?.multiTierPricing && claim.shop?.shopType) {
-            if (claim.shop.shopType === 'wholesale' && product.wholesalePrice) {
+          if (product.company?.multiTierPricing) {
+            if (effectiveShopType === 'wholesale' && product.wholesalePrice) {
               effectivePrice = product.wholesalePrice;
-            } else if (claim.shop.shopType === 'lmt' && product.lmtPrice) {
+            } else if (effectiveShopType === 'lmt' && product.lmtPrice) {
               effectivePrice = product.lmtPrice;
             } else if (product.claimPrice && product.claimPrice > 0) {
               effectivePrice = product.claimPrice;

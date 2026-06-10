@@ -190,17 +190,26 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
     }
   };
 
+  // Get the effective shop type for a given company — checks ShopCompanyOrderBooker first, falls back to Shop.shopType
+  const getEffectiveShopType = (compId: string): string => {
+    const shop = shops.find((s) => s.id === shopId);
+    if (!shop) return 'retail';
+    // Check company-specific override in ShopCompanyOrderBooker
+    const companyMapping = shop.companyOrderBookers?.find((cob) => cob.companyId === compId);
+    if (companyMapping?.shopType) return companyMapping.shopType;
+    // Fall back to shop's default type
+    return shop.shopType || 'retail';
+  };
+
   const getProductPrice = (product: Product): number => {
     // For multi-tier companies, check wholesale/LMT prices FIRST (they override claimPrice)
     if (product.company?.multiTierPricing) {
-      const shop = shops.find((s) => s.id === shopId);
-      if (shop) {
-        if (shop.shopType === 'wholesale' && product.wholesalePrice) {
-          return product.wholesalePrice;
-        }
-        if (shop.shopType === 'lmt' && product.lmtPrice) {
-          return product.lmtPrice;
-        }
+      const effectiveType = getEffectiveShopType(product.companyId);
+      if (effectiveType === 'wholesale' && product.wholesalePrice) {
+        return product.wholesalePrice;
+      }
+      if (effectiveType === 'lmt' && product.lmtPrice) {
+        return product.lmtPrice;
       }
     }
     // Use claimPrice if available, otherwise fall back to price
@@ -218,11 +227,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   const getPriceLabel = (product: Product): string => {
     // For multi-tier companies, show the tier price first
     if (product.company?.multiTierPricing) {
-      const shop = shops.find((s) => s.id === shopId);
-      if (shop?.shopType === 'wholesale' && product.wholesalePrice) {
+      const effectiveType = getEffectiveShopType(product.companyId);
+      if (effectiveType === 'wholesale' && product.wholesalePrice) {
         return `Ws:Rs.${product.wholesalePrice}`;
       }
-      if (shop?.shopType === 'lmt' && product.lmtPrice) {
+      if (effectiveType === 'lmt' && product.lmtPrice) {
         return `LMT:Rs.${product.lmtPrice}`;
       }
     }
@@ -274,7 +283,9 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   const selectedCompany = companies.find((c) => c.id === companyId);
   const isMultiTier = selectedCompany?.multiTierPricing || false;
   const selectedShop = shops.find((s) => s.id === shopId);
-  const shopTypeLabel = selectedShop?.shopType === 'wholesale' ? 'Wholesale' : selectedShop?.shopType === 'lmt' ? 'LMT' : 'Retail';
+  // Use company-specific shop type for the selected company, fallback to shop default
+  const effectiveShopType = companyId ? getEffectiveShopType(companyId) : (selectedShop?.shopType || 'retail');
+  const shopTypeLabel = effectiveShopType === 'wholesale' ? 'Wholesale' : effectiveShopType === 'lmt' ? 'LMT' : 'Retail';
 
   // Deduction calculation
   const deductionPercent = selectedCompany?.claimDeductionPercent || 0;
@@ -746,9 +757,9 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
               onClick={async () => {
                 setCreatingShop(true);
                 try {
-                  const cobArray: Array<{ companyId: string; orderBookerId: string }> = [];
-                  if (companyId && quickShopOB && quickShopOB !== 'none') {
-                    cobArray.push({ companyId, orderBookerId: quickShopOB });
+                  const cobArray: Array<{ companyId: string; orderBookerId: string; shopType: string }> = [];
+                  if (companyId) {
+                    cobArray.push({ companyId, orderBookerId: quickShopOB && quickShopOB !== 'none' ? quickShopOB : '', shopType: quickShopType });
                   }
                   const res = await fetch('/api/shops', {
                     method: 'POST',

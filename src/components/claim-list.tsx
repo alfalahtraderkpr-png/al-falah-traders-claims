@@ -62,6 +62,7 @@ interface Claim {
   clearedBy: string | null;
   clearedDate: string | null;
   rejectReason: string | null;
+  createdBy: string | null;
 }
 
 export function ClaimList({ user }: ClaimListProps) {
@@ -281,15 +282,13 @@ export function ClaimList({ user }: ClaimListProps) {
           </h2>
           <p className="text-muted-foreground">{claims.length} claims found</p>
         </div>
-        {isAdmin && (
-          <Button
-            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg btn-enhanced btn-ripple text-sm font-semibold px-6 py-3 rounded-xl"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            New Claim
-          </Button>
-        )}
+        <Button
+          className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg btn-enhanced btn-ripple text-sm font-semibold px-6 py-3 rounded-xl"
+          onClick={() => setShowForm(true)}
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          New Claim
+        </Button>
       </div>
 
       {/* Search & Filters */}
@@ -455,6 +454,12 @@ export function ClaimList({ user }: ClaimListProps) {
                       <span className="text-muted-foreground text-xs">Supplier</span>
                       <p className="font-medium truncate">{claim.supplier.name}</p>
                     </div>
+                    {claim.createdBy && (
+                      <div>
+                        <span className="text-muted-foreground text-xs">Entered By</span>
+                        <p className="font-medium text-purple-700">{claim.createdBy}</p>
+                      </div>
+                    )}
                     <div>
                       <span className="text-muted-foreground text-xs">Total Claim</span>
                       <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
@@ -709,6 +714,7 @@ export function ClaimList({ user }: ClaimListProps) {
                       <th className="text-left py-3 px-4 font-medium">Company</th>
                       <th className="text-left py-3 px-4 font-medium">Shop</th>
                       <th className="text-left py-3 px-4 font-medium">Order Booker</th>
+                      <th className="text-left py-3 px-4 font-medium">Entered By</th>
                       <th className="text-right py-3 px-4 font-medium">Total Claim</th>
                       <th className="text-right py-3 px-4 font-medium">Cleared</th>
                       <th className="text-right py-3 px-4 font-medium">Remaining</th>
@@ -736,6 +742,7 @@ export function ClaimList({ user }: ClaimListProps) {
                         <td className="py-3 px-4">{claim.company.name}</td>
                         <td className="py-3 px-4">{claim.shop.name}</td>
                         <td className="py-3 px-4">{claim.orderBooker?.name || '-'}</td>
+                        <td className="py-3 px-4">{claim.createdBy || '-'}</td>
                         <td className="py-3 px-4 text-right font-medium">
                           {claim.deductionAmount > 0 ? (
                             <div>

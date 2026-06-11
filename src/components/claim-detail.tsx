@@ -40,6 +40,7 @@ interface ClaimData {
   clearedBy: string | null;
   clearedDate: string | null;
   rejectReason: string | null;
+  createdBy: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -254,6 +255,12 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               <p className="text-muted-foreground text-xs">Order Booker</p>
               <p className="font-medium">{claim.orderBooker?.name || '-'}</p>
             </div>
+            {claim.createdBy && (
+              <div className="bg-purple-50/50 rounded-lg p-2 transition-colors hover:bg-purple-50">
+                <p className="text-muted-foreground text-xs">Entered By</p>
+                <p className="font-medium text-purple-700">{claim.createdBy}</p>
+              </div>
+            )}
             <div className="bg-emerald-50/50 rounded-lg p-2 transition-colors hover:bg-emerald-50">
               <p className="text-muted-foreground text-xs">Total Claim</p>
               <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>

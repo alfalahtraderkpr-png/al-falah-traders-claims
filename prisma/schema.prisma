@@ -100,6 +100,7 @@ model Claim {
   clearedBy     String?    // name of person who cleared
   clearedDate   DateTime?  // when it was cleared
   rejectReason  String?
+  createdBy     String?    // user id or name who created/entered the claim
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   claimItems    ClaimItem[]

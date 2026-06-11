@@ -83,7 +83,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   const [companyId, setCompanyId] = useState(claim?.companyId || '');
   const [shopId, setShopId] = useState(claim?.shopId || '');
   const [supplierId, setSupplierId] = useState(claim?.supplierId || '');
-  const [orderBookerId, setOrderBookerId] = useState(claim?.orderBookerId || '');
+  const [orderBookerId, setOrderBookerId] = useState(claim?.orderBookerId || user.orderBookerId || '');
   const [items, setItems] = useState<Array<{ productId: string; quantity: number; amount: number }>>(
     claim?.claimItems.map((ci) => ({ productId: ci.productId, quantity: ci.quantity, amount: ci.amount })) || []
   );
@@ -312,6 +312,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
         shopId,
         supplierId,
         orderBookerId: orderBookerId || null,
+        createdBy: user.name,
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.quantity,

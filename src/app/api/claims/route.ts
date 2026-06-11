@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { date, companyId, shopId, supplierId, orderBookerId, items } = await request.json();
+    const { date, companyId, shopId, supplierId, orderBookerId, items, createdBy } = await request.json();
 
     if (!companyId || !shopId || !supplierId) {
       return NextResponse.json({ error: 'Company, Shop and Supplier are required' }, { status: 400 });
@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
         deductionAmount,
         netAmount,
         status: 'pending',
+        createdBy: createdBy || null,
         claimItems: {
           create: items.map((item: { productId: string; quantity: number; amount: number }) => ({
             productId: item.productId,

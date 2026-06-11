@@ -1,4 +1,4 @@
-const CACHE_NAME = 'al-falah-claims-v1';
+const CACHE_NAME = 'al-falah-claims-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -20,11 +20,20 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Handle skip waiting message from the page
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+
   // For API calls, network first, fallback to cache
-  if (event.request.url.includes('/api/')) {
+  if (url.pathname.includes('/api/')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -37,7 +46,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets, cache first, fallback to network
+  // For JS/CSS chunks and Next.js static assets — ALWAYS network first
+  // This prevents stale cached chunks causing "Cannot access before initialization" errors
+  if (
+    url.pathname.includes('/_next/') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.mjs') ||
+    url.pathname.endsWith('.css')
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // For other static assets (images, fonts, etc.), cache first, fallback to network
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;

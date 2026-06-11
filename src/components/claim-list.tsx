@@ -33,6 +33,33 @@ const statusLabels: Record<string, string> = {
   rejected: 'Rejected',
 };
 
+// Order booker sees "Stock Not Received" instead of "Pending"
+const statusLabelsOB: Record<string, string> = {
+  pending: 'Stock Not Received',
+  approved: 'Approved',
+  partially_approved: 'Partial',
+  cleared: 'Cleared',
+  rejected: 'Rejected',
+};
+
+// Get status label based on user role
+const getStatusLabel = (status: string, isOrderBooker: boolean) => {
+  return isOrderBooker ? (statusLabelsOB[status] || status) : (statusLabels[status] || status);
+};
+
+// Status color for "Stock Not Received" — amber/orange tone to distinguish from normal pending
+const statusColorsOB: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-800 border-amber-300',
+  approved: 'bg-green-100 text-green-800 border-green-300',
+  partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
+  cleared: 'bg-blue-100 text-blue-800 border-blue-300',
+  rejected: 'bg-red-100 text-red-800 border-red-300',
+};
+
+const getStatusColor = (status: string, isOrderBooker: boolean) => {
+  return isOrderBooker ? (statusColorsOB[status] || statusColors[status]) : (statusColors[status] || '');
+};
+
 interface Company { id: string; name: string; multiTierPricing?: boolean; claimDeductionPercent?: number }
 interface Supplier { id: string; name: string }
 interface OrderBooker { id: string; name: string }
@@ -515,6 +542,15 @@ export function ClaimList({ user }: ClaimListProps) {
       );
     }
 
+    // Order booker: Resubmit rejected claims
+    if (!isAdmin && user.role === 'orderbooker' && claim.status === 'rejected' && claim.orderBookerId === user.orderBookerId) {
+      items.push(
+        <DropdownMenuItem key="resubmit-ob" onClick={() => { setEditClaim(claim); setShowForm(true); }} className="text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800 cursor-pointer">
+          ✏️ Edit & Resubmit
+        </DropdownMenuItem>
+      );
+    }
+
     return items;
   };
 
@@ -616,7 +652,7 @@ export function ClaimList({ user }: ClaimListProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="pending">{isAdmin ? 'Pending' : 'Stock Not Received'}</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="partially_approved">Partially Approved</SelectItem>
                     <SelectItem value="cleared">Cleared</SelectItem>
@@ -738,8 +774,8 @@ export function ClaimList({ user }: ClaimListProps) {
                         </span>
                       )}
                     </div>
-                    <Badge className={`${statusColors[claim.status]} border text-xs`}>
-                      {statusLabels[claim.status]}
+                    <Badge className={`${getStatusColor(claim.status, !isAdmin)} border text-xs`}>
+                      {getStatusLabel(claim.status, !isAdmin)}
                     </Badge>
                   </div>
 
@@ -800,12 +836,20 @@ export function ClaimList({ user }: ClaimListProps) {
                     <div>
                       <span className="text-muted-foreground text-xs">Status</span>
                       <p>
-                        <Badge className={`${statusColors[claim.status]} border text-xs`}>
-                          {statusLabels[claim.status]}
+                        <Badge className={`${getStatusColor(claim.status, !isAdmin)} border text-xs`}>
+                          {getStatusLabel(claim.status, !isAdmin)}
                         </Badge>
                       </p>
                     </div>
                   </div>
+
+                  {/* Rejected Reason Banner */}
+                  {claim.status === 'rejected' && claim.rejectReason && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-xs">
+                      <span className="font-medium text-red-700">Reject Reason: </span>
+                      <span className="text-red-600">{claim.rejectReason}</span>
+                    </div>
+                  )}
 
                   {/* Safe Actions - Always visible + ⋯ More Actions Menu */}
                   <div className="flex gap-2 pt-3 border-t">
@@ -927,8 +971,8 @@ export function ClaimList({ user }: ClaimListProps) {
                           )}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <Badge className={`${statusColors[claim.status]} border text-xs transition-transform duration-200 hover:scale-105 cursor-default`}>
-                            {statusLabels[claim.status]}
+                          <Badge className={`${getStatusColor(claim.status, !isAdmin)} border text-xs transition-transform duration-200 hover:scale-105 cursor-default`}>
+                            {getStatusLabel(claim.status, !isAdmin)}
                           </Badge>
                         </td>
                         <td className="py-3 px-4">

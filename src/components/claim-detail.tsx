@@ -68,6 +68,18 @@ const statusLabels: Record<string, string> = {
   rejected: 'Rejected',
 };
 
+const statusLabelsOB: Record<string, string> = {
+  pending: 'Stock Not Received',
+  approved: 'Approved',
+  partially_approved: 'Partially Approved',
+  cleared: 'Cleared',
+  rejected: 'Rejected',
+};
+
+const getStatusLabel = (status: string, isOrderBooker: boolean) => {
+  return isOrderBooker ? (statusLabelsOB[status] || status) : (statusLabels[status] || status);
+};
+
 // Get prefilled WhatsApp text based on receipt type
 function getWhatsAppText(claim: ClaimData, receiptType: ReceiptType): string {
   const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
@@ -230,7 +242,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               Claim {claim.claimNumber}
             </h2>
             <Badge className={`${statusColors[claim.status]} border mt-1 transition-transform hover:scale-105 px-3 py-0.5`}>
-              {statusLabels[claim.status]}
+              {getStatusLabel(claim.status, user.role === 'orderbooker')}
             </Badge>
           </div>
         </div>

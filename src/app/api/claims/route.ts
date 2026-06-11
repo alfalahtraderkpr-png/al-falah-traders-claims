@@ -126,6 +126,12 @@ export async function POST(request: NextRequest) {
     const deductionAmount = deductionPercent > 0 ? Math.round(totalAmount * deductionPercent / 100) : 0;
     const netAmount = totalAmount - deductionAmount;
 
+    // Admin claims are auto-approved; Order booker claims need admin approval (status: pending)
+    const creatorRole = body.creatorRole || 'orderbooker';
+    const isAdminClaim = creatorRole === 'admin';
+    const initialStatus = isAdminClaim ? 'approved' : 'pending';
+    const initialApprovedAmount = isAdminClaim ? netAmount : null;
+
     const claim = await db.claim.create({
       data: {
         claimNumber,
@@ -137,7 +143,8 @@ export async function POST(request: NextRequest) {
         totalAmount,
         deductionAmount,
         netAmount,
-        status: 'pending',
+        status: initialStatus,
+        approvedAmount: initialApprovedAmount,
         createdBy: createdBy || null,
         claimItems: {
           create: items.map((item: { productId: string; quantity: number; amount: number }) => ({

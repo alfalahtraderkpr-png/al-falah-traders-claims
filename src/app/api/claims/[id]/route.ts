@@ -138,9 +138,9 @@ export async function PUT(
         break;
 
       case 'update':
-        // Update claim details (only if pending)
-        if (claim.status !== 'pending') {
-          return NextResponse.json({ error: 'Can only edit pending claims' }, { status: 400 });
+        // Update claim details (if pending or rejected — rejected allows resubmit)
+        if (claim.status !== 'pending' && claim.status !== 'rejected') {
+          return NextResponse.json({ error: 'Can only edit pending or rejected claims' }, { status: 400 });
         }
         const { date, companyId, shopId, supplierId, orderBookerId, items } = body;
         if (items && items.length > 0) {
@@ -154,6 +154,10 @@ export async function PUT(
 
           // Delete old items and create new ones
           await db.claimItem.deleteMany({ where: { claimId: id } });
+
+          // If claim was rejected, resubmit it back to pending (reset rejection data)
+          const isResubmit = claim.status === 'rejected';
+
           updateData = {
             ...(date && { date: new Date(date) }),
             ...(companyId && { companyId }),
@@ -163,6 +167,11 @@ export async function PUT(
             totalAmount,
             deductionAmount,
             netAmount,
+            ...(isResubmit && {
+              status: 'pending',
+              approvedAmount: null,
+              rejectReason: null,
+            }),
             claimItems: {
               create: items.map((item: { productId: string; quantity: number; amount: number }) => ({
                 productId: item.productId,

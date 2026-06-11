@@ -92,6 +92,9 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   );
   const [saving, setSaving] = useState(false);
 
+  // Check if editing a rejected claim (resubmit scenario)
+  const isResubmit = claim?.hasOwnProperty('status') && (claim as { status?: string }).status === 'rejected';
+
   // Photo attachments state
   const [photos, setPhotos] = useState<string[]>([]);
 
@@ -399,6 +402,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
         supplierId,
         orderBookerId: orderBookerId || null,
         createdBy: user.name,
+        creatorRole: user.role, // admin → auto-approve, orderbooker → needs approval
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.quantity,
@@ -479,17 +483,30 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
         </Button>
         <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
           <ShoppingCart className="h-6 w-6" />
-          {claim ? `Edit Claim ${claim.claimNumber}` : quickClaim ? `Quick Claim (from ${quickClaim.claimNumber || ''})` : 'New Claim'}
+          {claim ? (isResubmit ? `Resubmit Claim ${claim.claimNumber}` : `Edit Claim ${claim.claimNumber}`) : quickClaim ? `Quick Claim (from ${quickClaim.claimNumber || ''})` : 'New Claim'}
         </h2>
       </div>
 
       {/* 24hr Edit Lock Warning */}
-      {claim && isOlderThan24hr && (
+      {claim && isOlderThan24hr && !isResubmit && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
           <Lock className="h-5 w-5 text-red-500 shrink-0" />
           <div>
             <p className="text-sm font-medium text-red-800">This claim is older than 24 hours. Editing is restricted.</p>
             <p className="text-xs text-red-600">Claims can only be edited within 24 hours of creation.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Rejected Claim Resubmit Info */}
+      {isResubmit && (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
+          <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-orange-800">This claim was rejected. Edit and resubmit for admin approval.</p>
+            {(claim as { rejectReason?: string }).rejectReason && (
+              <p className="text-xs text-orange-600 mt-1">Reject Reason: <strong>{(claim as { rejectReason?: string }).rejectReason}</strong></p>
+            )}
           </div>
         </div>
       )}

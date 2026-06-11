@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, Clock, CheckCircle2, DollarSign, XCircle, Banknote, TrendingUp, RefreshCw } from 'lucide-react';
+import { Loader2, FileText, Clock, CheckCircle2, DollarSign, XCircle, Banknote, TrendingUp, RefreshCw, Store, AlertCircle } from 'lucide-react';
 
 interface DashboardProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -28,6 +28,13 @@ interface DashboardData {
     shop: { name: string };
     supplier: { name: string };
     orderBooker: { name: string } | null;
+  }>;
+  topOutstandingShops: Array<{
+    shopId: string;
+    shopName: string;
+    companyName: string;
+    totalPendingAmount: number;
+    pendingClaimCount: number;
   }>;
 }
 
@@ -224,58 +231,112 @@ export function Dashboard({ user }: DashboardProps) {
         })}
       </div>
 
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-emerald-600" />
-            Recent claims
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.recentClaims.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-muted-foreground text-lg font-medium">No claims yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Claims will appear here once created</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-2 font-medium">Claim #</th>
-                    <th className="text-left py-3 px-2 font-medium">Date</th>
-                    <th className="text-left py-3 px-2 font-medium">Company</th>
-                    <th className="text-left py-3 px-2 font-medium">Shop</th>
-                    <th className="text-right py-3 px-2 font-medium">Amount</th>
-                    <th className="text-center py-3 px-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.recentClaims.map((claim, index) => (
-                    <tr
-                      key={claim.id}
-                      className="border-b table-row-hover animate-fade-in-up"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <td className="py-3 px-2 font-medium text-emerald-700">{claim.claimNumber}</td>
-                      <td className="py-3 px-2">{new Date(claim.date).toLocaleDateString()}</td>
-                      <td className="py-3 px-2">{claim.company.name}</td>
-                      <td className="py-3 px-2">{claim.shop.name}</td>
-                      <td className="py-3 px-2 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
-                      <td className="py-3 px-2 text-center">
-                        <Badge className={`${statusColors[claim.status]} border text-xs transition-transform duration-200 hover:scale-105`}>
-                          {statusLabels[claim.status]}
-                        </Badge>
-                      </td>
+      {/* Top Outstanding Shops & Recent Claims */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Outstanding Shops */}
+        <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Store className="h-5 w-5 text-orange-600" />
+              Top Outstanding Shops
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!data.topOutstandingShops || data.topOutstandingShops.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle2 className="h-10 w-10 text-green-300 mx-auto mb-3" />
+                <p className="text-muted-foreground font-medium">No outstanding claims!</p>
+                <p className="text-sm text-muted-foreground mt-1">All claims are cleared</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2 font-medium">#</th>
+                      <th className="text-left py-2 px-2 font-medium">Shop</th>
+                      <th className="text-left py-2 px-2 font-medium">Company</th>
+                      <th className="text-right py-2 px-2 font-medium">Pending Amount</th>
+                      <th className="text-center py-2 px-2 font-medium">Claims</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </thead>
+                  <tbody>
+                    {data.topOutstandingShops.map((shop, index) => (
+                      <tr
+                        key={`${shop.shopId}-${shop.companyName}`}
+                        className="border-b table-row-hover animate-fade-in-up"
+                        style={{ animationDelay: `${index * 50}ms`}}
+                      >
+                        <td className="py-2 px-2 text-muted-foreground">{index + 1}</td>
+                        <td className="py-2 px-2 font-medium truncate max-w-[120px]" title={shop.shopName}>{shop.shopName}</td>
+                        <td className="py-2 px-2 text-muted-foreground truncate max-w-[100px]" title={shop.companyName}>{shop.companyName}</td>
+                        <td className="py-2 px-2 text-right font-bold text-red-600">{formatAmount(shop.totalPendingAmount)}</td>
+                        <td className="py-2 px-2 text-center">
+                          <Badge className="bg-orange-100 text-orange-800 border border-orange-300 text-xs">
+                            {shop.pendingClaimCount}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Claims */}
+        <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-emerald-600" />
+              Recent Claims
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.recentClaims.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-muted-foreground font-medium">No claims yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Claims will appear here once created</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2 font-medium">Claim #</th>
+                      <th className="text-left py-2 px-2 font-medium">Shop</th>
+                      <th className="text-right py-2 px-2 font-medium">Amount</th>
+                      <th className="text-center py-2 px-2 font-medium">Status</th>
+                      <th className="text-left py-2 px-2 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.recentClaims.map((claim, index) => (
+                      <tr
+                        key={claim.id}
+                        className="border-b table-row-hover animate-fade-in-up"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <td className="py-2 px-2 font-medium text-emerald-700">{claim.claimNumber}</td>
+                        <td className="py-2 px-2 truncate max-w-[120px]" title={claim.shop.name}>{claim.shop.name}</td>
+                        <td className="py-2 px-2 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
+                        <td className="py-2 px-2 text-center">
+                          <Badge className={`${statusColors[claim.status]} border text-xs`}>
+                            {statusLabels[claim.status]}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-2 text-muted-foreground">{new Date(claim.date).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

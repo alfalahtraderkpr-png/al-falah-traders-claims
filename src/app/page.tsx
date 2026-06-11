@@ -8,6 +8,7 @@ import { ClaimList } from '@/components/claim-list';
 import { MasterData } from '@/components/master-data';
 import { UsersManager } from '@/components/users-manager';
 import { Reports } from '@/components/reports';
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 interface User {
   id: string;
@@ -27,6 +28,12 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -133,13 +140,16 @@ export default function Home() {
   };
 
   return (
-    <AppLayout
-      user={user}
-      activeSection={activeSection}
-      onSectionChange={setActiveSection}
-      onLogout={handleLogout}
-    >
-      {renderSection()}
-    </AppLayout>
+    <>
+      <AppLayout
+        user={user}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        onLogout={handleLogout}
+      >
+        {renderSection()}
+      </AppLayout>
+      <PwaInstallPrompt />
+    </>
   );
 }

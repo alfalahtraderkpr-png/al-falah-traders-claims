@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTheme } from 'next-themes';
 import {
   LayoutDashboard,
   FileText,
@@ -14,6 +15,8 @@ import {
   X,
   Truck,
   Shield,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -47,11 +50,12 @@ const orderBookerNavItems = [
 
 export function AppLayout({ user, activeSection, onSectionChange, onLogout, children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
   const isAdmin = user.role === 'admin';
   const navItems = isAdmin ? adminNavItems : orderBookerNavItems;
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -142,27 +146,36 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-white border-b shadow-sm sticky top-0 z-30 shrink-0">
+        <header className="bg-white dark:bg-gray-900 border-b shadow-sm sticky top-0 z-30 shrink-0">
           <div className="flex items-center justify-between px-4 py-3">
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden hover:bg-emerald-50 transition-colors"
+              className="lg:hidden hover:bg-emerald-50 dark:hover:bg-emerald-900 transition-colors"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-emerald-800 capitalize animate-fade-in">
+              <h2 className="text-lg font-semibold text-emerald-800 dark:text-emerald-300 capitalize animate-fade-in">
                 {activeSection === 'order-bookers' ? 'Order Bookers' : activeSection === 'users' ? 'Users' : activeSection.replace('-', ' ')}
               </h2>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-emerald-50 dark:hover:bg-emerald-900 transition-colors"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
               <span className="text-sm text-muted-foreground hidden sm:block">
                 {user.name}
               </span>
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full flex items-center justify-center ring-2 ring-emerald-300/30">
-                <span className="text-emerald-700 font-medium text-xs">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-800 dark:to-emerald-700 rounded-full flex items-center justify-center ring-2 ring-emerald-300/30 dark:ring-emerald-600/30">
+                <span className="text-emerald-700 dark:text-emerald-200 font-medium text-xs">
                   {user.name.charAt(0)}
                 </span>
               </div>

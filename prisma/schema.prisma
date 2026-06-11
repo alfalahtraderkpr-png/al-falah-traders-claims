@@ -30,6 +30,7 @@ model Company {
   suppliers       Supplier[]
   claims          Claim[]
   shopOrderBookers ShopCompanyOrderBooker[]
+  creditLimits     ShopCreditLimit[]
 }
 
 model Product {
@@ -45,6 +46,7 @@ model Product {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   claimItems     ClaimItem[]
+  priceHistory   ProductPriceHistory[]
 
   @@unique([name, price, companyId])
 }
@@ -68,6 +70,7 @@ model Shop {
   updatedAt           DateTime @updatedAt
   claims              Claim[]
   companyOrderBookers ShopCompanyOrderBooker[]
+  creditLimits        ShopCreditLimit[]
 }
 
 model OrderBooker {
@@ -104,6 +107,7 @@ model Claim {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   claimItems    ClaimItem[]
+  attachments   ClaimAttachment[]
 }
 
 model ShopCompanyOrderBooker {
@@ -129,4 +133,53 @@ model ClaimItem {
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
   amount    Float   // price * quantity (auto-calculated)
+}
+
+model ProductPriceHistory {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  oldPrice  Float
+  newPrice  Float
+  oldClaimPrice  Float @default(0)
+  newClaimPrice  Float @default(0)
+  oldWholesalePrice Float?
+  newWholesalePrice Float?
+  oldLmtPrice Float?
+  newLmtPrice Float?
+  changedBy String?  // user who changed
+  changedAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String?
+  action    String   // create, update, delete, approve, reject, clear, status_change
+  entity    String   // claim, product, shop, company, etc
+  entityId  String?
+  details   String?  // JSON string with change details
+  createdAt DateTime @default(now())
+}
+
+model ClaimAttachment {
+  id        String   @id @default(cuid())
+  claimId   String
+  claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  url       String   // base64 or URL
+  type      String   @default("image") // image, document
+  createdAt DateTime @default(now())
+}
+
+model ShopCreditLimit {
+  id            String   @id @default(cuid())
+  shopId        String
+  companyId     String
+  creditLimit   Float    @default(0) // max claim amount allowed
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([shopId, companyId])
 }

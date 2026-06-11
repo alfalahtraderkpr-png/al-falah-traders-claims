@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClaimForm } from './claim-form';
 import { ClaimDetail } from './claim-detail';
-import { Loader2, Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Banknote, FileText, AlertTriangle, RotateCcw, MessageCircle } from 'lucide-react';
+import { Loader2, Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Banknote, FileText, AlertTriangle, RotateCcw, MessageCircle, Lock, Copy, Download } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
+import { logAction } from '@/lib/audit';
 
 interface ClaimListProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -63,6 +65,7 @@ interface Claim {
   clearedDate: string | null;
   rejectReason: string | null;
   createdBy: string | null;
+  createdAt: string;
 }
 
 export function ClaimList({ user }: ClaimListProps) {
@@ -86,6 +89,7 @@ export function ClaimList({ user }: ClaimListProps) {
   const [editClaim, setEditClaim] = useState<Claim | null>(null);
   const [viewClaim, setViewClaim] = useState<Claim | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [quickClaimFrom, setQuickClaimFrom] = useState<Claim | null>(null);
 
   const isAdmin = user.role === 'admin';
 
@@ -145,6 +149,7 @@ export function ClaimList({ user }: ClaimListProps) {
         body: JSON.stringify({ action: 'approve' }),
       });
       if (res.ok) {
+        logAction({ userName: user.name, action: 'approve', entity: 'claim', entityId: id });
         loadClaims();
       }
     } catch (error) {
@@ -175,6 +180,7 @@ export function ClaimList({ user }: ClaimListProps) {
         body: JSON.stringify({ action: 'clear', clearedBy }),
       });
       if (res.ok) {
+        logAction({ userName: user.name, action: 'clear', entity: 'claim', entityId: id, details: JSON.stringify({ clearedBy }) });
         loadClaims();
       }
     } catch (error) {
@@ -190,6 +196,7 @@ export function ClaimList({ user }: ClaimListProps) {
         body: JSON.stringify({ action: 'reject', rejectReason: reason }),
       });
       if (res.ok) {
+        logAction({ userName: user.name, action: 'reject', entity: 'claim', entityId: id, details: JSON.stringify({ reason }) });
         loadClaims();
       }
     } catch (error) {
@@ -205,6 +212,7 @@ export function ClaimList({ user }: ClaimListProps) {
     try {
       const res = await fetch(`/api/claims/${id}`, { method: 'DELETE' });
       if (res.ok) {
+        logAction({ userName: user.name, action: 'delete', entity: 'claim', entityId: id });
         loadClaims();
       } else {
         const data = await res.json();
@@ -223,6 +231,7 @@ export function ClaimList({ user }: ClaimListProps) {
         body: JSON.stringify({ action: 'change_status', newStatus, ...extraData }),
       });
       if (res.ok) {
+        logAction({ userName: user.name, action: 'status_change', entity: 'claim', entityId: id, details: JSON.stringify({ newStatus }) });
         loadClaims();
       } else {
         const data = await res.json();
@@ -237,8 +246,106 @@ export function ClaimList({ user }: ClaimListProps) {
   const [actionDialog, setActionDialog] = useState<{ type: string; claim: Claim } | null>(null);
   const [actionValue, setActionValue] = useState('');
 
+  // Bulk selection state
+  const [selectedClaims, setSelectedClaims] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  const toggleClaim = (id: string) => {
+    setSelectedClaims(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedClaims.size === claims.length) {
+      setSelectedClaims(new Set());
+    } else {
+      setSelectedClaims(new Set(claims.map(c => c.id)));
+    }
+  };
+
+  const handleBulkAction = async (action: 'approve' | 'reject' | 'clear') => {
+    const selectedIds = Array.from(selectedClaims);
+    if (selectedIds.length === 0) return;
+
+    const confirmMsg = action === 'approve'
+      ? `Approve ${selectedIds.length} selected claims?`
+      : action === 'reject'
+      ? `Reject ${selectedIds.length} selected claims?`
+      : `Clear ${selectedIds.length} selected claims?`;
+    
+    if (!confirm(confirmMsg)) return;
+    
+    let clearedBy = '';
+    if (action === 'clear') {
+      clearedBy = prompt('Enter name of person who cleared these claims:') || '';
+      if (!clearedBy.trim()) return;
+    }
+
+    setBulkProcessing(true);
+    let successCount = 0;
+
+    for (const id of selectedIds) {
+      try {
+        let body: Record<string, unknown>;
+        if (action === 'approve') {
+          body = { action: 'approve' };
+        } else if (action === 'reject') {
+          body = { action: 'reject', rejectReason: 'Bulk rejection' };
+        } else {
+          body = { action: 'clear', clearedBy };
+        }
+        const res = await fetch(`/api/claims/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          successCount++;
+          if (action === 'approve') logAction({ userName: user.name, action: 'bulk_approve', entity: 'claim', entityId: id });
+          else if (action === 'reject') logAction({ userName: user.name, action: 'bulk_reject', entity: 'claim', entityId: id });
+          else if (action === 'clear') logAction({ userName: user.name, action: 'bulk_clear', entity: 'claim', entityId: id, details: JSON.stringify({ clearedBy }) });
+        }
+      } catch {
+        // continue
+      }
+    }
+
+    setBulkProcessing(false);
+    setSelectedClaims(new Set());
+    loadClaims();
+    alert(`${successCount} of ${selectedIds.length} claims ${action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'cleared'} successfully.`);
+  };
+
 
   const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
+
+  // 24-hour edit lock check
+  const isOlderThan24hr = (claim: Claim) => {
+    return new Date(claim.createdAt).getTime() + 24 * 60 * 60 * 1000 < Date.now();
+  };
+
+  // Keyboard shortcuts: Ctrl+N = New Claim, Esc = Close detail/form
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        // Only for admin or orderbooker
+        if (user.role === 'admin' || user.role === 'orderbooker') {
+          e.preventDefault();
+          setShowForm(true);
+        }
+      }
+      if (e.key === 'Escape') {
+        if (viewClaim) setViewClaim(null);
+        else if (showForm) { setShowForm(false); setEditClaim(null); setQuickClaimFrom(null); }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewClaim, showForm, user.role]);
 
   if (showForm) {
     return (
@@ -246,14 +353,18 @@ export function ClaimList({ user }: ClaimListProps) {
         claim={editClaim}
         companies={companies}
         user={user}
+        existingClaims={claims}
+        quickClaim={quickClaimFrom ? { companyId: quickClaimFrom.companyId, shopId: quickClaimFrom.shopId, supplierId: quickClaimFrom.supplierId, orderBookerId: quickClaimFrom.orderBookerId, claimNumber: quickClaimFrom.claimNumber } : null}
         onSave={() => {
           setShowForm(false);
           setEditClaim(null);
+          setQuickClaimFrom(null);
           loadClaims();
         }}
         onCancel={() => {
           setShowForm(false);
           setEditClaim(null);
+          setQuickClaimFrom(null);
         }}
       />
     );
@@ -282,13 +393,24 @@ export function ClaimList({ user }: ClaimListProps) {
           </h2>
           <p className="text-muted-foreground">{claims.length} claims found</p>
         </div>
-        <Button
-          className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg btn-enhanced btn-ripple text-sm font-semibold px-6 py-3 rounded-xl"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          New Claim
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Button
+              variant="outline"
+              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              onClick={() => window.open('/api/export/claims', '_blank')}
+            >
+              <Download className="h-4 w-4 mr-2" /> Export
+            </Button>
+          )}
+          <Button
+            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg btn-enhanced btn-ripple text-sm font-semibold px-6 py-3 rounded-xl"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            New Claim
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -422,15 +544,29 @@ export function ClaimList({ user }: ClaimListProps) {
                 style={{ animationDelay: `${index * 30}ms` }}
               >
                 <CardContent className="p-4">
-                  {/* Card Header: Claim # + Status */}
+                  {/* Card Header: Checkbox + Claim # + Status */}
                   <div className="flex items-center justify-between mb-3">
-                    <button
-                      onClick={() => setViewClaim(claim)}
-                      className="font-bold text-emerald-700 text-base hover:text-emerald-900 hover:underline cursor-pointer transition-colors"
-                      title="Click to view claim details"
-                    >
-                      {claim.claimNumber}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {isAdmin && (
+                        <Checkbox
+                          checked={selectedClaims.has(claim.id)}
+                          onCheckedChange={() => toggleClaim(claim.id)}
+                          className="mr-1"
+                        />
+                      )}
+                      <button
+                        onClick={() => setViewClaim(claim)}
+                        className="font-bold text-emerald-700 text-base hover:text-emerald-900 hover:underline cursor-pointer transition-colors"
+                        title="Click to view claim details"
+                      >
+                        {claim.claimNumber}
+                      </button>
+                      {isOlderThan24hr(claim) && claim.status === 'pending' && (
+                        <span title="Edit locked (24hr passed)" className="text-gray-400">
+                          <Lock className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </div>
                     <Badge className={`${statusColors[claim.status]} border text-xs`}>
                       {statusLabels[claim.status]}
                     </Badge>
@@ -513,6 +649,15 @@ export function ClaimList({ user }: ClaimListProps) {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="flex-1 min-w-[70px] border-teal-300 text-teal-600 hover:bg-teal-50 rounded-lg"
+                      onClick={() => { setQuickClaimFrom(claim); setShowForm(true); }}
+                      title="Quick Claim from this claim"
+                    >
+                      <Copy className="h-4 w-4 mr-1" /> Quick
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="flex-1 min-w-[70px] border-green-400 text-green-600 hover:bg-green-50 rounded-lg"
                       onClick={() => {
                         const formatAmt = (a: number) => `Rs. ${a.toLocaleString()}`;
@@ -553,14 +698,26 @@ export function ClaimList({ user }: ClaimListProps) {
                         >
                           <XCircle className="h-4 w-4 mr-1" /> Reject
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 min-w-[70px] border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-lg"
-                          onClick={() => { setEditClaim(claim); setShowForm(true); }}
-                        >
-                          <Edit className="h-4 w-4 mr-1" /> Edit
-                        </Button>
+                        {!isOlderThan24hr(claim) ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 min-w-[70px] border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                            onClick={() => { setEditClaim(claim); setShowForm(true); }}
+                          >
+                            <Edit className="h-4 w-4 mr-1" /> Edit
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 min-w-[70px] border-gray-300 text-gray-400 rounded-lg cursor-not-allowed"
+                            disabled
+                            title="Edit locked (24hr passed)"
+                          >
+                            <Lock className="h-4 w-4 mr-1" /> Locked
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -570,6 +727,18 @@ export function ClaimList({ user }: ClaimListProps) {
                           <Trash2 className="h-4 w-4 mr-1" /> Delete
                         </Button>
                       </>
+                    )}
+
+                    {/* Order booker: Edit own pending claims < 24hr */}
+                    {!isAdmin && user.role === 'orderbooker' && claim.status === 'pending' && claim.orderBookerId === user.orderBookerId && !isOlderThan24hr(claim) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 min-w-[70px] border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                        onClick={() => { setEditClaim(claim); setShowForm(true); }}
+                      >
+                        <Edit className="h-4 w-4 mr-1" /> Edit
+                      </Button>
                     )}
 
                     {isAdmin && claim.status === 'approved' && (
@@ -708,7 +877,15 @@ export function ClaimList({ user }: ClaimListProps) {
               <div className="overflow-auto max-h-[calc(100vh-280px)]">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
-                    <tr className="border-b bg-gray-50">
+                    <tr className="border-b bg-gray-50 dark:bg-gray-800/50">
+                      {isAdmin && (
+                        <th className="py-3 px-2 font-medium">
+                          <Checkbox
+                            checked={selectedClaims.size === claims.length && claims.length > 0}
+                            onCheckedChange={toggleAll}
+                          />
+                        </th>
+                      )}
                       <th className="text-left py-3 px-4 font-medium">Claim #</th>
                       <th className="text-left py-3 px-4 font-medium">Date</th>
                       <th className="text-left py-3 px-4 font-medium">Company</th>
@@ -729,14 +906,29 @@ export function ClaimList({ user }: ClaimListProps) {
                         className="border-b table-row-hover animate-fade-in-up"
                         style={{ animationDelay: `${index * 30}ms` }}
                       >
+                        {isAdmin && (
+                          <td className="py-3 px-2">
+                            <Checkbox
+                              checked={selectedClaims.has(claim.id)}
+                              onCheckedChange={() => toggleClaim(claim.id)}
+                            />
+                          </td>
+                        )}
                         <td className="py-3 px-4">
-                          <button
-                            onClick={() => setViewClaim(claim)}
-                            className="font-medium text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer transition-colors text-left"
-                            title="Click to view claim details"
-                          >
-                            {claim.claimNumber}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setViewClaim(claim)}
+                              className="font-medium text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer transition-colors text-left"
+                              title="Click to view claim details"
+                            >
+                              {claim.claimNumber}
+                            </button>
+                            {isOlderThan24hr(claim) && claim.status === 'pending' && (
+                              <span title="Edit locked (24hr passed)" className="text-gray-400">
+                                <Lock className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4">{new Date(claim.date).toLocaleDateString()}</td>
                         <td className="py-3 px-4">{claim.company.name}</td>
@@ -801,6 +993,17 @@ export function ClaimList({ user }: ClaimListProps) {
                               <MessageCircle className="h-4 w-4" />
                             </Button>
 
+                            {/* Quick Claim - always available */}
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 border-teal-300 text-teal-600 hover:bg-teal-100 hover:text-teal-800 btn-enhanced btn-ripple rounded-lg"
+                              onClick={() => { setQuickClaimFrom(claim); setShowForm(true); }}
+                              title="Quick Claim from this claim"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+
                             {isAdmin && claim.status === 'pending' && (
                               <>
                                 <Button
@@ -827,15 +1030,27 @@ export function ClaimList({ user }: ClaimListProps) {
                                 >
                                   <XCircle className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 btn-enhanced btn-ripple rounded-lg"
-                                  onClick={() => { setEditClaim(claim); setShowForm(true); }}
-                                  title="Edit"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
+                                {!isOlderThan24hr(claim) ? (
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 btn-enhanced btn-ripple rounded-lg"
+                                    onClick={() => { setEditClaim(claim); setShowForm(true); }}
+                                    title="Edit"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 border-gray-300 text-gray-400 cursor-not-allowed rounded-lg"
+                                    disabled
+                                    title="Edit locked (24hr passed)"
+                                  >
+                                    <Lock className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="outline"
                                   size="icon"
@@ -846,6 +1061,19 @@ export function ClaimList({ user }: ClaimListProps) {
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </>
+                            )}
+
+                            {/* Order booker: Edit own pending claims < 24hr */}
+                            {!isAdmin && user.role === 'orderbooker' && claim.status === 'pending' && claim.orderBookerId === user.orderBookerId && !isOlderThan24hr(claim) && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 btn-enhanced btn-ripple rounded-lg"
+                                onClick={() => { setEditClaim(claim); setShowForm(true); }}
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
                             )}
 
                             {isAdmin && claim.status === 'approved' && (
@@ -1096,6 +1324,61 @@ export function ClaimList({ user }: ClaimListProps) {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Floating Bulk Action Bar */}
+      {isAdmin && selectedClaims.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t shadow-lg animate-fade-in-up">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-emerald-800">
+                {selectedClaims.size} claim{selectedClaims.size > 1 ? 's' : ''} selected
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setSelectedClaims(new Set())}
+              >
+                Cancel
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => handleBulkAction('approve')}
+                disabled={bulkProcessing}
+              >
+                {bulkProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+                Approve All
+              </Button>
+              <Button
+                size="sm"
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => handleBulkAction('reject')}
+                disabled={bulkProcessing}
+              >
+                {bulkProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <XCircle className="h-4 w-4 mr-1" />}
+                Reject All
+              </Button>
+              {Array.from(selectedClaims).every(id => {
+                const claim = claims.find(c => c.id === id);
+                return claim?.status === 'approved' || claim?.status === 'partially_approved';
+              }) && (
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => handleBulkAction('clear')}
+                  disabled={bulkProcessing}
+                >
+                  {bulkProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Banknote className="h-4 w-4 mr-1" />}
+                  Clear All
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

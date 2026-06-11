@@ -10,6 +10,9 @@ export async function PUT(
     const { id } = await params;
     const { name, price, claimPrice, unit, companyId, wholesalePrice, lmtPrice } = await request.json();
 
+    // Fetch old product for price comparison
+    const oldProduct = await db.product.findUnique({ where: { id } });
+
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name.trim();
     if (price !== undefined) data.price = Number(price);
@@ -24,6 +27,55 @@ export async function PUT(
       data,
       include: { company: true },
     });
+
+    // Create price history record if prices changed
+    if (oldProduct) {
+      const oldPrice = oldProduct.price;
+      const newPrice = price !== undefined ? Number(price) : oldPrice;
+      const oldClaimPrice = oldProduct.claimPrice;
+      const newClaimPrice = claimPrice !== undefined ? Number(claimPrice) : oldClaimPrice;
+      const oldWholesale = oldProduct.wholesalePrice;
+      const newWholesale = wholesalePrice !== undefined ? (wholesalePrice ? Number(wholesalePrice) : null) : oldWholesale;
+      const oldLmt = oldProduct.lmtPrice;
+      const newLmt = lmtPrice !== undefined ? (lmtPrice ? Number(lmtPrice) : null) : oldLmt;
+
+      const priceChanged = oldPrice !== newPrice ||
+        oldClaimPrice !== newClaimPrice ||
+        oldWholesale !== newWholesale ||
+        oldLmt !== newLmt;
+
+      if (priceChanged) {
+        await db.productPriceHistory.create({
+          data: {
+            productId: id,
+            oldPrice,
+            newPrice,
+            oldClaimPrice,
+            newClaimPrice,
+            oldWholesalePrice: oldWholesale,
+            newWholesalePrice: newWholesale,
+            oldLmtPrice: oldLmt,
+            newLmtPrice: newLmt,
+          },
+        });
+
+        // Audit log the price change
+        await db.auditLog.create({
+          data: {
+            action: 'price_update',
+            entity: 'product',
+            entityId: id,
+            details: JSON.stringify({
+              name: product.name,
+              priceChange: oldPrice !== newPrice ? { from: oldPrice, to: newPrice } : undefined,
+              claimPriceChange: oldClaimPrice !== newClaimPrice ? { from: oldClaimPrice, to: newClaimPrice } : undefined,
+              wholesalePriceChange: oldWholesale !== newWholesale ? { from: oldWholesale, to: newWholesale } : undefined,
+              lmtPriceChange: oldLmt !== newLmt ? { from: oldLmt, to: newLmt } : undefined,
+            }),
+          },
+        });
+      }
+    }
 
     return NextResponse.json(product);
   } catch (error: unknown) {

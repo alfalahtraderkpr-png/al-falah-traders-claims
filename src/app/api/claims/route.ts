@@ -97,20 +97,26 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Generate claim number
+    // Generate claim number with year/month prefix (YYMM format)
+    const now = new Date();
+    const yearPrefix = `${now.getFullYear().toString().slice(-2)}`;
+    const monthPrefix = `${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    const prefix = `CLM-${yearPrefix}${monthPrefix}-`;
+
     const lastClaim = await db.claim.findFirst({
+      where: { claimNumber: { startsWith: prefix } },
       orderBy: { createdAt: 'desc' },
       select: { claimNumber: true },
     });
 
     let nextNumber = 1;
     if (lastClaim) {
-      const match = lastClaim.claimNumber.match(/CLM-(\d+)/);
+      const match = lastClaim.claimNumber.match(/CLM-\d{4}-(\d+)/);
       if (match) {
         nextNumber = parseInt(match[1]) + 1;
       }
     }
-    const claimNumber = `CLM-${String(nextNumber).padStart(3, '0')}`;
+    const claimNumber = `${prefix}${String(nextNumber).padStart(3, '0')}`;
 
     // Calculate total
     const totalAmount = items.reduce((sum: number, item: { amount: number }) => sum + (item.amount || 0), 0);

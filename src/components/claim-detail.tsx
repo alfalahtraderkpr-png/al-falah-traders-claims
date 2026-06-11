@@ -4,13 +4,21 @@ import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Share2, Printer, FileText, Image, FileDown, MessageCircle, Package, CheckCircle, Banknote } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Printer, FileText, Image, FileDown, MessageCircle, Package, CheckCircle, Banknote, Camera } from 'lucide-react';
 import { Receipt, ReceiptType } from './receipt';
 
 interface ClaimDetailProps {
   claim: ClaimData;
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
   onBack: () => void;
+}
+
+interface ClaimAttachment {
+  id: string;
+  claimId: string;
+  url: string;
+  type: string;
+  createdAt: string;
 }
 
 interface ClaimData {
@@ -41,6 +49,7 @@ interface ClaimData {
   clearedDate: string | null;
   rejectReason: string | null;
   createdBy: string | null;
+  attachments?: ClaimAttachment[];
 }
 
 const statusColors: Record<string, string> = {
@@ -383,6 +392,35 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Claim Photos Gallery */}
+      {claim.attachments && claim.attachments.length > 0 && (
+        <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '180ms' }}>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Camera className="h-5 w-5 text-emerald-600" />
+              Claim Photos
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">{claim.attachments.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {claim.attachments.map((attachment) => (
+                <div key={attachment.id} className="relative group rounded-lg overflow-hidden border aspect-square">
+                  <img src={attachment.url} alt="Claim attachment" className="w-full h-full object-cover" />
+                  <a
+                    href={attachment.url}
+                    download={`claim-${claim.claimNumber}-photo.png`}
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    <Download className="h-6 w-6 text-white" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Receipt Type Selection */}
       <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>

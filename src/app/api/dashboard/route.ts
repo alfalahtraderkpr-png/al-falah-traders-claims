@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
       clearedClaims,
       rejectedClaims,
       recentClaims,
+      pendingShopClaims,
     ] = await Promise.all([
       db.claim.count({ where }),
       db.claim.aggregate({ where: { ...where, status: 'pending' }, _sum: { totalAmount: true }, _count: true }),
@@ -33,12 +34,20 @@ export async function GET(request: NextRequest) {
       db.claim.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        take: 10,
+        take: 5,
         include: {
           company: true,
           shop: true,
           supplier: true,
           orderBooker: true,
+        },
+      }),
+      // Get all pending/approved/partially_approved claims for shop outstanding calculation
+      db.claim.findMany({
+        where: { ...where, status: { in: ['pending', 'approved', 'partially_approved'] } },
+        include: {
+          shop: true,
+          company: true,
         },
       }),
     ]);
@@ -47,6 +56,29 @@ export async function GET(request: NextRequest) {
     const totalClaimAmount = (pendingClaims._sum.totalAmount || 0) + (approvedClaims._sum.totalAmount || 0) + (partiallyApprovedClaims._sum.totalAmount || 0) + (clearedClaims._sum.totalAmount || 0);
     const totalClearedAmount = (approvedClaims._sum.approvedAmount || 0) + (partiallyApprovedClaims._sum.approvedAmount || 0) + (clearedClaims._sum.approvedAmount || 0);
     const remainingPendingAmount = totalClaimAmount - totalClearedAmount;
+
+    // Calculate top outstanding shops
+    const shopOutstandingMap = new Map<string, { shopId: string; shopName: string; companyName: string; totalPendingAmount: number; pendingClaimCount: number }>();
+    for (const claim of pendingShopClaims) {
+      const key = `${claim.shopId}_${claim.companyId}`;
+      const existing = shopOutstandingMap.get(key);
+      const outstandingForClaim = claim.totalAmount - (claim.approvedAmount || 0);
+      if (existing) {
+        existing.totalPendingAmount += outstandingForClaim;
+        existing.pendingClaimCount += 1;
+      } else {
+        shopOutstandingMap.set(key, {
+          shopId: claim.shopId,
+          shopName: claim.shop.name,
+          companyName: claim.company.name,
+          totalPendingAmount: outstandingForClaim,
+          pendingClaimCount: 1,
+        });
+      }
+    }
+    const topOutstandingShops = Array.from(shopOutstandingMap.values())
+      .sort((a, b) => b.totalPendingAmount - a.totalPendingAmount)
+      .slice(0, 10);
 
     return NextResponse.json({
       totalClaims,
@@ -70,6 +102,7 @@ export async function GET(request: NextRequest) {
       },
       remainingPendingAmount,
       recentClaims,
+      topOutstandingShops,
     });
   } catch (error) {
     console.error('Dashboard error:', error);

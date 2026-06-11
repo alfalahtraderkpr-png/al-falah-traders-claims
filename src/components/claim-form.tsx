@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Trash2, ArrowLeft, Store, Search, X, ChevronDown, Package, Minus, ShoppingCart } from 'lucide-react';
+import { Loader2, Plus, Trash2, ArrowLeft, Store, Search, X, ChevronDown, Package, Minus, ShoppingCart, Lock, Camera, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
@@ -16,6 +16,8 @@ interface ClaimFormProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
   onSave: () => void;
   onCancel: () => void;
+  existingClaims?: Array<{ companyId: string; shopId: string; date: string; totalAmount: number; id: string }>;
+  quickClaim?: { companyId: string; shopId: string; supplierId: string; orderBookerId: string | null; claimNumber?: string } | null;
 }
 
 interface Product {
@@ -69,6 +71,7 @@ interface ClaimData {
   totalAmount: number;
   deductionAmount: number;
   netAmount: number;
+  createdAt?: string;
   claimItems: Array<{
     id: string;
     productId: string;
@@ -78,16 +81,23 @@ interface ClaimData {
   }>;
 }
 
-export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFormProps) {
+export function ClaimForm({ claim, companies, user, onSave, onCancel, existingClaims, quickClaim }: ClaimFormProps) {
   const [date, setDate] = useState(claim ? new Date(claim.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
-  const [companyId, setCompanyId] = useState(claim?.companyId || '');
-  const [shopId, setShopId] = useState(claim?.shopId || '');
-  const [supplierId, setSupplierId] = useState(claim?.supplierId || '');
-  const [orderBookerId, setOrderBookerId] = useState(claim?.orderBookerId || user.orderBookerId || '');
+  const [companyId, setCompanyId] = useState(claim?.companyId || quickClaim?.companyId || '');
+  const [shopId, setShopId] = useState(claim?.shopId || quickClaim?.shopId || '');
+  const [supplierId, setSupplierId] = useState(claim?.supplierId || quickClaim?.supplierId || '');
+  const [orderBookerId, setOrderBookerId] = useState(claim?.orderBookerId || quickClaim?.orderBookerId || user.orderBookerId || '');
   const [items, setItems] = useState<Array<{ productId: string; quantity: number; amount: number }>>(
     claim?.claimItems.map((ci) => ({ productId: ci.productId, quantity: ci.quantity, amount: ci.amount })) || []
   );
   const [saving, setSaving] = useState(false);
+
+  // Photo attachments state
+  const [photos, setPhotos] = useState<string[]>([]);
+
+  // Credit limit state
+  const [creditLimit, setCreditLimit] = useState<number | null>(null);
+  const [pendingAmount, setPendingAmount] = useState(0);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
@@ -152,6 +162,51 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
       setItems(newItems);
     }
   }, [shopId]);
+
+  // Keyboard shortcuts: Ctrl+S = Save, Esc = Cancel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (!saving) handleSave();
+      }
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saving, handleSave, onCancel]);
+
+  // Check credit limit when shop/company changes
+  useEffect(() => {
+    const checkCreditLimit = async () => {
+      if (!shopId || !companyId) { setCreditLimit(null); setPendingAmount(0); return; }
+      try {
+        const limitsRes = await fetch('/api/credit-limits');
+        if (limitsRes.ok) {
+          const limits = await limitsRes.json();
+          const limit = limits.find((l: { shopId: string; companyId: string; creditLimit: number }) => l.shopId === shopId && l.companyId === companyId);
+          setCreditLimit(limit?.creditLimit || null);
+          if (limit?.creditLimit) {
+            // Fetch pending claims for this shop+company to get pending amount
+            const claimsRes = await fetch('/api/claims');
+            if (claimsRes.ok) {
+              const claims = await claimsRes.json();
+              const pending = claims
+                .filter((c: { shopId: string; companyId: string; status: string; id: string }) => 
+                  c.shopId === shopId && c.companyId === companyId && 
+                  (c.status === 'pending' || c.status === 'approved' || c.status === 'partially_approved') &&
+                  c.id !== claim?.id)
+                .reduce((sum: number, c: { totalAmount: number }) => sum + c.totalAmount, 0);
+              setPendingAmount(pending);
+            }
+          }
+        }
+      } catch { /* ignore credit limit check errors */ }
+    };
+    checkCreditLimit();
+  }, [shopId, companyId, claim?.id]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -294,7 +349,24 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   const deductionAmount = hasDeduction ? Math.round(totalAmount * deductionPercent / 100) : 0;
   const netAmount = totalAmount - deductionAmount;
 
-  const handleSave = async () => {
+  // 24-hour edit lock check
+  const isOlderThan24hr = claim?.createdAt ? new Date(claim.createdAt).getTime() + 24 * 60 * 60 * 1000 < Date.now() : false;
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (photos.length >= 3) { alert('Maximum 3 photos allowed'); return; }
+    if (file.size > 2 * 1024 * 1024) { alert('Photo must be under 2MB'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string;
+      if (base64) { setPhotos((prev) => [...prev, base64]); }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleSave = useCallback(async () => {
     if (!companyId || !shopId || !supplierId) {
       alert('Please fill in Company, Shop and Supplier');
       return;
@@ -302,6 +374,20 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
     if (items.length === 0 || items.some((i) => !i.productId)) {
       alert('Please add at least one product');
       return;
+    }
+
+    // Duplicate claim detection (only for new claims, not edits)
+    if (!claim && existingClaims && existingClaims.length > 0) {
+      const duplicate = existingClaims.find((ec) => {
+        if (ec.companyId !== companyId || ec.shopId !== shopId || ec.date !== date) return false;
+        const amountDiff = Math.abs(ec.totalAmount - totalAmount);
+        const threshold = ec.totalAmount * 0.1;
+        return amountDiff <= threshold;
+      });
+      if (duplicate) {
+        const confirmed = confirm('A similar claim already exists for this shop+company+date. Are you sure you want to create another?');
+        if (!confirmed) return;
+      }
     }
 
     setSaving(true);
@@ -319,6 +405,8 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
           amount: i.amount,
         })),
       };
+
+      let createdClaimId = claim?.id || '';
 
       if (claim) {
         const res = await fetch(`/api/claims/${claim.id}`, {
@@ -345,7 +433,23 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
           alert(data.error || 'Failed to create claim');
           return;
         }
+        const newClaim = await res.json();
+        createdClaimId = newClaim.id;
       }
+
+      // Upload photo attachments
+      if (photos.length > 0 && createdClaimId) {
+        try {
+          await fetch('/api/claims/attachments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ claimId: createdClaimId, attachments: photos }),
+          });
+        } catch (attachErr) {
+          console.error('Attachment upload error:', attachErr);
+        }
+      }
+
       onSave();
     } catch (error) {
       console.error('Save error:', error);
@@ -353,7 +457,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
     } finally {
       setSaving(false);
     }
-  };
+  }, [companyId, shopId, supplierId, items, claim, existingClaims, date, totalAmount, orderBookerId, user.name, onSave, photos]);
 
   // Filtered products for search
   const filteredProducts = products.filter((p) => {
@@ -375,9 +479,20 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
         </Button>
         <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
           <ShoppingCart className="h-6 w-6" />
-          {claim ? `Edit Claim ${claim.claimNumber}` : 'New Claim'}
+          {claim ? `Edit Claim ${claim.claimNumber}` : quickClaim ? `Quick Claim (from ${quickClaim.claimNumber || ''})` : 'New Claim'}
         </h2>
       </div>
+
+      {/* 24hr Edit Lock Warning */}
+      {claim && isOlderThan24hr && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
+          <Lock className="h-5 w-5 text-red-500 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-800">This claim is older than 24 hours. Editing is restricted.</p>
+            <p className="text-xs text-red-600">Claims can only be edited within 24 hours of creation.</p>
+          </div>
+        </div>
+      )}
 
       {/* Claim Details - Compact single card */}
       <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '80ms' }}>
@@ -513,6 +628,17 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
               <span className="text-sm font-medium text-amber-800">Claim Deduction: {deductionPercent}%</span>
               <span className="text-xs text-amber-600">|</span>
               <span className="text-xs text-amber-700">Total pe {deductionPercent}% minus hoga, net amount hi claim hoga</span>
+            </div>
+          )}
+
+          {/* Credit Limit Warning */}
+          {creditLimit !== null && creditLimit > 0 && (totalAmount + pendingAmount) > creditLimit && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm flex items-start gap-2 animate-scale-in">
+              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Credit limit exceeded!</p>
+                <p className="text-xs mt-0.5">Limit: Rs. {creditLimit.toLocaleString()}, Current Pending: Rs. {pendingAmount.toLocaleString()}, This Claim: Rs. {totalAmount.toLocaleString()}</p>
+              </div>
             </div>
           )}
         </CardContent>
@@ -706,6 +832,52 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
         </CardContent>
       </Card>
 
+      {/* Claim Photos Section */}
+      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Camera className="h-5 w-5 text-emerald-600" />
+            Claim Photos
+            {photos.length > 0 && (
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 animate-scale-in">{photos.length}/3</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed transition-all cursor-pointer ${photos.length >= 3 ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400'}`}>
+              <Camera className="h-4 w-4" />
+              <span className="text-sm font-medium">{photos.length >= 3 ? 'Max Reached' : 'Add Photo'}</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoSelect}
+                className="hidden"
+                disabled={photos.length >= 3}
+              />
+            </label>
+            <span className="text-xs text-muted-foreground">Max 3 photos, 2MB each</span>
+          </div>
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {photos.map((photo, idx) => (
+                <div key={idx} className="relative group rounded-lg overflow-hidden border aspect-square">
+                  <img src={photo} alt={`Claim photo ${idx + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setPhotos(photos.filter((_, i) => i !== idx))}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Quick Shop Create Dialog */}
       <Dialog open={showQuickShop} onOpenChange={setShowQuickShop}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
@@ -802,10 +974,14 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
         <Button
           className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced btn-ripple shadow-lg px-8 py-3 text-base font-bold rounded-xl"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || (claim ? isOlderThan24hr : false)}
         >
           {saving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>) : claim ? 'Update Claim' : 'Create Claim'}
         </Button>
+        <div className="text-xs text-muted-foreground flex gap-3 mt-2">
+          <span>Ctrl+S = Save</span>
+          <span>Esc = Cancel</span>
+        </div>
       </div>
     </div>
   );

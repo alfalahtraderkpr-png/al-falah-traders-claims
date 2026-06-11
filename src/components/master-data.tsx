@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store, UserCheck, Upload, Download, FileSpreadsheet, Truck } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, Search, Building2, Package, Users, Store, UserCheck, Upload, Download, FileSpreadsheet, Truck, History, DollarSign } from 'lucide-react';
 
 // Types
 interface Company { id: string; name: string; multiTierPricing?: boolean; claimDeductionPercent?: number; _count?: { products: number } }
@@ -230,6 +230,12 @@ function ProductsTab() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; total: number; errors?: string[] } | null>(null);
 
+  // Price history state
+  const [priceHistoryOpen, setPriceHistoryOpen] = useState(false);
+  const [priceHistoryProduct, setPriceHistoryProduct] = useState<Product | null>(null);
+  const [priceHistoryData, setPriceHistoryData] = useState<Array<{ id: string; oldPrice: number; newPrice: number; oldClaimPrice: number; newClaimPrice: number; changedBy: string | null; changedAt: string }>>([]);
+  const [priceHistoryLoading, setPriceHistoryLoading] = useState(false);
+
   const load = useCallback(async () => {
     try {
       const [prodRes, compRes] = await Promise.all([fetch('/api/products'), fetch('/api/companies')]);
@@ -434,7 +440,7 @@ function ProductsTab() {
             <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Product name" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Price (Rs.)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" /></div>
-              <div><Label>Claim Rate (Rs.)</Label><Input type="number" value={form.claimPrice} onChange={(e) => setForm({ ...form, claimPrice: e.target.value })} placeholder="Same as price" /><p className="text-xs text-muted-foreground mt-1">Claim mein jo rate lagega (default = Price)</p></div>
+              <div><Label>Claim Rate (Rs.)</Label><div className="flex gap-2"><Input type="number" value={form.claimPrice} onChange={(e) => setForm({ ...form, claimPrice: e.target.value })} placeholder="Same as price" className="flex-1" />{editItem && <Button type="button" variant="outline" size="icon" className="shrink-0 h-9 w-9" title="Price History" onClick={async () => { setPriceHistoryProduct(editItem); setPriceHistoryOpen(true); setPriceHistoryLoading(true); try { const res = await fetch(`/api/products/price-history?productId=${editItem.id}`); if (res.ok) { setPriceHistoryData(await res.json()); } } catch { setPriceHistoryData([]); } finally { setPriceHistoryLoading(false); } }}><History className="h-4 w-4" /></Button>}</div><p className="text-xs text-muted-foreground mt-1">Claim mein jo rate lagega (default = Price)</p></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Unit</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="pcs" /></div>
@@ -462,6 +468,64 @@ function ProductsTab() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md" onClick={handleSave}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Price History Dialog */}
+      <Dialog open={priceHistoryOpen} onOpenChange={setPriceHistoryOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-emerald-600" />
+              Price History: {priceHistoryProduct?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {priceHistoryLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div>
+            ) : priceHistoryData.length === 0 ? (
+              <div className="text-center py-8">
+                <History className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No price changes recorded yet</p>
+              </div>
+            ) : (
+              <div className="overflow-auto max-h-80">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white"><tr className="border-b bg-gray-50">
+                    <th className="text-left py-2 px-3 font-medium">Date</th>
+                    <th className="text-left py-2 px-3 font-medium">Changed By</th>
+                    <th className="text-left py-2 px-3 font-medium">Price Change</th>
+                    <th className="text-left py-2 px-3 font-medium">Claim Rate</th>
+                  </tr></thead>
+                  <tbody>
+                    {priceHistoryData.map((h) => (
+                      <tr key={h.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-3 text-xs">{new Date(h.changedAt).toLocaleDateString()}</td>
+                        <td className="py-2 px-3 text-xs">{h.changedBy || '-'}</td>
+                        <td className="py-2 px-3 text-xs">
+                          <span className="text-red-500">Rs.{h.oldPrice}</span>
+                          <span className="mx-1">→</span>
+                          <span className="text-emerald-600 font-medium">Rs.{h.newPrice}</span>
+                        </td>
+                        <td className="py-2 px-3 text-xs">
+                          {h.oldClaimPrice !== h.newClaimPrice ? (
+                            <>
+                              <span className="text-red-500">Rs.{h.oldClaimPrice}</span>
+                              <span className="mx-1">→</span>
+                              <span className="text-emerald-600 font-medium">Rs.{h.newClaimPrice}</span>
+                            </>
+                          ) : <span className="text-muted-foreground">Rs.{h.newClaimPrice}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPriceHistoryOpen(false)} className="btn-enhanced btn-ripple rounded-lg">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -768,8 +832,8 @@ function ShopsTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Shop | null>(null);
   const [form, setForm] = useState({ name: '', address: '', shopType: 'retail' });
-  // Company settings: { companyId: { orderBookerId: string, shopType: string } }
-  const [companySettings, setCompanySettings] = useState<Record<string, { orderBookerId: string; shopType: string }>>({});
+  // Company settings: { companyId: { orderBookerId: string, shopType: string, creditLimit: string } }
+  const [companySettings, setCompanySettings] = useState<Record<string, { orderBookerId: string; shopType: string; creditLimit: string }>>({});
 
   const load = useCallback(async () => {
     try {
@@ -790,8 +854,8 @@ function ShopsTab() {
     setEditItem(null);
     setForm({ name: '', address: '', shopType: 'retail' });
     // Initialize companySettings with default values for each company
-    const initialSettings: Record<string, { orderBookerId: string; shopType: string }> = {};
-    companies.forEach((c) => { initialSettings[c.id] = { orderBookerId: '', shopType: 'retail' }; });
+    const initialSettings: Record<string, { orderBookerId: string; shopType: string; creditLimit: string }> = {};
+    companies.forEach((c) => { initialSettings[c.id] = { orderBookerId: '', shopType: 'retail', creditLimit: '' }; });
     setCompanySettings(initialSettings);
     setDialogOpen(true);
   };
@@ -800,14 +864,30 @@ function ShopsTab() {
     setEditItem(shop);
     setForm({ name: shop.name, address: shop.address, shopType: shop.shopType || 'retail' });
     // Populate companySettings from existing mappings
-    const settings: Record<string, { orderBookerId: string; shopType: string }> = {};
-    companies.forEach((c) => { settings[c.id] = { orderBookerId: '', shopType: 'retail' }; });
+    const settings: Record<string, { orderBookerId: string; shopType: string; creditLimit: string }> = {};
+    companies.forEach((c) => { settings[c.id] = { orderBookerId: '', shopType: 'retail', creditLimit: '' }; });
     shop.companyOrderBookers?.forEach((cob) => {
       settings[cob.companyId] = {
         orderBookerId: cob.orderBookerId || '',
         shopType: cob.shopType || 'retail',
+        creditLimit: settings[cob.companyId]?.creditLimit || '',
       };
     });
+    // Load credit limits from API
+    (async () => {
+      try {
+        const limitsRes = await fetch('/api/credit-limits');
+        if (limitsRes.ok) {
+          const limits = await limitsRes.json();
+          limits.forEach((l: { shopId: string; companyId: string; creditLimit: number }) => {
+            if (l.shopId === shop.id && settings[l.companyId]) {
+              settings[l.companyId].creditLimit = l.creditLimit ? String(l.creditLimit) : '';
+            }
+          });
+          setCompanySettings({ ...settings });
+        }
+      } catch { /* ignore */ }
+    })();
     setCompanySettings(settings);
     setDialogOpen(true);
   };
@@ -833,6 +913,16 @@ function ShopsTab() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
+        // Save credit limits for each company
+        for (const [compId, setting] of Object.entries(companySettings)) {
+          if (setting.creditLimit) {
+            await fetch('/api/credit-limits', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ shopId: editItem.id, companyId: compId, creditLimit: Number(setting.creditLimit) }),
+            });
+          }
+        }
       } else {
         await fetch('/api/shops', {
           method: 'POST',
@@ -1023,6 +1113,24 @@ function ShopsTab() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                    </div>
+                    {/* Credit Limit per company */}
+                    <div className="mt-2">
+                      <p className="text-[10px] text-muted-foreground mb-1">Credit Limit (Rs.)</p>
+                      <div className="relative">
+                        <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="No limit"
+                          value={companySettings[c.id]?.creditLimit || ''}
+                          onChange={(e) => setCompanySettings({
+                            ...companySettings,
+                            [c.id]: { ...companySettings[c.id], creditLimit: e.target.value }
+                          })}
+                          className="h-7 text-xs pl-6"
+                        />
                       </div>
                     </div>
                   </div>

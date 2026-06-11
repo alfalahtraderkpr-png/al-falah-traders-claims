@@ -19,6 +19,7 @@ export async function GET(
         claimItems: {
           include: { product: { include: { company: true } } },
         },
+        attachments: true,
       },
     });
 

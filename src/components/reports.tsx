@@ -236,12 +236,12 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
       </div>
 
       <div ref={printRef} className="print-area">
-        {activeTab === 'pending' && <PendingClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
-        {activeTab === 'summary' && <ClaimsSummaryReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
-        {activeTab === 'aging' && <ClaimsAgingReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+        {activeTab === 'pending' && <PendingClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
+        {activeTab === 'summary' && <ClaimsSummaryReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
+        {activeTab === 'aging' && <ClaimsAgingReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'performance' && isAdmin && <OBPerformanceReport orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
         {activeTab === 'company' && isAdmin && <CompanyClaimsReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
-        {activeTab === 'cleared' && isAdmin && <ClearedPaymentReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
+        {activeTab === 'cleared' && isAdmin && <ClearedPaymentReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'detail' && isAdmin && <ClaimDetailReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
       </div>
     </div>
@@ -251,10 +251,11 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
 /* ─────────────────────────────────────────────
    REPORT 1: Pending Claims Report
    ───────────────────────────────────────────── */
-function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount, onPrint }: {
-  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void;
+function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
+  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
 }) {
-  const [filterOB, setFilterOB] = useState('all');
+  const isOB = user.role === 'orderbooker';
+  const [filterOB, setFilterOB] = useState(isOB && user.orderBookerId ? user.orderBookerId : 'all');
   const [filterCompany, setFilterCompany] = useState('all');
 
   const filtered = allClaims.filter(c => {
@@ -274,13 +275,19 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
       <Card className="shadow-sm no-print">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Select value={filterOB} onValueChange={setFilterOB}>
-              <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Order Bookers</SelectItem>
-                {orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            {isOB ? (
+              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+                {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
+              </div>
+            ) : (
+              <Select value={filterOB} onValueChange={setFilterOB}>
+                <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Order Bookers</SelectItem>
+                  {orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
             <Select value={filterCompany} onValueChange={setFilterCompany}>
               <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
               <SelectContent>
@@ -392,10 +399,11 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
 /* ─────────────────────────────────────────────
    REPORT 2: Claims Summary Report
    ───────────────────────────────────────────── */
-function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount, onPrint }: {
-  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void;
+function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
+  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
 }) {
-  const [filterOB, setFilterOB] = useState('all');
+  const isOB = user.role === 'orderbooker';
+  const [filterOB, setFilterOB] = useState(isOB && user.orderBookerId ? user.orderBookerId : 'all');
   const [filterCompany, setFilterCompany] = useState('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
@@ -431,10 +439,16 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
       <Card className="shadow-sm no-print">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            <Select value={filterOB} onValueChange={setFilterOB}>
-              <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All Order Bookers</SelectItem>{orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}</SelectContent>
-            </Select>
+            {isOB ? (
+              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+                {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
+              </div>
+            ) : (
+              <Select value={filterOB} onValueChange={setFilterOB}>
+                <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All Order Bookers</SelectItem>{orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}</SelectContent>
+              </Select>
+            )}
             <Select value={filterCompany} onValueChange={setFilterCompany}>
               <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All Companies</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -544,10 +558,11 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
 /* ─────────────────────────────────────────────
    REPORT 3: Claims Aging Report
    ───────────────────────────────────────────── */
-function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, onPrint }: {
-  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void;
+function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
+  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
 }) {
-  const [filterOB, setFilterOB] = useState('all');
+  const isOB = user.role === 'orderbooker';
+  const [filterOB, setFilterOB] = useState(isOB && user.orderBookerId ? user.orderBookerId : 'all');
   const [filterCompany, setFilterCompany] = useState('all');
 
   const pending = allClaims.filter(c => {
@@ -573,10 +588,16 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
       <Card className="shadow-sm no-print">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Select value={filterOB} onValueChange={setFilterOB}>
-              <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All Order Bookers</SelectItem>{orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}</SelectContent>
-            </Select>
+            {isOB ? (
+              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+                {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
+              </div>
+            ) : (
+              <Select value={filterOB} onValueChange={setFilterOB}>
+                <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All Order Bookers</SelectItem>{orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}</SelectContent>
+              </Select>
+            )}
             <Select value={filterCompany} onValueChange={setFilterCompany}>
               <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All Companies</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>

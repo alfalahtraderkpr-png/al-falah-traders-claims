@@ -11,6 +11,31 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error('Application error:', error);
+    
+    // If this is a "Cannot access before initialization" error, 
+    // it's likely caused by stale Service Worker cache.
+    // Force clear caches and reload.
+    if (error.message && error.message.includes('before initialization')) {
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          for (const name of names) {
+            caches.delete(name);
+          }
+        });
+      }
+      // Unregister old service worker and reload
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => {
+            registration.unregister();
+          });
+          // Reload after clearing cache and SW
+          setTimeout(() => window.location.reload(), 500);
+        });
+      } else {
+        window.location.reload();
+      }
+    }
   }, [error]);
 
   return (
@@ -31,7 +56,15 @@ export default function Error({
         <div className="flex gap-3 justify-center">
           <button
             className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
-            onClick={() => reset()}
+            onClick={() => {
+              // Clear all caches before reset
+              if ('caches' in window) {
+                caches.keys().then((names) => {
+                  for (const name of names) caches.delete(name);
+                });
+              }
+              reset();
+            }}
           >
             Try Again
           </button>

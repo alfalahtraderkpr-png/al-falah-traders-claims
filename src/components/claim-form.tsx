@@ -98,7 +98,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
   const [showQuickShop, setShowQuickShop] = useState(false);
   const [quickShopName, setQuickShopName] = useState('');
   const [quickShopAddress, setQuickShopAddress] = useState('');
-  const [quickShopOB, setQuickShopOB] = useState('');
+  const [quickShopOB, setQuickShopOB] = useState(user.orderBookerId || '');
   const [quickShopType, setQuickShopType] = useState('retail');
   const [creatingShop, setCreatingShop] = useState(false);
 
@@ -482,13 +482,19 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
             </div>
             <div>
               <Label className="text-sm font-medium">Order Booker</Label>
-              <Select value={orderBookerId} onValueChange={setOrderBookerId}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Auto / Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {orderBookers.map((ob) => (<SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              {user.role === 'orderbooker' ? (
+                <div className="mt-1 h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+                  {orderBookers.find((ob) => ob.id === orderBookerId)?.name || user.name}
+                </div>
+              ) : (
+                <Select value={orderBookerId} onValueChange={setOrderBookerId}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Auto / Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {orderBookers.map((ob) => (<SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 
@@ -742,13 +748,19 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel }: ClaimFor
             </div>
             <div>
               <Label>Order Booker {companyId ? `(for ${companies.find((c) => c.id === companyId)?.name})` : ''}</Label>
-              <Select value={quickShopOB} onValueChange={setQuickShopOB}>
-                <SelectTrigger><SelectValue placeholder="Select Order Booker" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {orderBookers.map((ob) => (<SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              {user.role === 'orderbooker' ? (
+                <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+                  {orderBookers.find((ob) => ob.id === user.orderBookerId)?.name || user.name}
+                </div>
+              ) : (
+                <Select value={quickShopOB} onValueChange={setQuickShopOB}>
+                  <SelectTrigger><SelectValue placeholder="Select Order Booker" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {orderBookers.map((ob) => (<SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
           <DialogFooter className="gap-2">

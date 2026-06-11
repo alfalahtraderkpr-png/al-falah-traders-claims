@@ -35,6 +35,7 @@ interface ShopCompanyOB {
   shopId: string;
   companyId: string;
   orderBookerId: string | null;
+  shopType?: string;
   company: { id: string; name: string };
   orderBooker?: { id: string; name: string } | null;
 }

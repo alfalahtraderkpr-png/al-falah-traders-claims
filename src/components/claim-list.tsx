@@ -425,7 +425,13 @@ export function ClaimList({ user }: ClaimListProps) {
                 <CardContent className="p-4">
                   {/* Card Header: Claim # + Status */}
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-bold text-emerald-700 text-base">{claim.claimNumber}</span>
+                    <button
+                      onClick={() => setViewClaim(claim)}
+                      className="font-bold text-emerald-700 text-base hover:text-emerald-900 hover:underline cursor-pointer transition-colors"
+                      title="Click to view claim details"
+                    >
+                      {claim.claimNumber}
+                    </button>
                     <Badge className={`${statusColors[claim.status]} border text-xs`}>
                       {statusLabels[claim.status]}
                     </Badge>
@@ -717,7 +723,15 @@ export function ClaimList({ user }: ClaimListProps) {
                         className="border-b table-row-hover animate-fade-in-up"
                         style={{ animationDelay: `${index * 30}ms` }}
                       >
-                        <td className="py-3 px-4 font-medium text-emerald-700">{claim.claimNumber}</td>
+                        <td className="py-3 px-4">
+                          <button
+                            onClick={() => setViewClaim(claim)}
+                            className="font-medium text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer transition-colors text-left"
+                            title="Click to view claim details"
+                          >
+                            {claim.claimNumber}
+                          </button>
+                        </td>
                         <td className="py-3 px-4">{new Date(claim.date).toLocaleDateString()}</td>
                         <td className="py-3 px-4">{claim.company.name}</td>
                         <td className="py-3 px-4">{claim.shop.name}</td>

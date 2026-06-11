@@ -166,21 +166,6 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
     }
   }, [shopId]);
 
-  // Keyboard shortcuts: Ctrl+S = Save, Esc = Cancel
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        if (!saving) handleSave();
-      }
-      if (e.key === 'Escape') {
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [saving, handleSave, onCancel]);
-
   // Check credit limit when shop/company changes
   useEffect(() => {
     const checkCreditLimit = async () => {
@@ -462,6 +447,21 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
       setSaving(false);
     }
   }, [companyId, shopId, supplierId, items, claim, existingClaims, date, totalAmount, orderBookerId, user.name, onSave, photos]);
+
+  // Keyboard shortcuts: Ctrl+S = Save, Esc = Cancel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (!saving) handleSave();
+      }
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saving, handleSave, onCancel]);
 
   // Filtered products for search
   const filteredProducts = products.filter((p) => {

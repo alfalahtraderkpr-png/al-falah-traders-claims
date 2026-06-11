@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { date, companyId, shopId, supplierId, orderBookerId, items, createdBy } = await request.json();
+    const { date, companyId, shopId, supplierId, orderBookerId, items, createdBy, creatorRole } = await request.json();
 
     if (!companyId || !shopId || !supplierId) {
       return NextResponse.json({ error: 'Company, Shop and Supplier are required' }, { status: 400 });
@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
     const netAmount = totalAmount - deductionAmount;
 
     // Admin claims are auto-approved; Order booker claims need admin approval (status: pending)
-    const creatorRole = body.creatorRole || 'orderbooker';
-    const isAdminClaim = creatorRole === 'admin';
+    const effectiveCreatorRole = creatorRole || 'orderbooker';
+    const isAdminClaim = effectiveCreatorRole === 'admin';
     const initialStatus = isAdminClaim ? 'approved' : 'pending';
     const initialApprovedAmount = isAdminClaim ? netAmount : null;
 

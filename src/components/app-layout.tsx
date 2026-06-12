@@ -47,6 +47,7 @@ const adminNavItems = [
 const orderBookerNavItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'claims', label: 'My Claims', icon: FileText },
+  { id: 'stock-not-received', label: 'Stock Not Received', icon: AlertTriangle },
   { id: 'reports', label: 'Reports', icon: BarChart3 },
 ];
 

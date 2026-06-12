@@ -1,19 +1,11 @@
 import { PrismaClient } from '../src/generated/prisma/client'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
-import { createClient } from '@libsql/client'
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { hashSync } from 'bcryptjs'
 
-function createPrismaClient() {
-  const dbUrl = process.env.DATABASE_URL ?? 'file:./db/custom.db'
-  const libsql = createClient({
-    url: dbUrl,
-    authToken: process.env.TURSO_DB_TOKEN || undefined,
-  })
-  const adapter = new PrismaLibSql(libsql)
-  return new PrismaClient({ adapter })
-}
-
-const prisma = createPrismaClient()
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL || 'file:./db/custom.db',
+})
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
   console.log('Seeding database...')
@@ -42,13 +34,13 @@ async function main() {
   const cadbury = await prisma.company.upsert({
     where: { id: 'company-cadbury' },
     update: {},
-    create: { id: 'company-cadbury', name: 'Cadbury' },
+    create: { id: 'company-cadbury', name: 'Cadbury', multiTierPricing: true },
   })
 
   const shan = await prisma.company.upsert({
     where: { id: 'company-shan' },
     update: {},
-    create: { id: 'company-shan', name: 'Shan Foods' },
+    create: { id: 'company-shan', name: 'Shan Foods', claimDeductionPercent: 22 },
   })
   console.log('Created companies:', cbl.name, cadbury.name, shan.name)
 
@@ -81,9 +73,8 @@ async function main() {
     { id: 'sup-ikram', name: 'Ikram' },
   ]
 
-  const suppliers: Record<string, typeof supplierData[0]> = {}
   for (const s of supplierData) {
-    suppliers[s.name] = await prisma.supplier.upsert({
+    await prisma.supplier.upsert({
       where: { id: s.id },
       update: {},
       create: s,

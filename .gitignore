@@ -55,3 +55,8 @@ server.log
 
 # Prisma generated client
 /src/generated/
+
+# Database files
+*.db
+*.db-journal
+db/

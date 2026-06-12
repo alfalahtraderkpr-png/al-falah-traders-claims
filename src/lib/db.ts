@@ -1,29 +1,19 @@
 import { PrismaClient } from '@/generated/prisma/client'
-import { PrismaNeon } from '@prisma/adapter-neon'
-import { neonConfig } from '@neondatabase/serverless'
-
-// Force HTTP fetch mode instead of WebSocket (required for Node.js server environment)
-neonConfig.poolQueryViaFetch = true
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
 function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL })
+  const adapter = new PrismaBetterSqlite3({
+    url: process.env.DATABASE_URL || 'file:./db/custom.db',
+  })
   return new PrismaClient({ adapter })
 }
 
-// Lazy Proxy - PrismaClient is only created when first method is called at runtime
-export const db = new Proxy({} as PrismaClient, {
-  get(_target, prop, _receiver) {
-    if (!globalForPrisma.prisma) {
-      globalForPrisma.prisma = createPrismaClient()
-    }
-    const result = (globalForPrisma.prisma as any)[prop]
-    if (typeof result === 'function') {
-      return result.bind(globalForPrisma.prisma)
-    }
-    return result
-  }
-})
+export const db = globalForPrisma.prisma ?? createPrismaClient()
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db
+}

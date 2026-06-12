@@ -1282,6 +1282,13 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
           </div>
         </CardContent>
       </Card>
+      {/* Print-only compact summary */}
+      <div className="hidden print-block print-summary">
+        <span className="print-summary-item"><span className="print-summary-label">Total Pending:</span> <span className="print-summary-value">{filtered.length}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Stock Not Received:</span> <span className="print-summary-value">{filtered.filter(c => normalizeStatus(c.status) === 'pending').length}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Approved (Arrived):</span> <span className="print-summary-value">{filtered.filter(c => normalizeStatus(c.status) === 'approved').length}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Total Amount:</span> <span className="print-summary-value">{formatAmount(grandTotal)}</span></span>
+      </div>
 
       {/* Table */}
       {filtered.length === 0 ? (

@@ -126,3 +126,33 @@ Stage Summary:
 - Fix: Changed API to manually resolve orderBooker names, added relation to schema
 - Production URL: https://al-falah-traders-claims.vercel.app
 - All existing users now properly returned with orderBooker info
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Add claim lifecycle mechanism with Arrived & Approved status + Stock Not Received page
+
+Work Log:
+- Analyzed user's claim workflow: pending → arrived_approved → cleared
+- Added `arrived_approved` status to claims API (approve action now sets status to arrived_approved)
+- Added `arrive_and_approve` API action that allows editing claim items before approving
+- Updated change_status valid statuses to include `arrived_approved`
+- Updated dashboard API to aggregate `arrived_approved` claims separately
+- Updated reports API to include `arrived_approved` in byStatus + pendingClaims + clearedClaims summaries
+- Created new `StockNotReceived` component: shows pending claims, approve as-is, verify & edit before approve, reject
+- Added "Stock Not Received" nav item in admin sidebar (with AlertTriangle icon)
+- Added route in page.tsx for `stock-not-received` section
+- Updated claim-list.tsx: added arrived_approved status colors (teal) and labels, dropdown actions, filter option
+- Updated dashboard.tsx: new cards for "Stock Not Received" and "Arrived & Approved"
+- Updated reports.tsx: new tabs "Pending Claims" (arrived_approved) and "Cleared Claims", new report components
+- Updated claim-detail.tsx: added arrived_approved status colors and labels
+- Added migration step to convert existing `approved` claims to `arrived_approved`
+- Build successful locally
+
+Stage Summary:
+- Full claim lifecycle implemented: pending → arrived_approved → cleared
+- Admin "Stock Not Received" page: shows pending claims with Approve/Reject/Verify & Edit
+- Reports: Pending Claims = Arrived & Approved (stock at distribution, not cleared)
+- Reports: Cleared Claims = Admin has cleared/paid the claim (separate section)
+- Dashboard: 5 cards - Total, Stock Not Received, Arrived & Approved, Cleared, Rejected
+- Migration ready to convert existing approved claims

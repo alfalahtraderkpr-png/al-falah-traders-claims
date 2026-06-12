@@ -52,7 +52,7 @@ export async function PUT(
 
     switch (action) {
       // ==========================================
-      // NEW FLOW: pending → approved → partially_cleared → cleared
+      // FLOW: pending → approved → partial → cleared
       // ==========================================
 
       case 'approve':
@@ -97,7 +97,7 @@ export async function PUT(
         }
         break;
 
-      case 'partially_cleared':
+      case 'partial':
         // Partial amount deducted from shopkeeper's account
         if (!body.clearedAmount || Number(body.clearedAmount) <= 0) {
           return NextResponse.json({ error: 'Cleared amount is required' }, { status: 400 });
@@ -115,7 +115,7 @@ export async function PUT(
         } else {
           updateData = {
             approvedAmount: clearedAmount,
-            status: 'partially_cleared',
+            status: 'partial',
           };
         }
         break;
@@ -147,7 +147,7 @@ export async function PUT(
         if (!body.newStatus) {
           return NextResponse.json({ error: 'New status is required' }, { status: 400 });
         }
-        const validStatuses = ['pending', 'approved', 'partially_cleared', 'cleared', 'rejected'];
+        const validStatuses = ['pending', 'approved', 'partial', 'cleared', 'rejected'];
         if (!validStatuses.includes(body.newStatus)) {
           return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
         }
@@ -162,14 +162,14 @@ export async function PUT(
           updateData.clearedBy = null;
           updateData.clearedDate = null;
           updateData.rejectReason = null;
-        } else if (body.newStatus === 'partially_cleared') {
+        } else if (body.newStatus === 'partial') {
           const partialAmount = body.approvedAmount ? Number(body.approvedAmount) : claim.approvedAmount;
           if (!partialAmount || partialAmount <= 0) {
-            return NextResponse.json({ error: 'Cleared amount is required for partial clear' }, { status: 400 });
+            return NextResponse.json({ error: 'Cleared amount is required for partial status' }, { status: 400 });
           }
           const maxAmt = claim.netAmount || claim.totalAmount;
           if (partialAmount >= maxAmt) {
-            // Full amount means it should be cleared, not partially_cleared
+            // Full amount means it should be cleared, not partial
             updateData.approvedAmount = maxAmt;
             updateData.status = 'cleared';
             updateData.clearedBy = body.clearedBy?.trim() || null;

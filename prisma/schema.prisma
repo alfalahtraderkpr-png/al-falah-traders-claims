@@ -99,7 +99,7 @@ model Claim {
   deductionAmount Float      @default(0) // deduction amount (e.g., 22% of total)
   netAmount       Float      @default(0) // totalAmount - deductionAmount
   approvedAmount  Float?    // null means not yet approved, can be partial
-  status        String     @default("pending") // pending, approved, arrived_approved, partially_approved, cleared, rejected
+  status        String     @default("pending") // pending, approved, partial, cleared, rejected
   clearedBy     String?    // name of person who cleared
   clearedDate   DateTime?  // when it was cleared
   rejectReason  String?

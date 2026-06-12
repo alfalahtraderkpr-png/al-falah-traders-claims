@@ -184,7 +184,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
               const pending = claims
                 .filter((c: { shopId: string; companyId: string; status: string; id: string }) => 
                   c.shopId === shopId && c.companyId === companyId && 
-                  (c.status === 'pending' || c.status === 'approved' || c.status === 'partially_approved') &&
+                  (c.status === 'pending' || c.status === 'approved' || c.status === 'partial') &&
                   c.id !== claim?.id)
                 .reduce((sum: number, c: { totalAmount: number }) => sum + c.totalAmount, 0);
               setPendingAmount(pending);

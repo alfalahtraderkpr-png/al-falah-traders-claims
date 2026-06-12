@@ -1,8 +1,8 @@
 'use client';
 
-import { forwardRef } from 'react';
+import React, { forwardRef } from 'react';
 
-export type ReceiptType = 'received' | 'approved' | 'cleared';
+export type ReceiptType = 'received' | 'approved' | 'partial' | 'cleared';
 
 interface ReceiptProps {
   claim: {
@@ -52,6 +52,17 @@ const receiptTypeConfig: Record<ReceiptType, { title: string; subtitle: string; 
     badgeColor: '#166534',
     badgeText: 'APPROVED',
   },
+  partial: {
+    title: 'CLAIM PARTIAL',
+    subtitle: 'Claim Receipt - Partial Payment Confirmation',
+    icon: '\u26A0',
+    headerBg: '#c2410c',
+    headerColor: '#ffffff',
+    borderColor: '#c2410c',
+    badgeBg: '#ffedd5',
+    badgeColor: '#9a3412',
+    badgeText: 'PARTIAL',
+  },
   cleared: {
     title: 'CLAIM CLEARED',
     subtitle: 'Claim Receipt - Cleared Confirmation',
@@ -79,8 +90,15 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receip
     { label: 'Order Booker', value: claim.orderBooker?.name || '-' },
   ];
 
-  if (receiptType === 'approved' || receiptType === 'cleared') {
+  if (receiptType === 'approved' || receiptType === 'partial' || receiptType === 'cleared') {
     infoItems.push({ label: 'Total Claim', value: formatAmount(claim.totalAmount) });
+  }
+  if (receiptType === 'partial' && claim.approvedAmount !== null) {
+    infoItems.push({ label: 'Amount Deducted', value: formatAmount(claim.approvedAmount) });
+  }
+  if (receiptType === 'partial' && claim.approvedAmount !== null) {
+    const remaining = claim.netAmount - claim.approvedAmount;
+    infoItems.push({ label: 'Remaining', value: formatAmount(remaining) });
   }
   if (receiptType === 'cleared' && claim.approvedAmount !== null) {
     infoItems.push({ label: 'Cleared Amount', value: formatAmount(claim.approvedAmount) });
@@ -147,7 +165,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receip
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <tbody>
             {(() => {
-              const rows = [];
+              const rows: React.ReactNode[] = [];
               for (let i = 0; i < infoItems.length; i += 2) {
                 rows.push(
                   <tr key={i}>
@@ -295,7 +313,26 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receip
             CLAIM APPROVED
           </div>
           <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-            This claim has been reviewed and approved.
+            Stock has arrived. Payment deduction pending from shopkeeper.
+          </div>
+        </div>
+      )}
+
+      {/* Partially Cleared Stamp */}
+      {receiptType === 'partial' && (
+        <div style={{
+          textAlign: 'center',
+          margin: '20px 0',
+          padding: '12px',
+          border: '2px dashed #c2410c',
+          borderRadius: '8px',
+          backgroundColor: '#fff7ed',
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#c2410c' }}>
+            CLAIM PARTIAL
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+            Partial amount has been deducted from shopkeeper. Remaining amount is still pending.
           </div>
         </div>
       )}

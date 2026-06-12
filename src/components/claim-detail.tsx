@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Share2, Printer, FileText, Image, FileDown, MessageCircle, Package, CheckCircle, Banknote, Camera } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Printer, FileText, Image, FileDown, MessageCircle, Package, CheckCircle, Banknote, Camera, Split } from 'lucide-react';
 import { Receipt, ReceiptType } from './receipt';
 
 interface ClaimDetailProps {
@@ -55,34 +55,37 @@ interface ClaimData {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
-  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
+  partial: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
   // Legacy
   arrived_approved: 'bg-green-100 text-green-800 border-green-300',
   partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
+  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
 };
 
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
-  partially_cleared: 'Partially Cleared',
+  partial: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
   // Legacy
   arrived_approved: 'Approved',
-  partially_approved: 'Partially Cleared',
+  partially_approved: 'Partial',
+  partially_cleared: 'Partial',
 };
 
 const statusLabelsOB: Record<string, string> = {
   pending: 'Stock Not Received',
   approved: 'Approved',
-  partially_cleared: 'Partially Cleared',
+  partial: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
   // Legacy
   arrived_approved: 'Approved',
-  partially_approved: 'Partially Cleared',
+  partially_approved: 'Partial',
+  partially_cleared: 'Partial',
 };
 
 const getStatusLabel = (status: string, isOrderBooker: boolean) => {
@@ -98,6 +101,8 @@ function getWhatsAppText(claim: ClaimData, receiptType: ReceiptType): string {
       return `\u2705 Al-Falah Traders - Expiry Stock Received\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nAmount: ${formatAmount(claim.netAmount || claim.totalAmount)}${claim.deductionAmount > 0 ? `\nDeduction: ${formatAmount(claim.deductionAmount)} (${claim.company.claimDeductionPercent}%)\nTotal: ${formatAmount(claim.totalAmount)}` : ''}\nDate: ${new Date(claim.date).toLocaleDateString()}\n\nClaim receive ho chuki hai. JazakAllah.`;
     case 'approved':
       return `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmount(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
+    case 'partial':
+      return `\u2705 Al-Falah Traders - Claim Partially Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nCleared So Far: ${formatAmount(claim.approvedAmount)}` : ''}${claim.approvedAmount ? `\nRemaining: ${formatAmount(claim.totalAmount - claim.approvedAmount)}` : ''}\n\nPartial amount deduct hui hai.`;
     case 'cleared':
       return `\u2705 Al-Falah Traders - Claim Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmount(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmount(claim.approvedAmount)}` : ''}${claim.approvedAmount && claim.totalAmount - claim.approvedAmount > 0 ? `\nRemaining: ${formatAmount(claim.totalAmount - claim.approvedAmount)}` : ''}${claim.clearedBy ? `\nCleared By: ${claim.clearedBy}` : ''}\n\nClaim clear ho chuki hai. JazakAllah.`;
     default:
@@ -105,17 +110,29 @@ function getWhatsAppText(claim: ClaimData, receiptType: ReceiptType): string {
   }
 }
 
+// Helper: normalize legacy status to current status
+const normalizeStatus = (status: string) => {
+  if (status === 'arrived_approved') return 'approved';
+  if (status === 'partially_approved' || status === 'partially_cleared') return 'partial';
+  return status;
+};
+
 // Get available receipt types based on claim status
 function getAvailableReceiptTypes(status: string): { type: ReceiptType; label: string; icon: React.ReactNode; color: string; description: string }[] {
+  const normStatus = normalizeStatus(status);
   const types = [
     { type: 'received' as ReceiptType, label: 'Expiry Stock Received', icon: <Package className="h-5 w-5" />, color: 'from-emerald-500 to-emerald-600', description: 'Stock receive confirmation' },
   ];
 
-  if (status === 'approved' || status === 'partially_approved' || status === 'cleared') {
+  if (normStatus === 'approved' || normStatus === 'partial' || normStatus === 'cleared') {
     types.push({ type: 'approved' as ReceiptType, label: 'Claim Approved', icon: <CheckCircle className="h-5 w-5" />, color: 'from-green-500 to-green-600', description: 'Approval confirmation' });
   }
 
-  if (status === 'cleared') {
+  if (normStatus === 'partial') {
+    types.push({ type: 'partial' as ReceiptType, label: 'Partial', icon: <Split className="h-5 w-5" />, color: 'from-orange-500 to-orange-600', description: 'Partial amount deducted' });
+  }
+
+  if (normStatus === 'cleared') {
     types.push({ type: 'cleared' as ReceiptType, label: 'Claim Cleared', icon: <Banknote className="h-5 w-5" />, color: 'from-blue-500 to-blue-600', description: 'Claim cleared confirmation' });
   }
 
@@ -470,8 +487,9 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
           {/* Selected type description */}
           <p className="text-sm text-muted-foreground mb-4">
             {selectedType === 'received' && 'Stock receive confirmation - share when claim is first recorded'}
-            {selectedType === 'approved' && 'Approval confirmation - share when claim is approved'}
-            {selectedType === 'cleared' && 'Claim cleared confirmation - share when claim is cleared'}
+            {selectedType === 'approved' && 'Approval confirmation - share when stock has arrived and claim is approved'}
+            {selectedType === 'partial' && 'Partial payment confirmation - share when partial amount is deducted from shopkeeper'}
+            {selectedType === 'cleared' && 'Claim cleared confirmation - share when full amount is deducted from shopkeeper'}
           </p>
 
           {/* Action Buttons */}

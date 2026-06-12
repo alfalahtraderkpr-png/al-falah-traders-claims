@@ -89,15 +89,28 @@ export async function POST() {
       }
     }
 
-    // Step 6: Migrate existing 'approved' claims to 'arrived_approved' status
+    // Step 6: Migrate legacy statuses to new flow: pending → approved → partial → cleared
     try {
-      const migrationResult = await db.$executeRawUnsafe(`
-        UPDATE "Claim" SET status = 'arrived_approved' WHERE status = 'approved' AND "clearedBy" IS NULL;
+      // Migrate 'arrived_approved' → 'approved'
+      const mig1 = await db.$executeRawUnsafe(`
+        UPDATE "Claim" SET status = 'approved' WHERE status = 'arrived_approved';
       `);
-      results.push(`Migrated ${migrationResult} approved claims to arrived_approved status`);
+      results.push(`Migrated ${mig1} arrived_approved claims → approved`);
+
+      // Migrate 'partially_approved' → 'partial'
+      const mig2 = await db.$executeRawUnsafe(`
+        UPDATE "Claim" SET status = 'partial' WHERE status = 'partially_approved';
+      `);
+      results.push(`Migrated ${mig2} partially_approved claims → partial`);
+
+      // Migrate 'partially_cleared' → 'partial'
+      const mig3 = await db.$executeRawUnsafe(`
+        UPDATE "Claim" SET status = 'partial' WHERE status = 'partially_cleared';
+      `);
+      results.push(`Migrated ${mig3} partially_cleared claims → partial`);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      results.push(`Warning migrating approved claims: ${msg}`);
+      results.push(`Warning migrating claim statuses: ${msg}`);
     }
 
     return NextResponse.json({

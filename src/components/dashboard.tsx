@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, Clock, CheckCircle2, DollarSign, XCircle, Banknote, TrendingUp, RefreshCw, Store, AlertCircle } from 'lucide-react';
+import { Loader2, FileText, Clock, CheckCircle2, DollarSign, XCircle, Banknote, TrendingUp, RefreshCw, Store, AlertCircle, Split } from 'lucide-react';
 
 interface DashboardProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -14,10 +14,9 @@ interface DashboardData {
   totalClaims: number;
   pendingClaims: { count: number; totalAmount: number };
   approvedClaims: { count: number; totalAmount: number; approvedAmount: number };
-  arrivedApprovedClaims: { count: number; totalAmount: number; approvedAmount: number };
+  partiallyClearedClaims: { count: number; totalAmount: number; approvedAmount: number };
   clearedClaims: { count: number; totalAmount: number; approvedAmount: number };
   rejectedClaims: { count: number; totalAmount: number };
-  remainingPendingAmount: number;
   recentClaims: Array<{
     id: string;
     claimNumber: string;
@@ -42,23 +41,24 @@ interface DashboardData {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
-  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
+  partial: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
-  // Legacy
+  // Legacy mapping
   arrived_approved: 'bg-green-100 text-green-800 border-green-300',
   partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
+  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
 };
 
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
-  partially_cleared: 'Partially Cleared',
+  partial: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
-  // Legacy
   arrived_approved: 'Approved',
-  partially_approved: 'Partially Cleared',
+  partially_approved: 'Partial',
+  partially_cleared: 'Partial',
 };
 
 export function Dashboard({ user }: DashboardProps) {
@@ -137,9 +137,10 @@ export function Dashboard({ user }: DashboardProps) {
       iconBg: 'bg-emerald-100',
     },
     {
-      title: 'Stock Not Received',
+      title: 'Pending',
+      subtitle: 'Stock Not Received',
       value: data.pendingClaims.count,
-      subtitle: formatAmount(data.pendingClaims.totalAmount),
+      extra: formatAmount(data.pendingClaims.totalAmount),
       icon: Clock,
       gradient: 'from-yellow-500 to-amber-600',
       bgLight: 'bg-yellow-50',
@@ -147,19 +148,32 @@ export function Dashboard({ user }: DashboardProps) {
       iconBg: 'bg-yellow-100',
     },
     {
-      title: 'Arrived & Approved',
-      value: data.arrivedApprovedClaims?.count || 0,
-      subtitle: formatAmount(data.arrivedApprovedClaims?.approvedAmount || 0),
+      title: 'Approved',
+      subtitle: 'Stock Arrived, Payment Pending',
+      value: data.approvedClaims.count,
+      extra: formatAmount(data.approvedClaims.approvedAmount || data.approvedClaims.totalAmount),
       icon: CheckCircle2,
-      gradient: 'from-teal-500 to-teal-700',
-      bgLight: 'bg-teal-50',
-      textColor: 'text-teal-700',
-      iconBg: 'bg-teal-100',
+      gradient: 'from-green-500 to-green-700',
+      bgLight: 'bg-green-50',
+      textColor: 'text-green-700',
+      iconBg: 'bg-green-100',
     },
     {
-      title: 'Cleared Claims',
+      title: 'Partially Cleared',
+      subtitle: 'Partial Amount Deducted',
+      value: data.partiallyClearedClaims.count,
+      extra: formatAmount(data.partiallyClearedClaims.approvedAmount || 0),
+      icon: Split,
+      gradient: 'from-orange-500 to-orange-700',
+      bgLight: 'bg-orange-50',
+      textColor: 'text-orange-700',
+      iconBg: 'bg-orange-100',
+    },
+    {
+      title: 'Cleared',
+      subtitle: 'Full Amount Settled',
       value: data.clearedClaims.count,
-      subtitle: formatAmount(data.clearedClaims.approvedAmount),
+      extra: formatAmount(data.clearedClaims.approvedAmount),
       icon: Banknote,
       gradient: 'from-blue-500 to-blue-700',
       bgLight: 'bg-blue-50',
@@ -167,9 +181,9 @@ export function Dashboard({ user }: DashboardProps) {
       iconBg: 'bg-blue-100',
     },
     {
-      title: 'Rejected Claims',
+      title: 'Rejected',
       value: data.rejectedClaims.count,
-      subtitle: formatAmount(data.rejectedClaims.totalAmount),
+      extra: formatAmount(data.rejectedClaims.totalAmount),
       icon: XCircle,
       gradient: 'from-red-500 to-red-700',
       bgLight: 'bg-red-50',
@@ -211,7 +225,48 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 stagger-children">
+      {/* Workflow Progress Indicator */}
+      <Card className="shadow-sm animate-fade-in-up border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-blue-50">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="flex flex-col items-center">
+                <div className="w-10 h-10 rounded-full bg-yellow-100 border-2 border-yellow-400 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                </div>
+                <span className="text-xs font-medium mt-1 text-yellow-700">Pending</span>
+                <span className="text-xs text-muted-foreground">Stock not received</span>
+              </div>
+              <div className="flex-1 h-0.5 bg-gradient-to-r from-yellow-300 to-green-300 mx-1" />
+              <div className="flex flex-col items-center">
+                <div className="w-10 h-10 rounded-full bg-green-100 border-2 border-green-400 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                </div>
+                <span className="text-xs font-medium mt-1 text-green-700">Approved</span>
+                <span className="text-xs text-muted-foreground">Stock arrived</span>
+              </div>
+              <div className="flex-1 h-0.5 bg-gradient-to-r from-green-300 to-orange-300 mx-1" />
+              <div className="flex flex-col items-center">
+                <div className="w-10 h-10 rounded-full bg-orange-100 border-2 border-orange-400 flex items-center justify-center">
+                  <Split className="h-5 w-5 text-orange-600" />
+                </div>
+                <span className="text-xs font-medium mt-1 text-orange-700">Partial</span>
+                <span className="text-xs text-muted-foreground">Partial deducted</span>
+              </div>
+              <div className="flex-1 h-0.5 bg-gradient-to-r from-orange-300 to-blue-300 mx-1" />
+              <div className="flex flex-col items-center">
+                <div className="w-10 h-10 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center">
+                  <Banknote className="h-5 w-5 text-blue-600" />
+                </div>
+                <span className="text-xs font-medium mt-1 text-blue-700">Cleared</span>
+                <span className="text-xs text-muted-foreground">Full settled</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 stagger-children">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
@@ -219,19 +274,22 @@ export function Dashboard({ user }: DashboardProps) {
               key={card.title}
               className={`${card.bgLight} border-0 shadow-sm card-hover animate-pop-in cursor-default overflow-hidden relative`}
             >
-              <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl ${card.gradient} opacity-10 rounded-bl-full`} />
-              <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-                <CardTitle className="text-sm font-medium opacity-80">
+              <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl ${card.gradient} opacity-10 rounded-bl-full`} />
+              <CardHeader className="flex flex-row items-center justify-between pb-1 relative z-10 p-3">
+                <CardTitle className="text-xs font-medium opacity-80">
                   {card.title}
                 </CardTitle>
-                <div className={`${card.iconBg} p-2 rounded-lg transition-transform duration-200 hover:scale-110`}>
-                  <Icon className="h-4 w-4" />
+                <div className={`${card.iconBg} p-1.5 rounded-lg transition-transform duration-200 hover:scale-110`}>
+                  <Icon className="h-3.5 w-3.5" />
                 </div>
               </CardHeader>
-              <CardContent className="relative z-10">
-                <div className="text-2xl font-bold">{card.value}</div>
+              <CardContent className="relative z-10 p-3 pt-0">
+                <div className="text-xl font-bold">{card.value}</div>
                 {card.subtitle && (
-                  <p className="text-xs opacity-70 mt-1">{card.subtitle}</p>
+                  <p className="text-[10px] opacity-60 mt-0.5">{card.subtitle}</p>
+                )}
+                {card.extra && (
+                  <p className="text-xs opacity-70 mt-1 font-medium">{card.extra}</p>
                 )}
               </CardContent>
             </Card>
@@ -264,7 +322,7 @@ export function Dashboard({ user }: DashboardProps) {
                       <th className="text-left py-2 px-2 font-medium">#</th>
                       <th className="text-left py-2 px-2 font-medium">Shop</th>
                       <th className="text-left py-2 px-2 font-medium">Company</th>
-                      <th className="text-right py-2 px-2 font-medium">Pending Amount</th>
+                      <th className="text-right py-2 px-2 font-medium">Outstanding</th>
                       <th className="text-center py-2 px-2 font-medium">Claims</th>
                     </tr>
                   </thead>

@@ -47,19 +47,25 @@ interface Claim {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
-  arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
-  partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
+  partial: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
+  // Legacy
+  arrived_approved: 'bg-green-100 text-green-800 border-green-300',
+  partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
+  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
 };
 
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
-  arrived_approved: 'Arrived & Approved',
-  partially_approved: 'Partial',
+  partial: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
+  // Legacy
+  arrived_approved: 'Approved',
+  partially_approved: 'Partial',
+  partially_cleared: 'Partial',
 };
 
 export function Reports({ user }: { user: { id: string; name: string; email: string; role: string; orderBookerId: string | null } }) {
@@ -430,8 +436,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
   const byStatus = {
     pending: filtered.filter(c => c.status === 'pending').length,
     approved: filtered.filter(c => c.status === 'approved').length,
-    arrived_approved: filtered.filter(c => c.status === 'arrived_approved').length,
-    partially_approved: filtered.filter(c => c.status === 'partially_approved').length,
+    partial: filtered.filter(c => c.status === 'partial').length,
     cleared: filtered.filter(c => c.status === 'cleared').length,
     rejected: filtered.filter(c => c.status === 'rejected').length,
   };
@@ -482,7 +487,8 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 print-hide-decor">
         <Card className="shadow-sm bg-emerald-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total Claims</p><p className="text-xl font-bold text-emerald-700">{filtered.length}</p></CardContent></Card>
         <Card className="shadow-sm bg-yellow-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Pending</p><p className="text-xl font-bold text-yellow-700">{byStatus.pending}</p></CardContent></Card>
-        <Card className="shadow-sm bg-green-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Approved</p><p className="text-xl font-bold text-green-700">{byStatus.approved + byStatus.partially_approved}</p></CardContent></Card>
+        <Card className="shadow-sm bg-green-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Approved</p><p className="text-xl font-bold text-green-700">{byStatus.approved}</p></CardContent></Card>
+        <Card className="shadow-sm bg-orange-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Partial</p><p className="text-xl font-bold text-orange-700">{byStatus.partial}</p></CardContent></Card>
         <Card className="shadow-sm bg-blue-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Cleared</p><p className="text-xl font-bold text-blue-700">{byStatus.cleared}</p></CardContent></Card>
         <Card className="shadow-sm bg-red-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Rejected</p><p className="text-xl font-bold text-red-700">{byStatus.rejected}</p></CardContent></Card>
       </div>
@@ -503,7 +509,8 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
       <div className="hidden print-block print-summary">
         <span className="print-summary-item"><span className="print-summary-label">Total:</span> <span className="print-summary-value">{filtered.length}</span></span>
         <span className="print-summary-item"><span className="print-summary-label">Pending:</span> <span className="print-summary-value">{byStatus.pending}</span></span>
-        <span className="print-summary-item"><span className="print-summary-label">Approved:</span> <span className="print-summary-value">{byStatus.approved + byStatus.partially_approved}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Approved:</span> <span className="print-summary-value">{byStatus.approved}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Partial:</span> <span className="print-summary-value">{byStatus.partial}</span></span>
         <span className="print-summary-item"><span className="print-summary-label">Cleared:</span> <span className="print-summary-value">{byStatus.cleared}</span></span>
         <span className="print-summary-item"><span className="print-summary-label">Rejected:</span> <span className="print-summary-value">{byStatus.rejected}</span></span>
         <span className="print-summary-item"><span className="print-summary-label">Total Claim:</span> <span className="print-summary-value">{formatAmount(totalAmount)}</span></span>
@@ -571,7 +578,7 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
   const [filterCompany, setFilterCompany] = useState('all');
 
   const pending = allClaims.filter(c => {
-    // Include claims that are not yet cleared - pending, approved, and partially_approved
+    // Include claims that are not yet cleared - pending, approved, and partial
     if (c.status === 'cleared' || c.status === 'rejected') return false;
     if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
     if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
@@ -712,8 +719,8 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
       totalAmount: obClaims.reduce((s, c) => s + c.totalAmount, 0),
       pending: obClaims.filter(c => c.status === 'pending').length,
       pendingAmount: obClaims.filter(c => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0),
-      approved: obClaims.filter(c => c.status === 'approved' || c.status === 'partially_approved').length,
-      approvedAmount: obClaims.filter(c => c.status === 'approved' || c.status === 'partially_approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
+      approved: obClaims.filter(c => c.status === 'approved').length,
+      approvedAmount: obClaims.filter(c => c.status === 'approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
       cleared: obClaims.filter(c => c.status === 'cleared').length,
       clearedAmount: obClaims.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
       remainingAmount: obClaims.reduce((s, c) => s + c.totalAmount, 0) - obClaims.reduce((s, c) => s + (c.approvedAmount || 0), 0),
@@ -819,7 +826,7 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
       claims: compClaims,
       total: compTotal,
       pending: compClaims.filter(c => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0),
-      approved: compClaims.filter(c => c.status === 'approved' || c.status === 'partially_approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
+      approved: compClaims.filter(c => c.status === 'approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
       cleared: compCleared,
       remaining: compTotal - compClaims.reduce((s, c) => s + (c.approvedAmount || 0), 0),
     };
@@ -1168,9 +1175,8 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
 }
 
 /* ─────────────────────────────────────────────
-   REPORT: Pending Claims (Arrived & Approved)
-   Claims that have arrived at distribution but NOT yet cleared.
-   These are "pending" in the sense of pending clearance.
+   REPORT: Approved Claims (Stock Arrived, Payment Pending)
+   Claims where stock has arrived but payment not yet deducted from shopkeeper.
    ───────────────────────────────────────────── */
 function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
   companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -1178,9 +1184,9 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
   const [filterOB, setFilterOB] = useState('all');
   const [filterCompany, setFilterCompany] = useState('all');
 
-  // Pending Claims = Arrived & Approved (stock at distribution, not yet cleared)
+  // Approved Claims = Stock arrived on floor, payment not yet deducted
   const filtered = allClaims.filter(c => {
-    if (c.status !== 'arrived_approved') return false;
+    if (c.status !== 'approved') return false;
     if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
     if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
     return true;

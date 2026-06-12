@@ -19,19 +19,22 @@ export async function GET(request: NextRequest) {
       totalClaims,
       pendingClaims,
       approvedClaims,
-      arrivedApprovedClaims,
-      partiallyApprovedClaims,
+      partiallyClearedClaims,
       clearedClaims,
       rejectedClaims,
       recentClaims,
-      pendingShopClaims,
+      outstandingShopClaims,
     ] = await Promise.all([
       db.claim.count({ where }),
+      // Pending = Stock not received yet, claim created but not approved
       db.claim.aggregate({ where: { ...where, status: 'pending' }, _sum: { totalAmount: true }, _count: true }),
+      // Approved = Stock arrived on floor, amount deduction pending
       db.claim.aggregate({ where: { ...where, status: 'approved' }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
-      db.claim.aggregate({ where: { ...where, status: 'arrived_approved' }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
-      db.claim.aggregate({ where: { ...where, status: 'partially_approved' }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
+      // Partial = Some amount deducted from shopkeeper, more pending
+      db.claim.aggregate({ where: { ...where, status: 'partial' }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
+      // Cleared = Full amount deducted, claim complete
       db.claim.aggregate({ where: { ...where, status: 'cleared' }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
+      // Rejected
       db.claim.aggregate({ where: { ...where, status: 'rejected' }, _sum: { totalAmount: true }, _count: true }),
       db.claim.findMany({
         where,
@@ -44,9 +47,9 @@ export async function GET(request: NextRequest) {
           orderBooker: true,
         },
       }),
-      // Get all pending/arrived_approved/approved/partially_approved claims for shop outstanding calculation
+      // Get all non-cleared claims for shop outstanding calculation
       db.claim.findMany({
-        where: { ...where, status: { in: ['pending', 'approved', 'arrived_approved', 'partially_approved', 'partially_cleared'] } },
+        where: { ...where, status: { in: ['pending', 'approved', 'partial'] } },
         include: {
           shop: true,
           company: true,
@@ -54,14 +57,9 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    // Calculate remaining pending amount (total claim - cleared/approved amount)
-    const totalClaimAmount = (pendingClaims._sum.totalAmount || 0) + (approvedClaims._sum.totalAmount || 0) + (arrivedApprovedClaims._sum.totalAmount || 0) + (partiallyApprovedClaims._sum.totalAmount || 0) + (clearedClaims._sum.totalAmount || 0);
-    const totalClearedAmount = (approvedClaims._sum.approvedAmount || 0) + (arrivedApprovedClaims._sum.approvedAmount || 0) + (partiallyApprovedClaims._sum.approvedAmount || 0) + (clearedClaims._sum.approvedAmount || 0);
-    const remainingPendingAmount = totalClaimAmount - totalClearedAmount;
-
     // Calculate top outstanding shops
     const shopOutstandingMap = new Map<string, { shopId: string; shopName: string; companyName: string; totalPendingAmount: number; pendingClaimCount: number }>();
-    for (const claim of pendingShopClaims) {
+    for (const claim of outstandingShopClaims) {
       const key = `${claim.shopId}_${claim.companyId}`;
       const existing = shopOutstandingMap.get(key);
       const outstandingForClaim = claim.totalAmount - (claim.approvedAmount || 0);
@@ -89,14 +87,14 @@ export async function GET(request: NextRequest) {
         totalAmount: pendingClaims._sum.totalAmount || 0,
       },
       approvedClaims: {
-        count: approvedClaims._count + arrivedApprovedClaims._count + partiallyApprovedClaims._count,
-        totalAmount: (approvedClaims._sum.totalAmount || 0) + (arrivedApprovedClaims._sum.totalAmount || 0) + (partiallyApprovedClaims._sum.totalAmount || 0),
-        approvedAmount: (approvedClaims._sum.approvedAmount || 0) + (arrivedApprovedClaims._sum.approvedAmount || 0) + (partiallyApprovedClaims._sum.approvedAmount || 0),
+        count: approvedClaims._count,
+        totalAmount: approvedClaims._sum.totalAmount || 0,
+        approvedAmount: approvedClaims._sum.approvedAmount || 0,
       },
-      arrivedApprovedClaims: {
-        count: arrivedApprovedClaims._count,
-        totalAmount: arrivedApprovedClaims._sum.totalAmount || 0,
-        approvedAmount: arrivedApprovedClaims._sum.approvedAmount || 0,
+      partiallyClearedClaims: {
+        count: partiallyClearedClaims._count,
+        totalAmount: partiallyClearedClaims._sum.totalAmount || 0,
+        approvedAmount: partiallyClearedClaims._sum.approvedAmount || 0,
       },
       clearedClaims: {
         count: clearedClaims._count,
@@ -107,7 +105,6 @@ export async function GET(request: NextRequest) {
         count: rejectedClaims._count,
         totalAmount: rejectedClaims._sum.totalAmount || 0,
       },
-      remainingPendingAmount,
       recentClaims,
       topOutstandingShops,
     });

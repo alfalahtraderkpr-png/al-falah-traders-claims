@@ -5,7 +5,8 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient(): PrismaClient {
-  const dbUrl = process.env.DATABASE_URL || ''
+  // Prefer POSTGRES_PRISMA_URL for Vercel (pooled), fall back to DATABASE_URL
+  const dbUrl = process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL || ''
 
   // If DATABASE_URL starts with "file:", use better-sqlite3 (local dev)
   // Otherwise, use Neon PostgreSQL adapter (Vercel/production)

@@ -59,4 +59,4 @@ server.log
 # Database files
 *.db
 *.db-journal
-db/
+db/.env.vercel

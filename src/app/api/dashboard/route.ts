@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       }),
       // Get all pending/arrived_approved/approved/partially_approved claims for shop outstanding calculation
       db.claim.findMany({
-        where: { ...where, status: { in: ['pending', 'approved', 'arrived_approved', 'partially_approved'] } },
+        where: { ...where, status: { in: ['pending', 'approved', 'arrived_approved', 'partially_approved', 'partially_cleared'] } },
         include: {
           shop: true,
           company: true,

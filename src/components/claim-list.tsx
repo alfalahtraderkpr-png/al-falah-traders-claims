@@ -20,29 +20,35 @@ interface ClaimListProps {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
-  arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
-  partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
+  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
+  // Legacy statuses (for old data)
+  arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
+  partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
 };
 
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
-  arrived_approved: 'Arrived & Approved',
-  partially_approved: 'Partial',
+  partially_cleared: 'Partially Cleared',
   cleared: 'Cleared',
   rejected: 'Rejected',
+  // Legacy
+  arrived_approved: 'Approved',
+  partially_approved: 'Partially Cleared',
 };
 
 // Order booker sees "Stock Not Received" instead of "Pending"
 const statusLabelsOB: Record<string, string> = {
   pending: 'Stock Not Received',
   approved: 'Approved',
-  arrived_approved: 'Arrived & Approved',
-  partially_approved: 'Partial',
+  partially_cleared: 'Partially Cleared',
   cleared: 'Cleared',
   rejected: 'Rejected',
+  // Legacy
+  arrived_approved: 'Approved',
+  partially_approved: 'Partially Cleared',
 };
 
 // Get status label based on user role
@@ -54,9 +60,11 @@ const getStatusLabel = (status: string, isOrderBooker: boolean) => {
 const statusColorsOB: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800 border-amber-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
+  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
+  cleared: 'bg-blue-100 text-blue-800 border-blue-300',
+  // Legacy
   arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
   partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
-  cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
 };
 
@@ -224,6 +232,25 @@ export function ClaimList({ user }: ClaimListProps) {
       }
     } catch (error) {
       console.error('Clear error:', error);
+    }
+  };
+
+  const handlePartiallyClear = async (id: string, clearedAmount: number) => {
+    try {
+      const res = await fetch(`/api/claims/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'partially_cleared', clearedAmount }),
+      });
+      if (res.ok) {
+        logAction({ userName: user.name, action: 'partially_cleared', entity: 'claim', entityId: id, details: JSON.stringify({ clearedAmount }) });
+        loadClaims();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to partially clear claim');
+      }
+    } catch (error) {
+      console.error('Partially clear error:', error);
     }
   };
 
@@ -492,18 +519,18 @@ export function ClaimList({ user }: ClaimListProps) {
       );
     }
 
-    // Arrived & Approved claims (stock at distribution, not yet cleared)
-    if (isAdmin && claim.status === 'arrived_approved') {
+    // Approved claims (stock arrived, payment NOT deducted from shopkeeper)
+    if (isAdmin && (claim.status === 'approved' || claim.status === 'arrived_approved')) {
       items.push(
+        <DropdownMenuItem key="partial-clear" onClick={() => { setActionDialog({ type: 'partial_clear', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+          💰 Partially Clear (Deduct Partial Amount)
+        </DropdownMenuItem>,
         <DropdownMenuItem key="clear-arrived" onClick={() => setConfirmDialog({ type: 'clear', claim, value: '' })} className="text-blue-700 focus:bg-blue-50 focus:text-blue-800 cursor-pointer">
-          💰 Clear Payment
+          💰 Full Clear (Deduct Full Amount)
         </DropdownMenuItem>,
         <DropdownMenuSeparator key="sep-arrived1" />,
         <DropdownMenuItem key="status-pending-arrived" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'pending' })} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
           🔄 Change Status &gt; Pending
-        </DropdownMenuItem>,
-        <DropdownMenuItem key="status-partial-arrived" onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
-          🔄 Change Status &gt; Partial Approve
         </DropdownMenuItem>,
         <DropdownMenuItem key="status-reject-arrived" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'rejected' })} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
           🔄 Change Status &gt; Rejected
@@ -511,11 +538,14 @@ export function ClaimList({ user }: ClaimListProps) {
       );
     }
 
-    // Partially approved claims
-    if (isAdmin && claim.status === 'partially_approved') {
+    // Partially cleared claims (partial amount deducted)
+    if (isAdmin && (claim.status === 'partially_cleared' || claim.status === 'partially_approved')) {
       items.push(
+        <DropdownMenuItem key="partial-clear-more" onClick={() => { setActionDialog({ type: 'partial_clear', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+          💰 Partially Clear More
+        </DropdownMenuItem>,
         <DropdownMenuItem key="clear-partial" onClick={() => setConfirmDialog({ type: 'clear', claim, value: '' })} className="text-blue-700 focus:bg-blue-50 focus:text-blue-800 cursor-pointer">
-          💰 Clear Payment
+          💰 Full Clear (Deduct Remaining)
         </DropdownMenuItem>,
         <DropdownMenuSeparator key="sep-partial1" />,
         <DropdownMenuItem key="status-pending-partial" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'pending' })} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
@@ -523,9 +553,6 @@ export function ClaimList({ user }: ClaimListProps) {
         </DropdownMenuItem>,
         <DropdownMenuItem key="status-approved-partial" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'approved' })} className="text-green-700 focus:bg-green-50 focus:text-green-800 cursor-pointer">
           🔄 Change Status &gt; Approved
-        </DropdownMenuItem>,
-        <DropdownMenuItem key="status-change-partial-amount" onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
-          🔄 Change Status &gt; Change Partial Amount
         </DropdownMenuItem>,
         <DropdownMenuItem key="status-reject-partial" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'rejected' })} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
           🔄 Change Status &gt; Rejected
@@ -543,8 +570,8 @@ export function ClaimList({ user }: ClaimListProps) {
           🔄 Change Status &gt; Approved
         </DropdownMenuItem>,
         <DropdownMenuSeparator key="sep-cleared1" />,
-        <DropdownMenuItem key="status-partial-cleared" onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
-          🔄 Change Status &gt; Partial
+        <DropdownMenuItem key="status-partial-cleared" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'partially_cleared' })} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+          🔄 Change Status &gt; Partially Cleared
         </DropdownMenuItem>
       );
     }
@@ -677,8 +704,7 @@ export function ClaimList({ user }: ClaimListProps) {
                     <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="pending">{isAdmin ? 'Pending' : 'Stock Not Received'}</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="arrived_approved">Arrived & Approved</SelectItem>
-                    <SelectItem value="partially_approved">Partially Approved</SelectItem>
+                    <SelectItem value="partially_cleared">Partially Cleared</SelectItem>
                     <SelectItem value="cleared">Cleared</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
                   </SelectContent>
@@ -1061,7 +1087,8 @@ export function ClaimList({ user }: ClaimListProps) {
               <CardTitle className="text-lg flex items-center gap-2">
                 {actionDialog.type === 'partial' && <><AlertTriangle className="h-5 w-5 text-orange-500" /> Partial Approve</>}
                 {actionDialog.type === 'change_partial' && <><AlertTriangle className="h-5 w-5 text-orange-500" /> Change to Partial Approve</>}
-                {actionDialog.type === 'clear' && <><Banknote className="h-5 w-5 text-blue-500" /> Clear Claim</>}
+                {actionDialog.type === 'partial_clear' && <><Banknote className="h-5 w-5 text-orange-500" /> Partially Clear - Deduct Amount</>}
+                {actionDialog.type === 'clear' && <><Banknote className="h-5 w-5 text-blue-500" /> Full Clear - Deduct Full Amount</>}
                 {actionDialog.type === 'reject' && <><XCircle className="h-5 w-5 text-red-500" /> Reject Claim</>}
               </CardTitle>
             </CardHeader>
@@ -1072,9 +1099,9 @@ export function ClaimList({ user }: ClaimListProps) {
                   <span className="ml-2 text-green-600">(Current Approved: {formatAmount(actionDialog.claim.approvedAmount)})</span>
                 )}
               </p>
-              {(actionDialog.type === 'partial' || actionDialog.type === 'change_partial') && (
+              {(actionDialog.type === 'partial' || actionDialog.type === 'change_partial' || actionDialog.type === 'partial_clear') && (
                 <div>
-                  <label className="text-sm font-medium">Approved Amount (Rs.)</label>
+                  <label className="text-sm font-medium">{actionDialog.type === 'partial_clear' ? 'Amount Deducted from Shopkeeper (Rs.)' : 'Approved Amount (Rs.)'}</label>
                   <Input
                     type="number"
                     value={actionValue}
@@ -1118,7 +1145,7 @@ export function ClaimList({ user }: ClaimListProps) {
                   className={`btn-enhanced text-white shadow-md ${
                     actionDialog.type === 'reject'
                       ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
-                      : actionDialog.type === 'partial' || actionDialog.type === 'change_partial'
+                      : actionDialog.type === 'partial' || actionDialog.type === 'change_partial' || actionDialog.type === 'partial_clear'
                       ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
                       : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
                   }`}
@@ -1127,6 +1154,8 @@ export function ClaimList({ user }: ClaimListProps) {
                       handlePartialApprove(actionDialog.claim.id, Number(actionValue));
                     } else if (actionDialog.type === 'change_partial') {
                       handleChangeStatus(actionDialog.claim.id, 'partially_approved', { approvedAmount: Number(actionValue) });
+                    } else if (actionDialog.type === 'partial_clear') {
+                      handlePartiallyClear(actionDialog.claim.id, Number(actionValue));
                     } else if (actionDialog.type === 'clear') {
                       handleClear(actionDialog.claim.id, actionValue);
                     } else if (actionDialog.type === 'reject') {
@@ -1314,7 +1343,7 @@ export function ClaimList({ user }: ClaimListProps) {
               </Button>
               {Array.from(selectedClaims).every(id => {
                 const claim = claims.find(c => c.id === id);
-                return claim?.status === 'approved' || claim?.status === 'partially_approved';
+                return claim?.status === 'approved' || claim?.status === 'partially_approved' || claim?.status === 'arrived_approved' || claim?.status === 'partially_cleared';
               }) && (
                 <Button
                   size="sm"

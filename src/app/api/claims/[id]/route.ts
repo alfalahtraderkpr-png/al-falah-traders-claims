@@ -51,23 +51,28 @@ export async function PUT(
     let updateData: Record<string, unknown> = {};
 
     switch (action) {
+      // ==========================================
+      // NEW FLOW: pending → approved → partially_cleared → cleared
+      // ==========================================
+
       case 'approve':
+        // Stock arrived on floor - approve the claim
+        // Amount NOT yet deducted from shopkeeper's account
         updateData = {
-          approvedAmount: claim.netAmount || claim.totalAmount, // Approve based on net amount (after deduction)
-          status: 'arrived_approved',
+          approvedAmount: claim.netAmount || claim.totalAmount,
+          status: 'approved',
         };
         break;
 
       case 'arrive_and_approve':
         // Admin verifies physical stock + edits if needed + approves
-        // This allows editing claim items before marking as arrived_approved
+        // Stock arrived, payment still pending
         if (body.items && body.items.length > 0) {
           const totalAmount = body.items.reduce((sum: number, item: { amount: number }) => sum + (item.amount || 0), 0);
           const deductionPercent = claim.company.claimDeductionPercent || 0;
           const deductionAmount = deductionPercent > 0 ? Math.round(totalAmount * deductionPercent / 100) : 0;
           const netAmount = totalAmount - deductionAmount;
 
-          // Delete old items and create new ones
           await db.claimItem.deleteMany({ where: { claimId: id } });
 
           updateData = {
@@ -75,7 +80,7 @@ export async function PUT(
             deductionAmount,
             netAmount,
             approvedAmount: netAmount,
-            status: 'arrived_approved',
+            status: 'approved',
             claimItems: {
               create: body.items.map((item: { productId: string; quantity: number; amount: number }) => ({
                 productId: item.productId,
@@ -87,29 +92,41 @@ export async function PUT(
         } else {
           updateData = {
             approvedAmount: claim.netAmount || claim.totalAmount,
-            status: 'arrived_approved',
+            status: 'approved',
           };
         }
         break;
 
-      case 'partial_approve':
-        if (!body.approvedAmount || body.approvedAmount <= 0) {
-          return NextResponse.json({ error: 'Approved amount is required' }, { status: 400 });
+      case 'partially_cleared':
+        // Partial amount deducted from shopkeeper's account
+        if (!body.clearedAmount || Number(body.clearedAmount) <= 0) {
+          return NextResponse.json({ error: 'Cleared amount is required' }, { status: 400 });
         }
-        if (Number(body.approvedAmount) > claim.netAmount) {
-          return NextResponse.json({ error: `Approved amount cannot exceed net claim amount (Rs.${claim.netAmount})` }, { status: 400 });
+        const clearedAmount = Number(body.clearedAmount);
+        const maxAmount = claim.netAmount || claim.totalAmount;
+        if (clearedAmount >= maxAmount) {
+          // If full amount is cleared, mark as fully cleared
+          updateData = {
+            approvedAmount: maxAmount,
+            status: 'cleared',
+            clearedBy: body.clearedBy?.trim() || null,
+            clearedDate: new Date(),
+          };
+        } else {
+          updateData = {
+            approvedAmount: clearedAmount,
+            status: 'partially_cleared',
+          };
         }
-        updateData = {
-          approvedAmount: Number(body.approvedAmount),
-          status: 'partially_approved',
-        };
         break;
 
       case 'clear':
+        // Full amount deducted from shopkeeper - claim settled
         if (!body.clearedBy || !body.clearedBy.trim()) {
           return NextResponse.json({ error: 'Cleared by name is required' }, { status: 400 });
         }
         updateData = {
+          approvedAmount: claim.netAmount || claim.totalAmount,
           status: 'cleared',
           clearedBy: body.clearedBy.trim(),
           clearedDate: new Date(),
@@ -127,39 +144,47 @@ export async function PUT(
         break;
 
       case 'change_status':
-        // Allow admin to change claim status freely (e.g., approved back to pending/partial)
         if (!body.newStatus) {
           return NextResponse.json({ error: 'New status is required' }, { status: 400 });
         }
-        const validStatuses = ['pending', 'approved', 'arrived_approved', 'partially_approved', 'cleared', 'rejected'];
+        const validStatuses = ['pending', 'approved', 'partially_cleared', 'cleared', 'rejected'];
         if (!validStatuses.includes(body.newStatus)) {
           return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
         }
         updateData = { status: body.newStatus };
-        // Handle status-specific fields
         if (body.newStatus === 'pending') {
-          // Reset approval when going back to pending
           updateData.approvedAmount = null;
           updateData.clearedBy = null;
           updateData.clearedDate = null;
           updateData.rejectReason = null;
-        } else if (body.newStatus === 'approved' || body.newStatus === 'arrived_approved') {
-          updateData.approvedAmount = claim.netAmount || claim.totalAmount; // Approve based on net amount
+        } else if (body.newStatus === 'approved') {
+          updateData.approvedAmount = claim.netAmount || claim.totalAmount;
           updateData.clearedBy = null;
           updateData.clearedDate = null;
           updateData.rejectReason = null;
-        } else if (body.newStatus === 'partially_approved') {
-          // Keep existing approvedAmount or use provided amount
+        } else if (body.newStatus === 'partially_cleared') {
           const partialAmount = body.approvedAmount ? Number(body.approvedAmount) : claim.approvedAmount;
           if (!partialAmount || partialAmount <= 0) {
-            return NextResponse.json({ error: 'Approved amount is required for partial approval' }, { status: 400 });
+            return NextResponse.json({ error: 'Cleared amount is required for partial clear' }, { status: 400 });
           }
-          if (partialAmount > claim.netAmount) {
-            return NextResponse.json({ error: `Approved amount cannot exceed net amount (Rs.${claim.netAmount})` }, { status: 400 });
+          const maxAmt = claim.netAmount || claim.totalAmount;
+          if (partialAmount >= maxAmt) {
+            // Full amount means it should be cleared, not partially_cleared
+            updateData.approvedAmount = maxAmt;
+            updateData.status = 'cleared';
+            updateData.clearedBy = body.clearedBy?.trim() || null;
+            updateData.clearedDate = new Date();
+            updateData.rejectReason = null;
+          } else {
+            updateData.approvedAmount = partialAmount;
+            updateData.clearedBy = null;
+            updateData.clearedDate = null;
+            updateData.rejectReason = null;
           }
-          updateData.approvedAmount = partialAmount;
-          updateData.clearedBy = null;
-          updateData.clearedDate = null;
+        } else if (body.newStatus === 'cleared') {
+          updateData.approvedAmount = claim.netAmount || claim.totalAmount;
+          updateData.clearedBy = body.clearedBy?.trim() || null;
+          updateData.clearedDate = new Date();
           updateData.rejectReason = null;
         } else if (body.newStatus === 'rejected') {
           if (!body.rejectReason || !body.rejectReason.trim()) {
@@ -172,7 +197,6 @@ export async function PUT(
         break;
 
       case 'update':
-        // Update claim details (if pending or rejected — rejected allows resubmit)
         if (claim.status !== 'pending' && claim.status !== 'rejected') {
           return NextResponse.json({ error: 'Can only edit pending or rejected claims' }, { status: 400 });
         }
@@ -180,16 +204,13 @@ export async function PUT(
         if (items && items.length > 0) {
           const totalAmount = items.reduce((sum: number, item: { amount: number }) => sum + (item.amount || 0), 0);
 
-          // Calculate deduction based on company's claimDeductionPercent
           const updatedCompany = companyId ? await db.company.findUnique({ where: { id: companyId } }) : claim.company;
           const deductionPercent = (updatedCompany?.claimDeductionPercent || 0);
           const deductionAmount = deductionPercent > 0 ? Math.round(totalAmount * deductionPercent / 100) : 0;
           const netAmount = totalAmount - deductionAmount;
 
-          // Delete old items and create new ones
           await db.claimItem.deleteMany({ where: { claimId: id } });
 
-          // If claim was rejected, resubmit it back to pending (reset rejection data)
           const isResubmit = claim.status === 'rejected';
 
           updateData = {
@@ -251,9 +272,6 @@ export async function DELETE(
     if (!claim) {
       return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
     }
-
-    // Allow deletion of any claim (admin can delete mistaken claims)
-    // Extra confirmation is handled on the frontend
 
     await db.claimItem.deleteMany({ where: { claimId: id } });
     await db.claim.delete({ where: { id } });

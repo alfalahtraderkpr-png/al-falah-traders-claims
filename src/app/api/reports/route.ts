@@ -85,44 +85,51 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate summary
+    // Normalize legacy statuses: arrived_approved → approved, partially_approved/partially_cleared → partial
+    const normalizeStatus = (s: string) => {
+      if (s === 'arrived_approved') return 'approved';
+      if (s === 'partially_approved' || s === 'partially_cleared') return 'partial';
+      return s;
+    };
+
     const summary = {
       totalClaims: claims.length,
       totalAmount: claims.reduce((s, c) => s + c.totalAmount, 0),
       totalApproved: claims.reduce((s, c) => s + (c.approvedAmount || 0), 0),
       byStatus: {
-        pending: claims.filter((c) => c.status === 'pending').length,
-        approved: claims.filter((c) => c.status === 'approved').length,
-        partial: claims.filter((c) => c.status === 'partial').length,
-        cleared: claims.filter((c) => c.status === 'cleared').length,
-        rejected: claims.filter((c) => c.status === 'rejected').length,
+        pending: claims.filter((c) => normalizeStatus(c.status) === 'pending').length,
+        approved: claims.filter((c) => normalizeStatus(c.status) === 'approved').length,
+        partial: claims.filter((c) => normalizeStatus(c.status) === 'partial').length,
+        cleared: claims.filter((c) => normalizeStatus(c.status) === 'cleared').length,
+        rejected: claims.filter((c) => normalizeStatus(c.status) === 'rejected').length,
       },
       // Pending Claims = Stock not received yet
       pendingClaims: {
-        count: claims.filter((c) => c.status === 'pending').length,
-        totalAmount: claims.filter((c) => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0),
+        count: claims.filter((c) => normalizeStatus(c.status) === 'pending').length,
+        totalAmount: claims.filter((c) => normalizeStatus(c.status) === 'pending').reduce((s, c) => s + c.totalAmount, 0),
       },
       // Approved = Stock arrived on floor, payment deduction pending
       approvedClaims: {
-        count: claims.filter((c) => c.status === 'approved').length,
-        totalAmount: claims.filter((c) => c.status === 'approved').reduce((s, c) => s + c.totalAmount, 0),
-        approvedAmount: claims.filter((c) => c.status === 'approved').reduce((s, c) => s + (c.approvedAmount || 0), 0),
+        count: claims.filter((c) => normalizeStatus(c.status) === 'approved').length,
+        totalAmount: claims.filter((c) => normalizeStatus(c.status) === 'approved').reduce((s, c) => s + c.totalAmount, 0),
+        approvedAmount: claims.filter((c) => normalizeStatus(c.status) === 'approved').reduce((s, c) => s + (c.approvedAmount || 0), 0),
       },
       // Stock Not Received = Still at shop (pending status)
       stockNotReceived: {
-        count: claims.filter((c) => c.status === 'pending').length,
-        totalAmount: claims.filter((c) => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0),
+        count: claims.filter((c) => normalizeStatus(c.status) === 'pending').length,
+        totalAmount: claims.filter((c) => normalizeStatus(c.status) === 'pending').reduce((s, c) => s + c.totalAmount, 0),
       },
       // Partially Cleared = Some amount deducted, more pending
       partiallyClearedClaims: {
-        count: claims.filter((c) => c.status === 'partial').length,
-        totalAmount: claims.filter((c) => c.status === 'partial').reduce((s, c) => s + c.totalAmount, 0),
-        approvedAmount: claims.filter((c) => c.status === 'partial').reduce((s, c) => s + (c.approvedAmount || 0), 0),
+        count: claims.filter((c) => normalizeStatus(c.status) === 'partial').length,
+        totalAmount: claims.filter((c) => normalizeStatus(c.status) === 'partial').reduce((s, c) => s + c.totalAmount, 0),
+        approvedAmount: claims.filter((c) => normalizeStatus(c.status) === 'partial').reduce((s, c) => s + (c.approvedAmount || 0), 0),
       },
       // Cleared Claims = Admin has cleared/paid
       clearedClaims: {
-        count: claims.filter((c) => c.status === 'cleared').length,
-        totalAmount: claims.filter((c) => c.status === 'cleared').reduce((s, c) => s + c.totalAmount, 0),
-        approvedAmount: claims.filter((c) => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || 0), 0),
+        count: claims.filter((c) => normalizeStatus(c.status) === 'cleared').length,
+        totalAmount: claims.filter((c) => normalizeStatus(c.status) === 'cleared').reduce((s, c) => s + c.totalAmount, 0),
+        approvedAmount: claims.filter((c) => normalizeStatus(c.status) === 'cleared').reduce((s, c) => s + (c.approvedAmount || 0), 0),
       },
     };
 

@@ -44,6 +44,13 @@ interface Claim {
   createdAt: string;
 }
 
+// Normalize legacy statuses to current statuses
+function normalizeStatus(status: string): string {
+  if (status === 'arrived_approved') return 'approved';
+  if (status === 'partially_approved' || status === 'partially_cleared') return 'partial';
+  return status;
+}
+
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
@@ -428,17 +435,17 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
 
   const totalAmount = filtered.reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
   const totalApproved = filtered.reduce((s, c) => s + (c.approvedAmount || 0), 0);
-  const pendingAmount = filtered.filter(c => c.status === 'pending').reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
-  const clearedAmount = filtered.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
-  const rejectedAmount = filtered.filter(c => c.status === 'rejected').reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
+  const pendingAmount = filtered.filter(c => normalizeStatus(c.status) === 'pending').reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
+  const clearedAmount = filtered.filter(c => normalizeStatus(c.status) === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
+  const rejectedAmount = filtered.filter(c => normalizeStatus(c.status) === 'rejected').reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
   const remainingAmount = totalAmount - totalApproved;
 
   const byStatus = {
-    pending: filtered.filter(c => c.status === 'pending').length,
-    approved: filtered.filter(c => c.status === 'approved').length,
-    partial: filtered.filter(c => c.status === 'partial').length,
-    cleared: filtered.filter(c => c.status === 'cleared').length,
-    rejected: filtered.filter(c => c.status === 'rejected').length,
+    pending: filtered.filter(c => normalizeStatus(c.status) === 'pending').length,
+    approved: filtered.filter(c => normalizeStatus(c.status) === 'approved').length,
+    partial: filtered.filter(c => normalizeStatus(c.status) === 'partial').length,
+    cleared: filtered.filter(c => normalizeStatus(c.status) === 'cleared').length,
+    rejected: filtered.filter(c => normalizeStatus(c.status) === 'rejected').length,
   };
 
   const selectedOB = orderBookers.find(o => o.id === filterOB);
@@ -546,9 +553,9 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
                       <td className="py-2 px-3">{c.shop.name}</td>
                       <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right font-medium text-blue-700">{c.status === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
+                      <td className="py-2 px-3 text-right font-medium text-blue-700">{normalizeStatus(c.status) === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">
-                        {c.status === 'rejected' ? '-' : c.status === 'approved' ? (
+                        {normalizeStatus(c.status) === 'rejected' ? '-' : normalizeStatus(c.status) === 'approved' ? (
                           <span className="text-emerald-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
                         ) : (
                           <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
@@ -556,7 +563,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
                           </span>
                         )}
                       </td>
-                      <td className="py-2 px-3 text-center"><Badge className={`${statusColors[c.status]} border text-xs`}>{statusLabels[c.status]}</Badge></td>
+                      <td className="py-2 px-3 text-center"><Badge className={`${statusColors[normalizeStatus(c.status)]} border text-xs`}>{statusLabels[normalizeStatus(c.status)]}</Badge></td>
                     </tr>
                   ))}
                 </tbody>
@@ -581,7 +588,8 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
 
   const pending = allClaims.filter(c => {
     // Include claims that are not yet cleared - pending, approved, and partial
-    if (c.status === 'cleared' || c.status === 'rejected') return false;
+    const ns = normalizeStatus(c.status);
+    if (ns === 'cleared' || ns === 'rejected') return false;
     if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
     if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
     return true;
@@ -719,16 +727,16 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
       name: ob.name,
       totalClaims: obClaims.length,
       totalAmount: obClaims.reduce((s, c) => s + c.totalAmount, 0),
-      pending: obClaims.filter(c => c.status === 'pending').length,
-      pendingAmount: obClaims.filter(c => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0),
-      approved: obClaims.filter(c => c.status === 'approved').length,
-      approvedAmount: obClaims.filter(c => c.status === 'approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
-      cleared: obClaims.filter(c => c.status === 'cleared').length,
-      clearedAmount: obClaims.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
+      pending: obClaims.filter(c => normalizeStatus(c.status) === 'pending').length,
+      pendingAmount: obClaims.filter(c => normalizeStatus(c.status) === 'pending').reduce((s, c) => s + c.totalAmount, 0),
+      approved: obClaims.filter(c => normalizeStatus(c.status) === 'approved').length,
+      approvedAmount: obClaims.filter(c => normalizeStatus(c.status) === 'approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
+      cleared: obClaims.filter(c => normalizeStatus(c.status) === 'cleared').length,
+      clearedAmount: obClaims.filter(c => normalizeStatus(c.status) === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
       remainingAmount: obClaims.reduce((s, c) => s + c.totalAmount, 0) - obClaims.reduce((s, c) => s + (c.approvedAmount || 0), 0),
-      rejected: obClaims.filter(c => c.status === 'rejected').length,
-      rejectedAmount: obClaims.filter(c => c.status === 'rejected').reduce((s, c) => s + c.totalAmount, 0),
-      clearanceRate: obClaims.length > 0 ? Math.round((obClaims.filter(c => c.status === 'cleared').length / obClaims.length) * 100) : 0,
+      rejected: obClaims.filter(c => normalizeStatus(c.status) === 'rejected').length,
+      rejectedAmount: obClaims.filter(c => normalizeStatus(c.status) === 'rejected').reduce((s, c) => s + c.totalAmount, 0),
+      clearanceRate: obClaims.length > 0 ? Math.round((obClaims.filter(c => normalizeStatus(c.status) === 'cleared').length / obClaims.length) * 100) : 0,
     };
   }).sort((a, b) => b.totalAmount - a.totalAmount);
 
@@ -820,15 +828,15 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
   // Group by company
   const companyGroups = companies.map(comp => {
     const compClaims = filtered.filter(c => c.companyId === comp.id);
-    const compCleared = compClaims.filter(c => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0);
+    const compCleared = compClaims.filter(c => normalizeStatus(c.status) === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0);
     const compTotal = compClaims.reduce((s, c) => s + c.totalAmount, 0);
     return {
       id: comp.id,
       name: comp.name,
       claims: compClaims,
       total: compTotal,
-      pending: compClaims.filter(c => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0),
-      approved: compClaims.filter(c => c.status === 'approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
+      pending: compClaims.filter(c => normalizeStatus(c.status) === 'pending').reduce((s, c) => s + c.totalAmount, 0),
+      approved: compClaims.filter(c => normalizeStatus(c.status) === 'approved').reduce((s, c) => s + (c.approvedAmount || c.totalAmount), 0),
       cleared: compCleared,
       remaining: compTotal - compClaims.reduce((s, c) => s + (c.approvedAmount || 0), 0),
     };
@@ -921,9 +929,9 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                       <td className="py-2 px-3">{c.shop.name}</td>
                       <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
                       <td className="py-2 px-3 text-right">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right text-blue-700">{c.status === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
+                      <td className="py-2 px-3 text-right text-blue-700">{normalizeStatus(c.status) === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">
-                        {c.status === 'rejected' ? '-' : c.status === 'approved' ? (
+                        {normalizeStatus(c.status) === 'rejected' ? '-' : normalizeStatus(c.status) === 'approved' ? (
                           <span className="text-emerald-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
                         ) : (
                           <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
@@ -931,7 +939,7 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                           </span>
                         )}
                       </td>
-                      <td className="py-2 px-3 text-center"><Badge className={`${statusColors[c.status]} border text-xs`}>{statusLabels[c.status]}</Badge></td>
+                      <td className="py-2 px-3 text-center"><Badge className={`${statusColors[normalizeStatus(c.status)]} border text-xs`}>{statusLabels[normalizeStatus(c.status)]}</Badge></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1188,9 +1196,11 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
   const [filterOB, setFilterOB] = useState('all');
   const [filterCompany, setFilterCompany] = useState('all');
 
-  // Approved Claims = Stock arrived on floor, payment not yet deducted
+  // Pending + Approved Claims = Stock not yet received OR arrived on floor but not cleared
+  // Also handles legacy statuses (arrived_approved → approved, partially_approved/partially_cleared → partial)
   const filtered = allClaims.filter(c => {
-    if (c.status !== 'approved') return false;
+    const normalized = normalizeStatus(c.status);
+    if (normalized !== 'pending' && normalized !== 'approved' && normalized !== 'partial') return false;
     if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
     if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
     return true;
@@ -1205,9 +1215,9 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
       {/* Header */}
       <div className="flex items-center gap-2">
         <Clock className="h-5 w-5 text-teal-600" />
-        <h3 className="text-lg font-semibold text-teal-800">Pending Claims (Arrived & Approved)</h3>
+        <h3 className="text-lg font-semibold text-teal-800">Pending Claims</h3>
       </div>
-      <p className="text-sm text-muted-foreground">Claims jahan stock distribution par aa chuka hai but abhi tak clear nahi hua. Admin ko ye claims clear karni hain.</p>
+      <p className="text-sm text-muted-foreground">Claims jo abhi tak clear nahi hui — stock pending, approved ya partial status mein. Admin ko ye claims clear karni hain.</p>
 
       {/* Filters */}
       <Card className="shadow-sm no-print">
@@ -1237,7 +1247,7 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
       {/* Print Header */}
       <div className="hidden print-block print-header">
         <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Pending Claims Report (Arrived & Approved)</h2>
+        <h2 className="text-lg font-semibold text-center mt-1">Pending Claims Report</h2>
         {(selectedOB || selectedComp) && (
           <p className="text-sm text-center mt-1">
             {selectedOB ? `Order Booker: ${selectedOB.name}` : ''}
@@ -1252,13 +1262,21 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
       {/* Summary */}
       <Card className="shadow-sm print-hide-cards">
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="grid grid-cols-4 gap-4 text-center">
             <div className="bg-teal-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Pending Claims</p>
+              <p className="text-xs text-muted-foreground">Total Pending</p>
               <p className="text-2xl font-bold text-teal-700">{filtered.length}</p>
             </div>
+            <div className="bg-yellow-50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Stock Not Received</p>
+              <p className="text-2xl font-bold text-yellow-700">{filtered.filter(c => normalizeStatus(c.status) === 'pending').length}</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Approved (Arrived)</p>
+              <p className="text-2xl font-bold text-green-700">{filtered.filter(c => normalizeStatus(c.status) === 'approved').length}</p>
+            </div>
             <div className="bg-emerald-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Total Pending Amount</p>
+              <p className="text-xs text-muted-foreground">Total Amount</p>
               <p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotal)}</p>
             </div>
           </div>
@@ -1278,11 +1296,12 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
                     <th className="text-left py-2 px-3 font-medium">#</th>
                     <th className="text-left py-2 px-3 font-medium">Claim #</th>
                     <th className="text-left py-2 px-3 font-medium">Date</th>
+                    <th className="text-left py-2 px-3 font-medium">Status</th>
                     <th className="text-left py-2 px-3 font-medium">Company</th>
                     <th className="text-left py-2 px-3 font-medium">Shop</th>
                     <th className="text-left py-2 px-3 font-medium">Supplier</th>
                     <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                    <th className="text-right py-2 px-3 font-medium">Approved Amount</th>
+                    <th className="text-right py-2 px-3 font-medium">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1291,6 +1310,11 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
                       <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
                       <td className="py-2 px-3 font-medium text-emerald-700">{claim.claimNumber}</td>
                       <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
+                      <td className="py-2 px-3">
+                        <Badge className={`${statusColors[normalizeStatus(claim.status)] || ''} text-xs`}>
+                          {statusLabels[normalizeStatus(claim.status)] || claim.status}
+                        </Badge>
+                      </td>
                       <td className="py-2 px-3">{claim.company.name}</td>
                       <td className="py-2 px-3">{claim.shop.name}</td>
                       <td className="py-2 px-3">{claim.supplier.name}</td>
@@ -1301,7 +1325,7 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
-                    <td colSpan={7} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
+                    <td colSpan={8} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
                     <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotal)}</td>
                   </tr>
                 </tfoot>

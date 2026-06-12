@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       db.claim.count({ where }),
       // Pending = Stock not received yet, claim created but not approved
-      db.claim.aggregate({ where: { ...where, status: 'pending' }, _sum: { totalAmount: true }, _count: true }),
-      // Approved = Stock arrived on floor, amount deduction pending
-      db.claim.aggregate({ where: { ...where, status: 'approved' }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
-      // Partial = Some amount deducted from shopkeeper, more pending
-      db.claim.aggregate({ where: { ...where, status: 'partial' }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
+      db.claim.aggregate({ where: { ...where, status: { in: ['pending'] } }, _sum: { totalAmount: true }, _count: true }),
+      // Approved = Stock arrived on floor, amount deduction pending (includes legacy 'arrived_approved')
+      db.claim.aggregate({ where: { ...where, status: { in: ['approved', 'arrived_approved'] } }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
+      // Partial = Some amount deducted from shopkeeper, more pending (includes legacy 'partially_approved', 'partially_cleared')
+      db.claim.aggregate({ where: { ...where, status: { in: ['partial', 'partially_approved', 'partially_cleared'] } }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
       // Cleared = Full amount deducted, claim complete
       db.claim.aggregate({ where: { ...where, status: 'cleared' }, _sum: { totalAmount: true, approvedAmount: true }, _count: true }),
       // Rejected
@@ -47,9 +47,9 @@ export async function GET(request: NextRequest) {
           orderBooker: true,
         },
       }),
-      // Get all non-cleared claims for shop outstanding calculation
+      // Get all non-cleared claims for shop outstanding calculation (includes legacy statuses)
       db.claim.findMany({
-        where: { ...where, status: { in: ['pending', 'approved', 'partial'] } },
+        where: { ...where, status: { in: ['pending', 'approved', 'partial', 'arrived_approved', 'partially_approved', 'partially_cleared'] } },
         include: {
           shop: true,
           company: true,

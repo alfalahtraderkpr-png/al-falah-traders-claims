@@ -17,10 +17,11 @@ import {
   Shield,
   Sun,
   Moon,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-type Section = 'dashboard' | 'claims' | 'companies' | 'products' | 'suppliers' | 'shops' | 'order-bookers' | 'users' | 'reports';
+type Section = 'dashboard' | 'claims' | 'companies' | 'products' | 'suppliers' | 'shops' | 'order-bookers' | 'users' | 'reports' | 'stock-not-received';
 
 interface AppLayoutProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -33,6 +34,7 @@ interface AppLayoutProps {
 const adminNavItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'claims', label: 'Claims', icon: FileText },
+  { id: 'stock-not-received', label: 'Stock Not Received', icon: AlertTriangle },
   { id: 'companies', label: 'Companies', icon: Building2 },
   { id: 'products', label: 'Products', icon: Package },
   { id: 'suppliers', label: 'Suppliers', icon: Truck },
@@ -158,7 +160,7 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
             </Button>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-emerald-800 dark:text-emerald-300 capitalize animate-fade-in">
-                {activeSection === 'order-bookers' ? 'Order Bookers' : activeSection === 'users' ? 'Users' : activeSection.replace('-', ' ')}
+                {activeSection === 'order-bookers' ? 'Order Bookers' : activeSection === 'users' ? 'Users' : activeSection === 'stock-not-received' ? 'Stock Not Received' : activeSection.replace('-', ' ')}
               </h2>
             </div>
             <div className="flex items-center gap-3">

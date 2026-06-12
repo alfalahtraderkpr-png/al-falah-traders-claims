@@ -47,6 +47,7 @@ interface Claim {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
+  arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
   partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
@@ -55,6 +56,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
+  arrived_approved: 'Arrived & Approved',
   partially_approved: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
@@ -65,17 +67,17 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
   const [allClaims, setAllClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('pending_claims');
 
   const isAdmin = user.role === 'admin';
 
   const adminTabs = [
-    { value: 'pending', label: 'Pending', icon: Clock },
+    { value: 'pending_claims', label: 'Pending Claims', icon: Clock },
+    { value: 'cleared_claims', label: 'Cleared Claims', icon: Banknote },
     { value: 'summary', label: 'Summary', icon: BarChart3 },
     { value: 'aging', label: 'Aging', icon: Clock },
     { value: 'performance', label: 'OB Report', icon: Users },
     { value: 'company', label: 'Company', icon: Building2 },
-    { value: 'cleared', label: 'Payments', icon: Banknote },
     { value: 'detail', label: 'Detail', icon: ClipboardList },
   ];
 
@@ -237,11 +239,13 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
 
       <div ref={printRef} className="print-area">
         {activeTab === 'pending' && <PendingClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
+        {activeTab === 'pending_claims' && isAdmin && <PendingClaimsArrivedReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'summary' && <ClaimsSummaryReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'aging' && <ClaimsAgingReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'performance' && isAdmin && <OBPerformanceReport orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
         {activeTab === 'company' && isAdmin && <CompanyClaimsReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
         {activeTab === 'cleared' && isAdmin && <ClearedPaymentReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
+        {activeTab === 'cleared_claims' && isAdmin && <ClearedClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'detail' && isAdmin && <ClaimDetailReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
       </div>
     </div>
@@ -426,6 +430,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
   const byStatus = {
     pending: filtered.filter(c => c.status === 'pending').length,
     approved: filtered.filter(c => c.status === 'approved').length,
+    arrived_approved: filtered.filter(c => c.status === 'arrived_approved').length,
     partially_approved: filtered.filter(c => c.status === 'partially_approved').length,
     cleared: filtered.filter(c => c.status === 'cleared').length,
     rejected: filtered.filter(c => c.status === 'rejected').length,
@@ -1157,6 +1162,283 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
             </CardContent>
           </Card>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   REPORT: Pending Claims (Arrived & Approved)
+   Claims that have arrived at distribution but NOT yet cleared.
+   These are "pending" in the sense of pending clearance.
+   ───────────────────────────────────────────── */
+function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
+  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
+}) {
+  const [filterOB, setFilterOB] = useState('all');
+  const [filterCompany, setFilterCompany] = useState('all');
+
+  // Pending Claims = Arrived & Approved (stock at distribution, not yet cleared)
+  const filtered = allClaims.filter(c => {
+    if (c.status !== 'arrived_approved') return false;
+    if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
+    if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
+    return true;
+  });
+
+  const grandTotal = filtered.reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
+  const selectedOB = orderBookers.find(o => o.id === filterOB);
+  const selectedComp = companies.find(c => c.id === filterCompany);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Clock className="h-5 w-5 text-teal-600" />
+        <h3 className="text-lg font-semibold text-teal-800">Pending Claims (Arrived & Approved)</h3>
+      </div>
+      <p className="text-sm text-muted-foreground">Claims jahan stock distribution par aa chuka hai but abhi tak clear nahi hua. Admin ko ye claims clear karni hain.</p>
+
+      {/* Filters */}
+      <Card className="shadow-sm no-print">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Select value={filterOB} onValueChange={setFilterOB}>
+              <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Bookers</SelectItem>
+                {orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterCompany} onValueChange={setFilterCompany}>
+              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Companies</SelectItem>
+                {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Printer className="h-4 w-4 mr-2" /> Print Report
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Print Header */}
+      <div className="hidden print-block print-header">
+        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
+        <h2 className="text-lg font-semibold text-center mt-1">Pending Claims Report (Arrived & Approved)</h2>
+        {(selectedOB || selectedComp) && (
+          <p className="text-sm text-center mt-1">
+            {selectedOB ? `Order Booker: ${selectedOB.name}` : ''}
+            {selectedOB && selectedComp ? ' | ' : ''}
+            {selectedComp ? `Company: ${selectedComp.name}` : ''}
+          </p>
+        )}
+        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
+        <hr className="my-3 border-gray-400" />
+      </div>
+
+      {/* Summary */}
+      <Card className="shadow-sm print-hide-cards">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="bg-teal-50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Pending Claims</p>
+              <p className="text-2xl font-bold text-teal-700">{filtered.length}</p>
+            </div>
+            <div className="bg-emerald-50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Total Pending Amount</p>
+              <p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotal)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <Card className="shadow-sm"><CardContent className="py-12 text-center"><FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-muted-foreground">No pending claims (all claims are cleared)</p></CardContent></Card>
+      ) : (
+        <Card className="shadow-sm">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm print-table">
+                <thead>
+                  <tr className="border-b bg-gray-50 print-bg-gray">
+                    <th className="text-left py-2 px-3 font-medium">#</th>
+                    <th className="text-left py-2 px-3 font-medium">Claim #</th>
+                    <th className="text-left py-2 px-3 font-medium">Date</th>
+                    <th className="text-left py-2 px-3 font-medium">Company</th>
+                    <th className="text-left py-2 px-3 font-medium">Shop</th>
+                    <th className="text-left py-2 px-3 font-medium">Supplier</th>
+                    <th className="text-left py-2 px-3 font-medium">Order Booker</th>
+                    <th className="text-right py-2 px-3 font-medium">Approved Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((claim, i) => (
+                    <tr key={claim.id} className="border-b">
+                      <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
+                      <td className="py-2 px-3 font-medium text-emerald-700">{claim.claimNumber}</td>
+                      <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
+                      <td className="py-2 px-3">{claim.company.name}</td>
+                      <td className="py-2 px-3">{claim.shop.name}</td>
+                      <td className="py-2 px-3">{claim.supplier.name}</td>
+                      <td className="py-2 px-3">{claim.orderBooker?.name || '-'}</td>
+                      <td className="py-2 px-3 text-right font-medium text-teal-700">{formatAmount(claim.approvedAmount || claim.netAmount || claim.totalAmount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
+                    <td colSpan={7} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
+                    <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotal)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   REPORT: Cleared Claims Report
+   Claims that admin has cleared/paid.
+   ───────────────────────────────────────────── */
+function ClearedClaimsReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
+  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
+}) {
+  const [filterOB, setFilterOB] = useState('all');
+  const [filterCompany, setFilterCompany] = useState('all');
+
+  const filtered = allClaims.filter(c => {
+    if (c.status !== 'cleared') return false;
+    if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
+    if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
+    return true;
+  });
+
+  const grandTotal = filtered.reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
+  const selectedOB = orderBookers.find(o => o.id === filterOB);
+  const selectedComp = companies.find(c => c.id === filterCompany);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Banknote className="h-5 w-5 text-blue-600" />
+        <h3 className="text-lg font-semibold text-blue-800">Cleared Claims</h3>
+      </div>
+      <p className="text-sm text-muted-foreground">Claims jo admin ne clear kar di hain. Payment ho chuki hai.</p>
+
+      {/* Filters */}
+      <Card className="shadow-sm no-print">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Select value={filterOB} onValueChange={setFilterOB}>
+              <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Bookers</SelectItem>
+                {orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterCompany} onValueChange={setFilterCompany}>
+              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Companies</SelectItem>
+                {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Printer className="h-4 w-4 mr-2" /> Print Report
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Print Header */}
+      <div className="hidden print-block print-header">
+        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
+        <h2 className="text-lg font-semibold text-center mt-1">Cleared Claims Report</h2>
+        {(selectedOB || selectedComp) && (
+          <p className="text-sm text-center mt-1">
+            {selectedOB ? `Order Booker: ${selectedOB.name}` : ''}
+            {selectedOB && selectedComp ? ' | ' : ''}
+            {selectedComp ? `Company: ${selectedComp.name}` : ''}
+          </p>
+        )}
+        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
+        <hr className="my-3 border-gray-400" />
+      </div>
+
+      {/* Summary */}
+      <Card className="shadow-sm print-hide-cards">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="bg-blue-50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Cleared Claims</p>
+              <p className="text-2xl font-bold text-blue-700">{filtered.length}</p>
+            </div>
+            <div className="bg-emerald-50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Total Cleared Amount</p>
+              <p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotal)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <Card className="shadow-sm"><CardContent className="py-12 text-center"><FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-muted-foreground">No cleared claims found</p></CardContent></Card>
+      ) : (
+        <Card className="shadow-sm">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm print-table">
+                <thead>
+                  <tr className="border-b bg-gray-50 print-bg-gray">
+                    <th className="text-left py-2 px-3 font-medium">#</th>
+                    <th className="text-left py-2 px-3 font-medium">Claim #</th>
+                    <th className="text-left py-2 px-3 font-medium">Date</th>
+                    <th className="text-left py-2 px-3 font-medium">Company</th>
+                    <th className="text-left py-2 px-3 font-medium">Shop</th>
+                    <th className="text-left py-2 px-3 font-medium">Supplier</th>
+                    <th className="text-left py-2 px-3 font-medium">Order Booker</th>
+                    <th className="text-right py-2 px-3 font-medium">Cleared Amount</th>
+                    <th className="text-left py-2 px-3 font-medium">Cleared By</th>
+                    <th className="text-left py-2 px-3 font-medium">Cleared Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((claim, i) => (
+                    <tr key={claim.id} className="border-b">
+                      <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
+                      <td className="py-2 px-3 font-medium text-emerald-700">{claim.claimNumber}</td>
+                      <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
+                      <td className="py-2 px-3">{claim.company.name}</td>
+                      <td className="py-2 px-3">{claim.shop.name}</td>
+                      <td className="py-2 px-3">{claim.supplier.name}</td>
+                      <td className="py-2 px-3">{claim.orderBooker?.name || '-'}</td>
+                      <td className="py-2 px-3 text-right font-medium text-blue-700">{formatAmount(claim.approvedAmount || claim.netAmount || claim.totalAmount)}</td>
+                      <td className="py-2 px-3">{claim.clearedBy || '-'}</td>
+                      <td className="py-2 px-3">{claim.clearedDate ? new Date(claim.clearedDate).toLocaleDateString() : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
+                    <td colSpan={7} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
+                    <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotal)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -92,9 +92,27 @@ export async function GET(request: NextRequest) {
       byStatus: {
         pending: claims.filter((c) => c.status === 'pending').length,
         approved: claims.filter((c) => c.status === 'approved').length,
+        arrived_approved: claims.filter((c) => c.status === 'arrived_approved').length,
         partially_approved: claims.filter((c) => c.status === 'partially_approved').length,
         cleared: claims.filter((c) => c.status === 'cleared').length,
         rejected: claims.filter((c) => c.status === 'rejected').length,
+      },
+      // Pending Claims = Arrived & Approved (stock at distribution, not yet cleared)
+      pendingClaims: {
+        count: claims.filter((c) => c.status === 'arrived_approved').length,
+        totalAmount: claims.filter((c) => c.status === 'arrived_approved').reduce((s, c) => s + c.totalAmount, 0),
+        approvedAmount: claims.filter((c) => c.status === 'arrived_approved').reduce((s, c) => s + (c.approvedAmount || 0), 0),
+      },
+      // Stock Not Received = Still at shop (pending status)
+      stockNotReceived: {
+        count: claims.filter((c) => c.status === 'pending').length,
+        totalAmount: claims.filter((c) => c.status === 'pending').reduce((s, c) => s + c.totalAmount, 0),
+      },
+      // Cleared Claims = Admin has cleared/paid
+      clearedClaims: {
+        count: claims.filter((c) => c.status === 'cleared').length,
+        totalAmount: claims.filter((c) => c.status === 'cleared').reduce((s, c) => s + c.totalAmount, 0),
+        approvedAmount: claims.filter((c) => c.status === 'cleared').reduce((s, c) => s + (c.approvedAmount || 0), 0),
       },
     };
 

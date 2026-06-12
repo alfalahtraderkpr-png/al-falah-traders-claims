@@ -54,8 +54,42 @@ export async function PUT(
       case 'approve':
         updateData = {
           approvedAmount: claim.netAmount || claim.totalAmount, // Approve based on net amount (after deduction)
-          status: 'approved',
+          status: 'arrived_approved',
         };
+        break;
+
+      case 'arrive_and_approve':
+        // Admin verifies physical stock + edits if needed + approves
+        // This allows editing claim items before marking as arrived_approved
+        if (body.items && body.items.length > 0) {
+          const totalAmount = body.items.reduce((sum: number, item: { amount: number }) => sum + (item.amount || 0), 0);
+          const deductionPercent = claim.company.claimDeductionPercent || 0;
+          const deductionAmount = deductionPercent > 0 ? Math.round(totalAmount * deductionPercent / 100) : 0;
+          const netAmount = totalAmount - deductionAmount;
+
+          // Delete old items and create new ones
+          await db.claimItem.deleteMany({ where: { claimId: id } });
+
+          updateData = {
+            totalAmount,
+            deductionAmount,
+            netAmount,
+            approvedAmount: netAmount,
+            status: 'arrived_approved',
+            claimItems: {
+              create: body.items.map((item: { productId: string; quantity: number; amount: number }) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                amount: item.amount,
+              })),
+            },
+          };
+        } else {
+          updateData = {
+            approvedAmount: claim.netAmount || claim.totalAmount,
+            status: 'arrived_approved',
+          };
+        }
         break;
 
       case 'partial_approve':
@@ -97,7 +131,7 @@ export async function PUT(
         if (!body.newStatus) {
           return NextResponse.json({ error: 'New status is required' }, { status: 400 });
         }
-        const validStatuses = ['pending', 'approved', 'partially_approved', 'cleared', 'rejected'];
+        const validStatuses = ['pending', 'approved', 'arrived_approved', 'partially_approved', 'cleared', 'rejected'];
         if (!validStatuses.includes(body.newStatus)) {
           return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
         }
@@ -109,7 +143,7 @@ export async function PUT(
           updateData.clearedBy = null;
           updateData.clearedDate = null;
           updateData.rejectReason = null;
-        } else if (body.newStatus === 'approved') {
+        } else if (body.newStatus === 'approved' || body.newStatus === 'arrived_approved') {
           updateData.approvedAmount = claim.netAmount || claim.totalAmount; // Approve based on net amount
           updateData.clearedBy = null;
           updateData.clearedDate = null;

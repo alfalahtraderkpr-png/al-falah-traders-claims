@@ -89,6 +89,17 @@ export async function POST() {
       }
     }
 
+    // Step 6: Migrate existing 'approved' claims to 'arrived_approved' status
+    try {
+      const migrationResult = await db.$executeRawUnsafe(`
+        UPDATE "Claim" SET status = 'arrived_approved' WHERE status = 'approved' AND "clearedBy" IS NULL;
+      `);
+      results.push(`Migrated ${migrationResult} approved claims to arrived_approved status`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      results.push(`Warning migrating approved claims: ${msg}`);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Migration completed',

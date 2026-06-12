@@ -14,6 +14,7 @@ interface DashboardData {
   totalClaims: number;
   pendingClaims: { count: number; totalAmount: number };
   approvedClaims: { count: number; totalAmount: number; approvedAmount: number };
+  arrivedApprovedClaims: { count: number; totalAmount: number; approvedAmount: number };
   clearedClaims: { count: number; totalAmount: number; approvedAmount: number };
   rejectedClaims: { count: number; totalAmount: number };
   remainingPendingAmount: number;
@@ -41,6 +42,7 @@ interface DashboardData {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
+  arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
   partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
@@ -49,6 +51,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
+  arrived_approved: 'Arrived & Approved',
   partially_approved: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
@@ -130,7 +133,7 @@ export function Dashboard({ user }: DashboardProps) {
       iconBg: 'bg-emerald-100',
     },
     {
-      title: 'Pending Claims',
+      title: 'Stock Not Received',
       value: data.pendingClaims.count,
       subtitle: formatAmount(data.pendingClaims.totalAmount),
       icon: Clock,
@@ -138,6 +141,16 @@ export function Dashboard({ user }: DashboardProps) {
       bgLight: 'bg-yellow-50',
       textColor: 'text-yellow-700',
       iconBg: 'bg-yellow-100',
+    },
+    {
+      title: 'Arrived & Approved',
+      value: data.arrivedApprovedClaims?.count || 0,
+      subtitle: formatAmount(data.arrivedApprovedClaims?.approvedAmount || 0),
+      icon: CheckCircle2,
+      gradient: 'from-teal-500 to-teal-700',
+      bgLight: 'bg-teal-50',
+      textColor: 'text-teal-700',
+      iconBg: 'bg-teal-100',
     },
     {
       title: 'Cleared Claims',
@@ -148,15 +161,6 @@ export function Dashboard({ user }: DashboardProps) {
       bgLight: 'bg-blue-50',
       textColor: 'text-blue-700',
       iconBg: 'bg-blue-100',
-    },
-    {
-      title: 'Remaining Pending',
-      value: formatAmount(data.remainingPendingAmount || 0),
-      icon: TrendingUp,
-      gradient: 'from-orange-500 to-red-600',
-      bgLight: 'bg-orange-50',
-      textColor: 'text-orange-700',
-      iconBg: 'bg-orange-100',
     },
     {
       title: 'Rejected Claims',

@@ -8,6 +8,7 @@ import { ClaimList } from '@/components/claim-list';
 import { MasterData } from '@/components/master-data';
 import { UsersManager } from '@/components/users-manager';
 import { Reports } from '@/components/reports';
+import { StockNotReceived } from '@/components/stock-not-received';
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 interface User {
@@ -124,6 +125,8 @@ export default function Home() {
           return <MasterData initialTab={activeSection} />;
         case 'users':
           return <UsersManager />;
+        case 'stock-not-received':
+          return <StockNotReceived user={user} />;
         case 'reports':
           return <Reports user={user} />;
         default:

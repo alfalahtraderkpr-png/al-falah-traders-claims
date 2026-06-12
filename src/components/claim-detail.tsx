@@ -55,6 +55,7 @@ interface ClaimData {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
+  arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
   partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
@@ -63,6 +64,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
+  arrived_approved: 'Arrived & Approved',
   partially_approved: 'Partially Approved',
   cleared: 'Cleared',
   rejected: 'Rejected',
@@ -71,6 +73,7 @@ const statusLabels: Record<string, string> = {
 const statusLabelsOB: Record<string, string> = {
   pending: 'Stock Not Received',
   approved: 'Approved',
+  arrived_approved: 'Arrived & Approved',
   partially_approved: 'Partially Approved',
   cleared: 'Cleared',
   rejected: 'Rejected',

@@ -20,6 +20,7 @@ interface ClaimListProps {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
+  arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
   partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
@@ -28,6 +29,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
+  arrived_approved: 'Arrived & Approved',
   partially_approved: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
@@ -37,6 +39,7 @@ const statusLabels: Record<string, string> = {
 const statusLabelsOB: Record<string, string> = {
   pending: 'Stock Not Received',
   approved: 'Approved',
+  arrived_approved: 'Arrived & Approved',
   partially_approved: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
@@ -51,6 +54,7 @@ const getStatusLabel = (status: string, isOrderBooker: boolean) => {
 const statusColorsOB: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800 border-amber-300',
   approved: 'bg-green-100 text-green-800 border-green-300',
+  arrived_approved: 'bg-teal-100 text-teal-800 border-teal-300',
   partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
   cleared: 'bg-blue-100 text-blue-800 border-blue-300',
   rejected: 'bg-red-100 text-red-800 border-red-300',
@@ -364,7 +368,7 @@ export function ClaimList({ user }: ClaimListProps) {
     const formatAmt = (a: number) => `Rs. ${a.toLocaleString()}`;
     if (claim.status === 'cleared') {
       return `\u2705 Al-Falah Traders - Claim Cleared\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nCleared Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nClaim clear ho chuki hai. JazakAllah.`;
-    } else if (claim.status === 'approved' || claim.status === 'partially_approved') {
+    } else if (claim.status === 'approved' || claim.status === 'arrived_approved' || claim.status === 'partially_approved') {
       return `\u2705 Al-Falah Traders - Claim Approved\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nTotal Claim: ${formatAmt(claim.totalAmount)}${claim.approvedAmount ? `\nApproved Amount: ${formatAmt(claim.approvedAmount)}` : ''}\n\nClaim approve ho chuki hai.`;
     } else {
       return `\u2705 Al-Falah Traders - Expiry Stock Received\n\nClaim ID: ${claim.claimNumber}\nShop: ${claim.shop.name}\nCompany: ${claim.company.name}\nAmount: ${formatAmt(claim.totalAmount)}\nDate: ${new Date(claim.date).toLocaleDateString()}\n\nClaim receive ho chuki hai. JazakAllah.`;
@@ -483,6 +487,25 @@ export function ClaimList({ user }: ClaimListProps) {
           🔄 Change Status &gt; Partial Approve
         </DropdownMenuItem>,
         <DropdownMenuItem key="status-reject" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'rejected' })} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
+          🔄 Change Status &gt; Rejected
+        </DropdownMenuItem>
+      );
+    }
+
+    // Arrived & Approved claims (stock at distribution, not yet cleared)
+    if (isAdmin && claim.status === 'arrived_approved') {
+      items.push(
+        <DropdownMenuItem key="clear-arrived" onClick={() => setConfirmDialog({ type: 'clear', claim, value: '' })} className="text-blue-700 focus:bg-blue-50 focus:text-blue-800 cursor-pointer">
+          💰 Clear Payment
+        </DropdownMenuItem>,
+        <DropdownMenuSeparator key="sep-arrived1" />,
+        <DropdownMenuItem key="status-pending-arrived" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'pending' })} className="text-yellow-700 focus:bg-yellow-50 focus:text-yellow-800 cursor-pointer">
+          🔄 Change Status &gt; Pending
+        </DropdownMenuItem>,
+        <DropdownMenuItem key="status-partial-arrived" onClick={() => { setActionDialog({ type: 'change_partial', claim }); setActionValue(''); }} className="text-orange-700 focus:bg-orange-50 focus:text-orange-800 cursor-pointer">
+          🔄 Change Status &gt; Partial Approve
+        </DropdownMenuItem>,
+        <DropdownMenuItem key="status-reject-arrived" onClick={() => setConfirmDialog({ type: 'change_status', claim, value: '', newStatus: 'rejected' })} className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer">
           🔄 Change Status &gt; Rejected
         </DropdownMenuItem>
       );
@@ -654,6 +677,7 @@ export function ClaimList({ user }: ClaimListProps) {
                     <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="pending">{isAdmin ? 'Pending' : 'Stock Not Received'}</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="arrived_approved">Arrived & Approved</SelectItem>
                     <SelectItem value="partially_approved">Partially Approved</SelectItem>
                     <SelectItem value="cleared">Cleared</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>

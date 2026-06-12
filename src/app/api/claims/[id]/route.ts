@@ -58,8 +58,9 @@ export async function PUT(
       case 'approve':
         // Stock arrived on floor - approve the claim
         // Amount NOT yet deducted from shopkeeper's account
+        // approvedAmount stays null - will be set when payment is actually deducted
         updateData = {
-          approvedAmount: claim.netAmount || claim.totalAmount,
+          approvedAmount: null,
           status: 'approved',
         };
         break;
@@ -79,7 +80,7 @@ export async function PUT(
             totalAmount,
             deductionAmount,
             netAmount,
-            approvedAmount: netAmount,
+            approvedAmount: null, // No payment deducted yet, only stock verified
             status: 'approved',
             claimItems: {
               create: body.items.map((item: { productId: string; quantity: number; amount: number }) => ({
@@ -91,7 +92,7 @@ export async function PUT(
           };
         } else {
           updateData = {
-            approvedAmount: claim.netAmount || claim.totalAmount,
+            approvedAmount: null, // No payment deducted yet
             status: 'approved',
           };
         }
@@ -158,7 +159,7 @@ export async function PUT(
           updateData.clearedDate = null;
           updateData.rejectReason = null;
         } else if (body.newStatus === 'approved') {
-          updateData.approvedAmount = claim.netAmount || claim.totalAmount;
+          updateData.approvedAmount = null; // No payment deducted yet
           updateData.clearedBy = null;
           updateData.clearedDate = null;
           updateData.rejectReason = null;

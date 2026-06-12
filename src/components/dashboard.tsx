@@ -151,7 +151,7 @@ export function Dashboard({ user }: DashboardProps) {
       title: 'Approved',
       subtitle: 'Stock Arrived, Payment Pending',
       value: data.approvedClaims.count,
-      extra: formatAmount(data.approvedClaims.approvedAmount || data.approvedClaims.totalAmount),
+      extra: formatAmount(data.approvedClaims.totalAmount),
       icon: CheckCircle2,
       gradient: 'from-green-500 to-green-700',
       bgLight: 'bg-green-50',

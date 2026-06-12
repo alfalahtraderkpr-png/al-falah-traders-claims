@@ -127,10 +127,11 @@ export async function POST(request: NextRequest) {
     const netAmount = totalAmount - deductionAmount;
 
     // Admin claims are auto-approved; Order booker claims need admin approval (status: pending)
+    // approvedAmount is always null at creation - it gets set only when payment is actually deducted
     const effectiveCreatorRole = creatorRole || 'orderbooker';
     const isAdminClaim = effectiveCreatorRole === 'admin';
     const initialStatus = isAdminClaim ? 'approved' : 'pending';
-    const initialApprovedAmount = isAdminClaim ? netAmount : null;
+    const initialApprovedAmount = null; // No payment deducted at creation time
 
     const claim = await db.claim.create({
       data: {

@@ -103,8 +103,9 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receip
   if (receiptType === 'cleared' && claim.approvedAmount !== null) {
     infoItems.push({ label: 'Cleared Amount', value: formatAmount(claim.approvedAmount) });
   }
-  if (receiptType === 'approved' && claim.approvedAmount !== null) {
-    infoItems.push({ label: 'Approved Amount', value: formatAmount(claim.approvedAmount) });
+  if (receiptType === 'approved') {
+    infoItems.push({ label: 'Claim Amount', value: formatAmount(claim.netAmount || claim.totalAmount) });
+    infoItems.push({ label: 'Payment Status', value: 'PENDING' });
   }
   if (receiptType === 'cleared' && claim.clearedBy) {
     infoItems.push({ label: 'Cleared By', value: claim.clearedBy });

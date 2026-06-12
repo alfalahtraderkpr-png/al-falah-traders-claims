@@ -108,6 +108,14 @@ export async function POST() {
         UPDATE "Claim" SET status = 'partial' WHERE status = 'partially_cleared';
       `);
       results.push(`Migrated ${mig3} partially_cleared claims → partial`);
+
+      // Step 7: Fix approved claims - set approvedAmount to NULL since payment not yet deducted
+      // In new workflow: approved = stock arrived, payment NOT deducted
+      // approvedAmount should only be set when payment is actually deducted (partial/cleared)
+      const mig4 = await db.$executeRawUnsafe(`
+        UPDATE "Claim" SET "approvedAmount" = NULL WHERE status = 'approved' AND "approvedAmount" IS NOT NULL;
+      `);
+      results.push(`Fixed ${mig4} approved claims - cleared approvedAmount (payment not yet deducted)`);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       results.push(`Warning migrating claim statuses: ${msg}`);

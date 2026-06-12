@@ -847,16 +847,18 @@ export function ClaimList({ user }: ClaimListProps) {
                     )}
                     <div>
                       <span className="text-muted-foreground text-xs">
-                        {normalizeStatus(claim.status) === 'cleared' ? 'Cleared' : normalizeStatus(claim.status) === 'partial' ? 'Deducted' : normalizeStatus(claim.status) === 'rejected' ? 'Rejected' : 'Approved'}
+                        {normalizeStatus(claim.status) === 'cleared' ? 'Cleared' : normalizeStatus(claim.status) === 'partial' ? 'Deducted' : normalizeStatus(claim.status) === 'approved' ? 'Payment' : normalizeStatus(claim.status) === 'rejected' ? 'Rejected' : 'Deducted'}
                       </span>
-                      <p className={`font-medium ${normalizeStatus(claim.status) === 'cleared' ? 'text-blue-700' : 'text-green-700'}`}>
-                        {claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
+                      <p className={`font-medium ${normalizeStatus(claim.status) === 'cleared' ? 'text-blue-700' : normalizeStatus(claim.status) === 'approved' ? 'text-amber-600' : 'text-green-700'}`}>
+                        {normalizeStatus(claim.status) === 'approved' ? 'Pending' : claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
                       </p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground text-xs">Remaining</span>
-                      <p className={`font-medium ${claim.totalAmount - (claim.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {normalizeStatus(claim.status) === 'rejected' ? '-' : formatAmount(claim.totalAmount - (claim.approvedAmount || 0))}
+                      <span className="text-muted-foreground text-xs">
+                        {normalizeStatus(claim.status) === 'approved' ? 'Claim Amount' : 'Remaining'}
+                      </span>
+                      <p className={`font-medium ${normalizeStatus(claim.status) === 'approved' ? 'text-emerald-700' : claim.totalAmount - (claim.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {normalizeStatus(claim.status) === 'rejected' ? '-' : normalizeStatus(claim.status) === 'approved' ? formatAmount(claim.netAmount || claim.totalAmount) : formatAmount(claim.totalAmount - (claim.approvedAmount || 0))}
                       </p>
                     </div>
                     <div>
@@ -936,7 +938,7 @@ export function ClaimList({ user }: ClaimListProps) {
                       <th className="text-left py-3 px-4 font-medium">Order Booker</th>
                       <th className="text-left py-3 px-4 font-medium">Entered By</th>
                       <th className="text-right py-3 px-4 font-medium">Total Claim</th>
-                      <th className="text-right py-3 px-4 font-medium">Cleared</th>
+                      <th className="text-right py-3 px-4 font-medium">Deducted</th>
                       <th className="text-right py-3 px-4 font-medium">Remaining</th>
                       <th className="text-center py-3 px-4 font-medium">Status</th>
                       <th className="text-center py-3 px-4 font-medium">Actions</th>
@@ -986,11 +988,17 @@ export function ClaimList({ user }: ClaimListProps) {
                             </div>
                           ) : formatAmount(claim.totalAmount)}
                         </td>
-                        <td className="py-3 px-4 text-right font-medium text-blue-700">
-                          {claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
+                        <td className="py-3 px-4 text-right font-medium">
+                          {normalizeStatus(claim.status) === 'approved' ? (
+                            <span className="text-amber-600 font-semibold">Pending</span>
+                          ) : claim.approvedAmount ? (
+                            <span className="text-blue-700">{formatAmount(claim.approvedAmount)}</span>
+                          ) : '-'}
                         </td>
                         <td className="py-3 px-4 text-right font-medium">
-                          {normalizeStatus(claim.status) === 'rejected' ? '-' : (
+                          {normalizeStatus(claim.status) === 'rejected' ? '-' : normalizeStatus(claim.status) === 'approved' ? (
+                            <span className="text-emerald-700 font-semibold">{formatAmount(claim.netAmount || claim.totalAmount)}</span>
+                          ) : (
                             <span className={claim.totalAmount - (claim.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
                               {formatAmount(claim.totalAmount - (claim.approvedAmount || 0))}
                             </span>

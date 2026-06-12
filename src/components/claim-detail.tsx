@@ -325,10 +325,20 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               </div>
             )}
             <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
-              <p className="text-muted-foreground text-xs">Cleared Amount</p>
-              <p className="font-bold text-blue-700">{claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}</p>
+              <p className="text-muted-foreground text-xs">
+                {normalizeStatus(claim.status) === 'approved' ? 'Deducted Amount' : normalizeStatus(claim.status) === 'partial' ? 'Deducted Amount' : 'Cleared Amount'}
+              </p>
+              <p className={`font-bold ${normalizeStatus(claim.status) === 'approved' ? 'text-amber-600' : 'text-blue-700'}`}>
+                {normalizeStatus(claim.status) === 'approved' ? 'Payment Pending' : claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
+              </p>
             </div>
-            {claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
+            {normalizeStatus(claim.status) === 'approved' && (
+              <div className="bg-emerald-50/50 rounded-lg p-2 transition-colors hover:bg-emerald-50">
+                <p className="text-muted-foreground text-xs">Claim Amount</p>
+                <p className="font-bold text-emerald-700">{formatAmount(claim.netAmount || claim.totalAmount)}</p>
+              </div>
+            )}
+            {normalizeStatus(claim.status) !== 'approved' && claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
               <div className="bg-orange-50/50 rounded-lg p-2 transition-colors hover:bg-orange-50">
                 <p className="text-muted-foreground text-xs">Remaining Pending</p>
                 <p className={`font-bold ${claim.totalAmount - claim.approvedAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
@@ -415,10 +425,20 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
                     </td>
                   </tr>
                 )}
-                {claim.approvedAmount !== null && (
+                {normalizeStatus(claim.status) === 'approved' && (
+                  <tr className="bg-amber-50">
+                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
+                      Payment Status:
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-lg text-amber-600">
+                      Pending Deduction
+                    </td>
+                  </tr>
+                )}
+                {normalizeStatus(claim.status) !== 'approved' && claim.approvedAmount !== null && (
                   <tr className="bg-blue-50">
                     <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
-                      Cleared:
+                      Deducted:
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-lg text-blue-700">
                       {formatAmount(claim.approvedAmount)}

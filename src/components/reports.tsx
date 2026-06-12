@@ -546,9 +546,11 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
                       <td className="py-2 px-3">{c.shop.name}</td>
                       <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right font-medium text-blue-700">{c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
+                      <td className="py-2 px-3 text-right font-medium text-blue-700">{c.status === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">
-                        {c.status === 'rejected' ? '-' : (
+                        {c.status === 'rejected' ? '-' : c.status === 'approved' ? (
+                          <span className="text-emerald-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
+                        ) : (
                           <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
                             {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
                           </span>
@@ -919,9 +921,11 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                       <td className="py-2 px-3">{c.shop.name}</td>
                       <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
                       <td className="py-2 px-3 text-right">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right text-blue-700">{c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
+                      <td className="py-2 px-3 text-right text-blue-700">{c.status === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">
-                        {c.status === 'rejected' ? '-' : (
+                        {c.status === 'rejected' ? '-' : c.status === 'approved' ? (
+                          <span className="text-emerald-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
+                        ) : (
                           <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
                             {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
                           </span>

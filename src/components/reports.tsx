@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Printer, FileText, BarChart3, Clock, Users, Building2, Banknote, ClipboardList, Search } from 'lucide-react';
+import { Loader2, Printer, FileText, BarChart3, Clock, Users, Building2, Banknote, ClipboardList, Search, Download, FileSpreadsheet, FileDown, ChevronDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 interface Company { id: string; name: string }
 interface Supplier { id: string; name: string }
@@ -177,6 +178,74 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
     window.print();
   };
 
+  // Map UI tab to API report type
+  const getReportType = (tab: string): string => {
+    const map: Record<string, string> = {
+      'pending': 'pending',
+      'pending_claims': 'pending',
+      'summary': 'summary',
+      'aging': 'aging',
+      'cleared': 'cleared',
+      'cleared_claims': 'cleared',
+      'detail': 'detail',
+      'company': 'company',
+      'performance': 'order-booker',
+    };
+    return map[tab] || 'all';
+  };
+
+  // Export to PDF
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const handleExportPdf = async () => {
+    try {
+      setExportingPdf(true);
+      const reportType = getReportType(activeTab);
+      const url = `/api/export/report-pdf?type=${reportType}&t=${Date.now()}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to generate PDF');
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `al-falah-${reportType}-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('PDF export error:', err);
+      alert('PDF export failed. Please try again.');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  // Export to Excel
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const handleExportExcel = async () => {
+    try {
+      setExportingExcel(true);
+      const reportType = getReportType(activeTab);
+      const url = `/api/export/report-excel?type=${reportType}&t=${Date.now()}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to generate Excel');
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `al-falah-${reportType}-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Excel export error:', err);
+      alert('Excel export failed. Please try again.');
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -205,16 +274,80 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
   return (
     <div className="space-y-4">
       {/* Header - hidden on print */}
-      <div className="flex justify-between items-center no-print">
+      <div className="flex justify-between items-center no-print gap-2 flex-wrap">
         <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
           <BarChart3 className="h-6 w-6" />
           Reports
         </h2>
-        {!isAdmin && (
-          <Badge className="bg-blue-100 text-blue-700 border-blue-200 px-3 py-1">
-            My Claims Only
-          </Badge>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {!isAdmin && (
+            <Badge className="bg-blue-100 text-blue-700 border-blue-200 px-3 py-1">
+              My Claims Only
+            </Badge>
+          )}
+
+          {/* Export Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                disabled={exportingPdf || exportingExcel}
+              >
+                {(exportingPdf || exportingExcel) ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Report
+                    <ChevronDown className="h-3 w-3 ml-1.5 opacity-80" />
+                  </>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-emerald-700 font-semibold">
+                Export {activeTab.replace('_', ' ')} report as
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleExportPdf}
+                disabled={exportingPdf}
+                className="cursor-pointer focus:bg-red-50 focus:text-red-700"
+              >
+                <FileDown className="h-4 w-4 mr-2 text-red-600" />
+                <div className="flex flex-col">
+                  <span className="font-medium">PDF Document</span>
+                  <span className="text-xs text-muted-foreground">Printable, formatted report</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleExportExcel}
+                disabled={exportingExcel}
+                className="cursor-pointer focus:bg-green-50 focus:text-green-700"
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                <div className="flex flex-col">
+                  <span className="font-medium">Excel Spreadsheet</span>
+                  <span className="text-xs text-muted-foreground">Multi-sheet with all data</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handlePrint}
+                className="cursor-pointer focus:bg-blue-50 focus:text-blue-700"
+              >
+                <Printer className="h-4 w-4 mr-2 text-blue-600" />
+                <div className="flex flex-col">
+                  <span className="font-medium">Print</span>
+                  <span className="text-xs text-muted-foreground">Open print dialog</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* iOS-style Sliding Tab Navigation */}

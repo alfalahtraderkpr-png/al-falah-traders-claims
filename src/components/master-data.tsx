@@ -58,13 +58,10 @@ export function MasterData({ initialTab = 'companies' }: { initialTab?: string }
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-1 ${
-                  isActive ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className={`relative z-10 flex items-center justify-center gap-1 py-2 px-2 sm:px-3 rounded-lg text-[11px] sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap ${isActive ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden text-[10px]">{tab.label}</span>
+                <span>{tab.label}</span>
               </button>
             );
           })}
@@ -103,21 +100,17 @@ function CompaniesTab() {
   useEffect(() => { load(); }, [load]);
 
   const handleSave = async () => {
-    if (!formName.trim()) return;
+    if (!formName.trim()) { alert('Name is required'); return; }
     try {
       const body: Record<string, unknown> = { name: formName, multiTierPricing: formMultiTier, claimDeductionPercent: formDeductionPercent ? Number(formDeductionPercent) : 0 };
-      if (editItem) {
-        await fetch(`/api/companies/${editItem.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      } else {
-        await fetch('/api/companies', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
+      const res = editItem
+        ? await fetch(`/api/companies/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        : await fetch('/api/companies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!res.ok) {
+        let msg = 'Failed to save company';
+        try { const d = await res.json(); msg = d.error || msg; } catch {}
+        alert(msg);
+        return;
       }
       setDialogOpen(false);
       setEditItem(null);
@@ -248,7 +241,10 @@ function ProductsTab() {
   useEffect(() => { load(); }, [load]);
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.price || !form.companyId) return;
+    if (!form.name.trim() || !form.price || !form.companyId) {
+      alert('Name, price and company are required');
+      return;
+    }
     try {
       const selectedCompany = companies.find(c => c.id === form.companyId);
       const isMultiTier = selectedCompany?.multiTierPricing || false;
@@ -261,24 +257,23 @@ function ProductsTab() {
         unit: form.unit,
         companyId: form.companyId,
       };
-      if (editItem) {
-        await fetch(`/api/products/${editItem.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      } else {
-        await fetch('/api/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
+      const res = editItem
+        ? await fetch(`/api/products/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        : await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!res.ok) {
+        let msg = 'Failed to save product';
+        try { const d = await res.json(); msg = d.error || msg; } catch {}
+        alert(msg);
+        return;
       }
       setDialogOpen(false);
       setEditItem(null);
       setForm({ name: '', price: '', claimPrice: '', wholesalePrice: '', lmtPrice: '', unit: 'pcs', companyId: '' });
       load();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      alert('Unexpected error while saving product');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -474,7 +469,7 @@ function ProductsTab() {
 
       {/* Price History Dialog */}
       <Dialog open={priceHistoryOpen} onOpenChange={setPriceHistoryOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-5 w-5 text-emerald-600" />
@@ -532,7 +527,7 @@ function ProductsTab() {
 
       {/* Bulk Import Dialog */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
@@ -749,15 +744,22 @@ function SuppliersTab() {
   useEffect(() => { load(); }, [load]);
 
   const handleSave = async () => {
-    if (!formName.trim()) return;
+    if (!formName.trim()) { alert('Name is required'); return; }
     try {
-      if (editItem) {
-        await fetch(`/api/suppliers/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formName }) });
-      } else {
-        await fetch('/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formName }) });
+      const res = editItem
+        ? await fetch(`/api/suppliers/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formName }) })
+        : await fetch('/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formName }) });
+      if (!res.ok) {
+        let msg = 'Failed to save supplier';
+        try { const d = await res.json(); msg = d.error || msg; } catch {}
+        alert(msg);
+        return;
       }
       setDialogOpen(false); setEditItem(null); setFormName(''); load();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      alert('Unexpected error while saving supplier');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -860,7 +862,7 @@ function ShopsTab() {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (shop: Shop) => {
+  const openEditDialog = async (shop: Shop) => {
     setEditItem(shop);
     setForm({ name: shop.name, address: shop.address, shopType: shop.shopType || 'retail' });
     // Populate companySettings from existing mappings
@@ -873,32 +875,51 @@ function ShopsTab() {
         creditLimit: settings[cob.companyId]?.creditLimit || '',
       };
     });
-    // Load credit limits from API
-    (async () => {
-      try {
-        const limitsRes = await fetch('/api/credit-limits');
-        if (limitsRes.ok) {
-          const limits = await limitsRes.json();
+
+    // Show dialog immediately with mapping data
+    setCompanySettings({ ...settings });
+    setDialogOpen(true);
+
+    // Load credit limits from API — merge with current state to avoid overwriting user edits
+    try {
+      const limitsRes = await fetch('/api/credit-limits');
+      if (limitsRes.ok) {
+        const limits = await limitsRes.json();
+        setCompanySettings((prev) => {
+          const merged = { ...prev };
           limits.forEach((l: { shopId: string; companyId: string; creditLimit: number }) => {
-            if (l.shopId === shop.id && settings[l.companyId]) {
-              settings[l.companyId].creditLimit = l.creditLimit ? String(l.creditLimit) : '';
+            if (l.shopId === shop.id && merged[l.companyId]) {
+              merged[l.companyId] = {
+                ...merged[l.companyId],
+                creditLimit: l.creditLimit ? String(l.creditLimit) : '',
+              };
             }
           });
-          setCompanySettings({ ...settings });
-        }
-      } catch { /* ignore */ }
-    })();
-    setCompanySettings(settings);
-    setDialogOpen(true);
+          return merged;
+        });
+      }
+    } catch { /* ignore */ }
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) {
+      alert('Shop name is required');
+      return;
+    }
     try {
-      // Build companyOrderBookers array from settings — include all companies that have any setting
+      // Build companyOrderBookers array — include all companies that have any non-default setting
+      // (any assigned order booker, non-retail shop type, OR a credit limit)
       const cobArray = Object.entries(companySettings)
-        .filter(([, setting]) => setting.orderBookerId || setting.shopType !== 'retail')
-        .map(([companyId, setting]) => ({ companyId, orderBookerId: setting.orderBookerId || '', shopType: setting.shopType || 'retail' }));
+        .filter(([, setting]) =>
+          setting.orderBookerId ||
+          (setting.shopType && setting.shopType !== 'retail') ||
+          (setting.creditLimit && Number(setting.creditLimit) > 0)
+        )
+        .map(([companyId, setting]) => ({
+          companyId,
+          orderBookerId: setting.orderBookerId || '',
+          shopType: setting.shopType || 'retail',
+        }));
 
       const body = {
         name: form.name,
@@ -907,35 +928,64 @@ function ShopsTab() {
         companyOrderBookers: cobArray,
       };
 
+      let shopId = editItem?.id;
+      let success = true;
+      let errMsg = '';
+
       if (editItem) {
-        await fetch(`/api/shops/${editItem.id}`, {
+        const res = await fetch(`/api/shops/${editItem.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        // Save credit limits for each company
-        for (const [compId, setting] of Object.entries(companySettings)) {
-          if (setting.creditLimit) {
-            await fetch('/api/credit-limits', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ shopId: editItem.id, companyId: compId, creditLimit: Number(setting.creditLimit) }),
-            });
-          }
+        if (!res.ok) {
+          success = false;
+          try { const d = await res.json(); errMsg = d.error || 'Failed to update shop'; } catch { errMsg = 'Failed to update shop'; }
         }
       } else {
-        await fetch('/api/shops', {
+        const res = await fetch('/api/shops', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
+        if (!res.ok) {
+          success = false;
+          try { const d = await res.json(); errMsg = d.error || 'Failed to create shop'; } catch { errMsg = 'Failed to create shop'; }
+        } else {
+          const created = await res.json();
+          shopId = created.id;
+        }
       }
-      setDialogOpen(false);
-      setEditItem(null);
-      setForm({ name: '', address: '', shopType: 'retail' });
-      setCompanySettings({});
-      load();
-    } catch (e) { console.error(e); }
+
+      // Save credit limits for each company (for BOTH new and edit)
+      if (success && shopId) {
+        for (const [compId, setting] of Object.entries(companySettings)) {
+          const limitValue = setting.creditLimit ? Number(setting.creditLimit) : 0;
+          const res = await fetch('/api/credit-limits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shopId, companyId: compId, creditLimit: limitValue }),
+          });
+          if (!res.ok) {
+            // Don't abort whole save, but log
+            console.error('Failed to save credit limit for company', compId);
+          }
+        }
+      }
+
+      if (success) {
+        setDialogOpen(false);
+        setEditItem(null);
+        setForm({ name: '', address: '', shopType: 'retail' });
+        setCompanySettings({});
+        load();
+      } else {
+        alert(errMsg);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Unexpected error while saving shop');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -976,60 +1026,132 @@ function ShopsTab() {
             <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
         </div>
-        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
-          <div className="overflow-auto max-h-[calc(100vh-340px)]">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
-                <th className="text-left py-2 px-4 font-medium">Name</th>
-                <th className="text-left py-2 px-4 font-medium">Address</th>
-                <th className="text-center py-2 px-4 font-medium">Type</th>
-                {companies.map((c) => (
-                  <th key={c.id} className="text-left py-2 px-4 font-medium whitespace-nowrap">{c.name}</th>
-                ))}
-                <th className="text-center py-2 px-4 font-medium">Actions</th>
-              </tr></thead>
-              <tbody>
-                {filtered.map((item) => (
-                  <tr key={item.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-4 font-medium">{item.name}</td>
-                    <td className="py-2 px-4">{item.address || '-'}</td>
-                    <td className="py-2 px-4 text-center">{item.shopType && item.shopType !== 'retail' ? <Badge className={item.shopType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}>{item.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}</Badge> : <span className="text-xs text-muted-foreground">Retail</span>}</td>
-                    {companies.map((c) => {
-                      const compType = getTypeForCompany(item, c.id);
-                      const compOB = getOBForCompany(item, c.id);
-                      return (
-                        <td key={c.id} className="py-2 px-4">
-                          <div className="flex flex-col gap-0.5">
-                            {compType && compType !== 'retail' ? (
-                              <Badge className={`text-[10px] px-1.5 py-0 w-fit ${compType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>
-                                {compType === 'wholesale' ? 'Ws' : 'LMT'}
-                              </Badge>
-                            ) : null}
-                            <span className={`text-xs ${compOB !== '-' ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}`}>
-                              {compOB}
-                            </span>
-                          </div>
-                        </td>
-                      );
-                    })}
-                    <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => openEditDialog(item)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : filtered.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground">
+            <Store className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+            <p className="text-sm">Koi shop nahi mili</p>
           </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="sm:hidden space-y-3 max-h-[calc(100vh-340px)] overflow-y-auto pb-4">
+              {filtered.map((item) => {
+                const assignedCompanies = (item.companyOrderBookers || []).filter(cob => cob.orderBookerId);
+                const unassignedCompanies = companies.filter(c => !(item.companyOrderBookers || []).some(cob => cob.companyId === c.id && cob.orderBookerId));
+                return (
+                  <Card key={item.id} className="shadow-sm border-emerald-100">
+                    <CardContent className="p-3">
+                      {/* Header: Name + Actions */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{item.name}</p>
+                          {item.address && <p className="text-xs text-muted-foreground truncate">{item.address}</p>}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-300 text-emerald-600 hover:bg-emerald-100 rounded-lg" onClick={() => openEditDialog(item)}>
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-red-300 text-red-500 hover:bg-red-100 rounded-lg" onClick={() => handleDelete(item.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Type badge */}
+                      <div className="mb-2">
+                        {item.shopType && item.shopType !== 'retail' ? (
+                          <Badge className={item.shopType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}>
+                            {item.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Retail</span>
+                        )}
+                      </div>
+                      {/* Company assignments */}
+                      {assignedCompanies.length === 0 ? (
+                        <p className="text-xs text-amber-600 italic">Koi order booker assign nahi</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {assignedCompanies.map((cob) => (
+                            <div key={cob.id} className="flex items-center justify-between gap-2 p-2 bg-emerald-50/50 rounded-md border border-emerald-100">
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-emerald-800 truncate">{cob.company.name}</p>
+                                {cob.shopType && cob.shopType !== 'retail' && (
+                                  <Badge className={`text-[9px] px-1 py-0 mt-0.5 ${cob.shopType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>
+                                    {cob.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs font-semibold text-emerald-700 truncate text-right">{cob.orderBooker?.name || '-'}</p>
+                            </div>
+                          ))}
+                          {unassignedCompanies.length > 0 && (
+                            <p className="text-[10px] text-muted-foreground pt-1">
+                              + {unassignedCompanies.length} aur company/unassigned
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-auto max-h-[calc(100vh-340px)]">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
+                  <th className="text-left py-2 px-4 font-medium">Name</th>
+                  <th className="text-left py-2 px-4 font-medium">Address</th>
+                  <th className="text-center py-2 px-4 font-medium">Type</th>
+                  {companies.map((c) => (
+                    <th key={c.id} className="text-left py-2 px-4 font-medium whitespace-nowrap">{c.name}</th>
+                  ))}
+                  <th className="text-center py-2 px-4 font-medium">Actions</th>
+                </tr></thead>
+                <tbody>
+                  {filtered.map((item) => (
+                    <tr key={item.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-4 font-medium">{item.name}</td>
+                      <td className="py-2 px-4">{item.address || '-'}</td>
+                      <td className="py-2 px-4 text-center">{item.shopType && item.shopType !== 'retail' ? <Badge className={item.shopType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}>{item.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}</Badge> : <span className="text-xs text-muted-foreground">Retail</span>}</td>
+                      {companies.map((c) => {
+                        const compType = getTypeForCompany(item, c.id);
+                        const compOB = getOBForCompany(item, c.id);
+                        return (
+                          <td key={c.id} className="py-2 px-4">
+                            <div className="flex flex-col gap-0.5">
+                              {compType && compType !== 'retail' ? (
+                                <Badge className={`text-[10px] px-1.5 py-0 w-fit ${compType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>
+                                  {compType === 'wholesale' ? 'Ws' : 'LMT'}
+                                </Badge>
+                              ) : null}
+                              <span className={`text-xs ${compOB !== '-' ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}`}>
+                                {compOB}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      })}
+                      <td className="py-2 px-4 text-center whitespace-nowrap">
+                        <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => openEditDialog(item)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </CardContent>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editItem ? 'Edit' : 'Add'} Shop</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div><Label>Shop Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Shop name" /></div>
@@ -1165,15 +1287,22 @@ function OrderBookersTab() {
   useEffect(() => { load(); }, [load]);
 
   const handleSave = async () => {
-    if (!formName.trim()) return;
+    if (!formName.trim()) { alert('Name is required'); return; }
     try {
-      if (editItem) {
-        await fetch(`/api/order-bookers/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formName }) });
-      } else {
-        await fetch('/api/order-bookers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formName }) });
+      const res = editItem
+        ? await fetch(`/api/order-bookers/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formName }) })
+        : await fetch('/api/order-bookers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formName }) });
+      if (!res.ok) {
+        let msg = 'Failed to save order booker';
+        try { const d = await res.json(); msg = d.error || msg; } catch {}
+        alert(msg);
+        return;
       }
       setDialogOpen(false); setEditItem(null); setFormName(''); load();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      alert('Unexpected error while saving order booker');
+    }
   };
 
   const handleDelete = async (id: string) => {

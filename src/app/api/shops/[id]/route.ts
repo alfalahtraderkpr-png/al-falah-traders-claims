@@ -30,22 +30,23 @@ export async function PUT(
 
     // Update company-orderbooker mappings if provided
     if (companyOrderBookers && Array.isArray(companyOrderBookers)) {
-      // Delete existing mappings
-      await db.shopCompanyOrderBooker.deleteMany({ where: { shopId: id } });
+      // Delete + create atomically in a transaction
+      await db.$transaction(async (tx) => {
+        await tx.shopCompanyOrderBooker.deleteMany({ where: { shopId: id } });
 
-      // Create new mappings
-      for (const mapping of companyOrderBookers) {
-        if (mapping.companyId) {
-          await db.shopCompanyOrderBooker.create({
-            data: {
-              shopId: id,
-              companyId: mapping.companyId,
-              orderBookerId: mapping.orderBookerId || null,
-              shopType: mapping.shopType || 'retail',
-            },
-          });
+        for (const mapping of companyOrderBookers) {
+          if (mapping.companyId) {
+            await tx.shopCompanyOrderBooker.create({
+              data: {
+                shopId: id,
+                companyId: mapping.companyId,
+                orderBookerId: mapping.orderBookerId || null,
+                shopType: mapping.shopType || 'retail',
+              },
+            });
+          }
         }
-      }
+      });
 
       // Reload with new mappings
       const reloaded = await db.shop.findUnique({

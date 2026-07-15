@@ -38,8 +38,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete order booker used in claims' }, { status: 400 });
     }
 
-    // Unlink from shops
-    await db.shop.updateMany({
+    // Unlink from shop-company mappings (junction table has nullable FK, auto set to null on delete,
+    // but we do it explicitly to be safe across all DB drivers)
+    await db.shopCompanyOrderBooker.updateMany({
       where: { orderBookerId: id },
       data: { orderBookerId: null },
     });

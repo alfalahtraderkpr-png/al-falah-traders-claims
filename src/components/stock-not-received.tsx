@@ -334,7 +334,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
               />
             </div>
             <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger className="w-[180px] border-emerald-200">
+              <SelectTrigger className="w-full sm:w-[180px] border-emerald-200">
                 <SelectValue placeholder="All Companies" />
               </SelectTrigger>
               <SelectContent>
@@ -345,7 +345,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
               </SelectContent>
             </Select>
             <Select value={filterOrderBooker} onValueChange={setFilterOrderBooker}>
-              <SelectTrigger className="w-[180px] border-emerald-200">
+              <SelectTrigger className="w-full sm:w-[180px] border-emerald-200">
                 <SelectValue placeholder="All Bookers" />
               </SelectTrigger>
               <SelectContent>

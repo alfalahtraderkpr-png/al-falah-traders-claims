@@ -300,25 +300,25 @@ export function UsersManager() {
               ) : (
                 <div className="space-y-3">
                   {adminUsers.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50/80 to-white rounded-xl border border-emerald-100 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                    <div key={user.id} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-emerald-50/80 to-white rounded-xl border border-emerald-100 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0">
                           {user.name.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-emerald-800">{user.name}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-emerald-800 truncate">{user.name}</p>
                             <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
                               <Lock className="h-2.5 w-2.5 mr-0.5" /> Permanent
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                            <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
-                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
+                          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                            <span className="flex items-center gap-1 min-w-0 truncate"><Mail className="h-3 w-3 shrink-0" /><span className="truncate">{user.email}</span></span>
+                            <span className="flex items-center gap-1 shrink-0"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <ActionButton
                           icon={Key}
                           label="Password"
@@ -356,34 +356,34 @@ export function UsersManager() {
               ) : (
                 <div className="space-y-3">
                   {obUsers.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50/80 to-white rounded-xl border border-blue-100 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                    <div key={user.id} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-blue-50/80 to-white rounded-xl border border-blue-100 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0">
                           {user.name.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-blue-800">{user.name}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-blue-800 truncate">{user.name}</p>
                             {user.orderBooker?.name && (
                               <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0">
                                 {user.orderBooker.name}
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
                             <span
-                              className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors"
+                              className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors min-w-0 truncate"
                               onClick={() => copyToClipboard(user.email, `email-${user.id}`)}
                               title="Click to copy email"
                             >
-                              {copied === `email-${user.id}` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                              {user.email}
+                              {copied === `email-${user.id}` ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
+                              <span className="truncate">{user.email}</span>
                             </span>
-                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
+                            <span className="flex items-center gap-1 shrink-0"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <ActionButton
                           icon={Key}
                           label="Password"

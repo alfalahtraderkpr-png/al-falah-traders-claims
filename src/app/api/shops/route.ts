@@ -30,39 +30,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Shop name is required' }, { status: 400 });
     }
 
-    const shop = await db.shop.create({
-      data: {
-        name: name.trim(),
-        address: address || '',
-        shopType: shopType || 'retail',
-      },
-      include: {
-        companyOrderBookers: {
-          include: {
-            company: true,
-            orderBooker: true,
-          },
+    // Create shop with mappings atomically
+    const shop = await db.$transaction(async (tx) => {
+      const created = await tx.shop.create({
+        data: {
+          name: name.trim(),
+          address: address || '',
+          shopType: shopType || 'retail',
         },
-      },
-    });
+      });
 
-    // Create company-orderbooker mappings if provided
-    if (companyOrderBookers && Array.isArray(companyOrderBookers)) {
-      for (const mapping of companyOrderBookers) {
-        if (mapping.companyId) {
-          await db.shopCompanyOrderBooker.create({
-            data: {
-              shopId: shop.id,
-              companyId: mapping.companyId,
-              orderBookerId: mapping.orderBookerId || null,
-              shopType: mapping.shopType || 'retail',
-            },
-          });
+      // Create company-orderbooker mappings if provided
+      if (companyOrderBookers && Array.isArray(companyOrderBookers)) {
+        for (const mapping of companyOrderBookers) {
+          if (mapping.companyId) {
+            await tx.shopCompanyOrderBooker.create({
+              data: {
+                shopId: created.id,
+                companyId: mapping.companyId,
+                orderBookerId: mapping.orderBookerId || null,
+                shopType: mapping.shopType || 'retail',
+              },
+            });
+          }
         }
       }
+
       // Reload with mappings
-      const reloaded = await db.shop.findUnique({
-        where: { id: shop.id },
+      return tx.shop.findUnique({
+        where: { id: created.id },
         include: {
           companyOrderBookers: {
             include: {
@@ -72,8 +68,7 @@ export async function POST(request: NextRequest) {
           },
         },
       });
-      return NextResponse.json(reloaded, { status: 201 });
-    }
+    });
 
     return NextResponse.json(shop, { status: 201 });
   } catch (error) {

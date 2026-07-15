@@ -228,7 +228,8 @@ export function Dashboard({ user }: DashboardProps) {
       {/* Workflow Progress Indicator */}
       <Card className="shadow-sm animate-fade-in-up border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-blue-50">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between gap-2 text-sm">
+          {/* Desktop: horizontal 4-step layout */}
+          <div className="hidden sm:flex items-center justify-between gap-2 text-sm">
             <div className="flex items-center gap-2 flex-1">
               <div className="flex flex-col items-center">
                 <div className="w-10 h-10 rounded-full bg-yellow-100 border-2 border-yellow-400 flex items-center justify-center">
@@ -260,6 +261,46 @@ export function Dashboard({ user }: DashboardProps) {
                 </div>
                 <span className="text-xs font-medium mt-1 text-blue-700">Cleared</span>
                 <span className="text-xs text-muted-foreground">Full settled</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile: 2x2 grid of steps */}
+          <div className="sm:hidden grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-yellow-50/60">
+              <div className="w-8 h-8 rounded-full bg-yellow-100 border-2 border-yellow-400 flex items-center justify-center shrink-0">
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-yellow-700">Pending</p>
+                <p className="text-[10px] text-muted-foreground truncate">Stock not received</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50/60">
+              <div className="w-8 h-8 rounded-full bg-green-100 border-2 border-green-400 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-green-700">Approved</p>
+                <p className="text-[10px] text-muted-foreground truncate">Stock arrived</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50/60">
+              <div className="w-8 h-8 rounded-full bg-orange-100 border-2 border-orange-400 flex items-center justify-center shrink-0">
+                <Split className="h-4 w-4 text-orange-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-orange-700">Partial</p>
+                <p className="text-[10px] text-muted-foreground truncate">Partial deducted</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/60">
+              <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center shrink-0">
+                <Banknote className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-blue-700">Cleared</p>
+                <p className="text-[10px] text-muted-foreground truncate">Full settled</p>
               </div>
             </div>
           </div>

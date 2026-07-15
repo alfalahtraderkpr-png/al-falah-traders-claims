@@ -21,13 +21,26 @@ export async function POST(request: NextRequest) {
     if (!shopId || !companyId) {
       return NextResponse.json({ error: 'Shop and Company required' }, { status: 400 });
     }
-    
+
+    // If creditLimit is 0 or empty, DELETE the existing limit (so users can clear it from UI)
+    const numericLimit = Number(creditLimit) || 0;
+    if (numericLimit <= 0) {
+      try {
+        await db.shopCreditLimit.deleteMany({
+          where: { shopId, companyId },
+        });
+      } catch {
+        // ignore if not found
+      }
+      return NextResponse.json({ success: true, deleted: true });
+    }
+
     const limit = await db.shopCreditLimit.upsert({
       where: { shopId_companyId: { shopId, companyId } },
-      update: { creditLimit: creditLimit || 0 },
-      create: { shopId, companyId, creditLimit: creditLimit || 0 },
+      update: { creditLimit: numericLimit },
+      create: { shopId, companyId, creditLimit: numericLimit },
     });
-    
+
     return NextResponse.json(limit, { status: 201 });
   } catch (error) {
     console.error('Create credit limit error:', error);

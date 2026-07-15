@@ -769,56 +769,59 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                     if (!product) return null;
                     const effectivePrice = getProductPrice(product);
                     return (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-white border rounded-lg card-hover animate-fade-in-up shadow-sm">
-                        {/* Product Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {getPriceLabel(product)}/{product.unit}
-                            {isMultiTier && <span className="text-purple-600 ml-1">({shopTypeLabel})</span>}
-                            <span className="ml-1">= Rs.{Math.round(effectivePrice)}/unit</span>
-                          </p>
-                        </div>
-
-                        {/* Quantity Control */}
-                        <div className="flex items-center gap-1">
+                      <div key={index} className="p-3 bg-white border rounded-lg card-hover animate-fade-in-up shadow-sm">
+                        {/* Row 1: Product Info (always full width) */}
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{product.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {getPriceLabel(product)}/{product.unit}
+                              {isMultiTier && <span className="text-purple-600 ml-1">({shopTypeLabel})</span>}
+                              <span className="ml-1">= Rs.{Math.round(effectivePrice)}/unit</span>
+                            </p>
+                          </div>
                           <button
                             type="button"
-                            className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-red-50 hover:border-red-300 hover:text-red-600 active:scale-90 transition-all duration-150"
-                            onClick={() => updateQuantity(index, item.quantity - 1)}
+                            className="h-8 w-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 active:scale-90 transition-all duration-150 shrink-0"
+                            onClick={() => removeItem(index)}
                           >
-                            <Minus className="h-3.5 w-3.5" />
-                          </button>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => updateQuantity(index, Math.max(1, parseInt(e.target.value) || 1))}
-                            className="w-14 h-8 text-center text-sm p-0 border-gray-300 font-medium"
-                          />
-                          <button
-                            type="button"
-                            className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-600 active:scale-90 transition-all duration-150"
-                            onClick={() => updateQuantity(index, item.quantity + 1)}
-                          >
-                            <Plus className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
 
-                        {/* Amount */}
-                        <div className="text-right min-w-[80px]">
-                          <p className="font-bold text-sm text-emerald-700">Rs.{item.amount.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">Rs.{Math.round(effectivePrice)} x {item.quantity}</p>
-                        </div>
+                        {/* Row 2: Qty + Amount on the bottom row */}
+                        <div className="flex items-center justify-between gap-2">
+                          {/* Quantity Control */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-red-50 hover:border-red-300 hover:text-red-600 active:scale-90 transition-all duration-150"
+                              onClick={() => updateQuantity(index, item.quantity - 1)}
+                            >
+                              <Minus className="h-3.5 w-3.5" />
+                            </button>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateQuantity(index, Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-14 h-8 text-center text-sm p-0 border-gray-300 font-medium"
+                            />
+                            <button
+                              type="button"
+                              className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-600 active:scale-90 transition-all duration-150"
+                              onClick={() => updateQuantity(index, item.quantity + 1)}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
 
-                        {/* Delete */}
-                        <button
-                          type="button"
-                          className="h-8 w-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 active:scale-90 transition-all duration-150 shrink-0"
-                          onClick={() => removeItem(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                          {/* Amount */}
+                          <div className="text-right">
+                            <p className="font-bold text-sm text-emerald-700">Rs.{item.amount.toLocaleString()}</p>
+                            <p className="text-[11px] text-muted-foreground">Rs.{Math.round(effectivePrice)} x {item.quantity}</p>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}

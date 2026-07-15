@@ -769,7 +769,7 @@ export function ClaimList({ user }: ClaimListProps) {
       ) : (
         <>
           {/* Mobile Card View */}
-          <div className="sm:hidden space-y-3 overflow-y-auto max-h-[calc(100vh-250px)] pb-4">
+          <div className={`sm:hidden space-y-3 overflow-y-auto max-h-[calc(100vh-250px)] ${selectedClaims.size > 0 ? 'pb-24' : 'pb-4'}`}>
             {claims.map((claim, index) => (
               <Card
                 key={claim.id}
@@ -1292,38 +1292,38 @@ export function ClaimList({ user }: ClaimListProps) {
       {/* Floating Bulk Action Bar */}
       {isAdmin && selectedClaims.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t shadow-lg animate-fade-in-up">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3">
               <span className="text-sm font-bold text-emerald-800">
                 {selectedClaims.size} claim{selectedClaims.size > 1 ? 's' : ''} selected
               </span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground h-8 px-2"
                 onClick={() => setSelectedClaims(new Set())}
               >
                 Cancel
               </Button>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
               <Button
                 size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-white h-8 px-2 sm:px-3"
                 onClick={() => handleBulkAction('approve')}
                 disabled={bulkProcessing}
               >
-                {bulkProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-                Approve All
+                {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 sm:mr-1 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5 sm:mr-1" />}
+                <span className="text-xs sm:text-sm">Approve All</span>
               </Button>
               <Button
                 size="sm"
-                className="bg-red-500 hover:bg-red-600 text-white"
+                className="bg-red-500 hover:bg-red-600 text-white h-8 px-2 sm:px-3"
                 onClick={() => handleBulkAction('reject')}
                 disabled={bulkProcessing}
               >
-                {bulkProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <XCircle className="h-4 w-4 mr-1" />}
-                Reject All
+                {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 sm:mr-1 animate-spin" /> : <XCircle className="h-3.5 w-3.5 sm:mr-1" />}
+                <span className="text-xs sm:text-sm">Reject All</span>
               </Button>
               {Array.from(selectedClaims).every(id => {
                 const claim = claims.find(c => c.id === id);
@@ -1332,12 +1332,12 @@ export function ClaimList({ user }: ClaimListProps) {
               }) && (
                 <Button
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-2 sm:px-3"
                   onClick={() => handleBulkAction('clear')}
                   disabled={bulkProcessing}
                 >
-                  {bulkProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Banknote className="h-4 w-4 mr-1" />}
-                  Clear All
+                  {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 sm:mr-1 animate-spin" /> : <Banknote className="h-3.5 w-3.5 sm:mr-1" />}
+                  <span className="text-xs sm:text-sm">Clear All</span>
                 </Button>
               )}
             </div>

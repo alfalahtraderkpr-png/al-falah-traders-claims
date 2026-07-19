@@ -7,7 +7,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, email, password, role, orderBookerId, action } = body;
+    const { name, email, password, role, orderBookerId, action, assignedCompanyIds } = body;
 
     const existing = await db.user.findUnique({ where: { id } });
     if (!existing) {
@@ -58,12 +58,32 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (role) updateData.role = role;
     updateData.orderBookerId = role === 'orderbooker' ? (orderBookerId || null) : null;
 
-    const user = await db.user.update({
-      where: { id },
-      data: updateData,
+    // Update user + assigned companies atomically
+    const user = await db.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Update assigned companies if provided AND user is order booker
+      if (Array.isArray(assignedCompanyIds) && (role || existing.role) === 'orderbooker') {
+        // Delete all existing mappings
+        await tx.userCompany.deleteMany({ where: { userId: id } });
+
+        // Create new mappings
+        for (const cid of assignedCompanyIds) {
+          if (cid) {
+            await tx.userCompany.create({
+              data: { userId: id, companyId: cid },
+            });
+          }
+        }
+      }
+
+      return updated;
     });
 
-    // Manually resolve orderBooker info
+    // Manually resolve orderBooker info + assignedCompanies
     let orderBookerInfo: { id: string; name: string } | null = null;
     if (user.orderBookerId) {
       const ob = await db.orderBooker.findUnique({
@@ -73,8 +93,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       orderBookerInfo = ob;
     }
 
+    const userComps = await db.userCompany.findMany({
+      where: { userId: user.id },
+      include: { company: { select: { id: true, name: true } } },
+    });
+
     const { password: _, ...safeUser } = user;
-    return NextResponse.json({ ...safeUser, orderBooker: orderBookerInfo });
+    return NextResponse.json({
+      ...safeUser,
+      orderBooker: orderBookerInfo,
+      assignedCompanies: userComps.map((uc) => uc.company),
+    });
   } catch (error) {
     console.error('Update user error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

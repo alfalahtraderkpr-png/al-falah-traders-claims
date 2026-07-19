@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthContext } from '@/lib/auth-context';
 
 export async function PUT(
   request: NextRequest,
@@ -9,6 +10,20 @@ export async function PUT(
   try {
     const { id } = await params;
     const { name, address, shopType, companyOrderBookers } = await request.json();
+    const auth = await getAuthContext(request);
+
+    // Order bookers can only edit shops they're assigned to
+    if (auth && auth.role !== 'admin') {
+      if (!auth.orderBookerId) {
+        return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      }
+      const hasAccess = await db.shopCompanyOrderBooker.findFirst({
+        where: { shopId: id, orderBookerId: auth.orderBookerId },
+      });
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'You can only edit shops assigned to you' }, { status: 403 });
+      }
+    }
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name.trim();
@@ -30,11 +45,17 @@ export async function PUT(
 
     // Update company-orderbooker mappings if provided
     if (companyOrderBookers && Array.isArray(companyOrderBookers)) {
+      // AUTO-ASSIGN: if editor is order booker, force orderBookerId to themselves
+      let finalMappings = [...companyOrderBookers];
+      if (auth && auth.role === 'orderbooker' && auth.orderBookerId) {
+        finalMappings = finalMappings.map((m) => ({ ...m, orderBookerId: auth.orderBookerId }));
+      }
+
       // Delete + create atomically in a transaction
       await db.$transaction(async (tx) => {
         await tx.shopCompanyOrderBooker.deleteMany({ where: { shopId: id } });
 
-        for (const mapping of companyOrderBookers) {
+        for (const mapping of finalMappings) {
           if (mapping.companyId) {
             await tx.shopCompanyOrderBooker.create({
               data: {
@@ -76,13 +97,27 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const auth = await getAuthContext(request);
+
+    // Order bookers can only delete shops they're assigned to
+    if (auth && auth.role !== 'admin') {
+      if (!auth.orderBookerId) {
+        return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      }
+      const hasAccess = await db.shopCompanyOrderBooker.findFirst({
+        where: { shopId: id, orderBookerId: auth.orderBookerId },
+      });
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'You can only delete shops assigned to you' }, { status: 403 });
+      }
+    }
 
     const claimCount = await db.claim.count({ where: { shopId: id } });
     if (claimCount > 0) {
       return NextResponse.json({ error: 'Cannot delete shop used in claims' }, { status: 400 });
     }
 
-    // Delete company-orderbooker mappings first (cascade should handle this, but explicit for safety)
+    // Cascade handles mappings; explicit deleteMany for safety
     await db.shopCompanyOrderBooker.deleteMany({ where: { shopId: id } });
     await db.shop.delete({ where: { id } });
     return NextResponse.json({ success: true });

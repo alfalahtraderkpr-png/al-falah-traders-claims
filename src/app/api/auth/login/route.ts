@@ -13,6 +13,9 @@ export async function POST(request: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { email },
+      include: {
+        userCompanies: { select: { companyId: true } },
+      },
     });
 
     if (!user) {
@@ -34,6 +37,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         orderBookerId: user.orderBookerId,
+        assignedCompanyIds: user.userCompanies.map((uc) => uc.companyId),
       },
       token,
     });
@@ -52,6 +56,9 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       orderBookerId: user.orderBookerId,
+      // Note: assignedCompanyIds intentionally NOT stored in cookie — they
+      // can change while the session is alive, so /api/auth/me re-fetches
+      // them from the DB on every call.
     }), {
       httpOnly: false,
       secure: false,

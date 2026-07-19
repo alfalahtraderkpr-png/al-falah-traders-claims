@@ -1,13 +1,38 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthContext } from '@/lib/auth-context';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const companyId = searchParams.get('companyId');
+    const auth = await getAuthContext(request);
 
-    const where = companyId ? { companyId } : {};
+    // Build base where clause
+    const where: { companyId?: string | { in: string[] }; } = {};
+
+    if (companyId) {
+      where.companyId = companyId;
+    }
+
+    // For order bookers, restrict to their assigned companies (intersection
+    // with the requested companyId if any)
+    if (auth && auth.role !== 'admin') {
+      if (auth.assignedCompanyIds.length === 0) {
+        // No companies assigned → see nothing
+        where.companyId = { in: ['__none__'] };
+      } else if (!companyId) {
+        // No specific companyId requested → use all assigned
+        where.companyId = { in: auth.assignedCompanyIds };
+      } else {
+        // Specific companyId requested → verify it's in their assigned list
+        if (!auth.assignedCompanyIds.includes(companyId)) {
+          return NextResponse.json([]); // not allowed
+        }
+        // (where.companyId is already the string value)
+      }
+    }
 
     const products = await db.product.findMany({
       where,

@@ -12,10 +12,13 @@ export async function GET(request: NextRequest) {
     }
 
     const user = JSON.parse(userData);
-    
+
     // Verify user still exists
     const dbUser = await db.user.findUnique({
       where: { id: user.id },
+      include: {
+        userCompanies: { select: { companyId: true } },
+      },
     });
 
     if (!dbUser) {
@@ -29,6 +32,9 @@ export async function GET(request: NextRequest) {
         email: dbUser.email,
         role: dbUser.role,
         orderBookerId: dbUser.orderBookerId,
+        // Array of company IDs this user is allowed to access.
+        // For admin role this will be empty — admin sees everything.
+        assignedCompanyIds: dbUser.userCompanies.map((uc) => uc.companyId),
       },
     });
   } catch (error) {

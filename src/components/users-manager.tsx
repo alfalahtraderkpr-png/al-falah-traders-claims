@@ -8,9 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Plus, Trash2, Key, Shield, UserCheck, Search, Copy, Check, Lock, Mail, Calendar, User, Eye } from 'lucide-react';
+import { Loader2, Plus, Trash2, Key, Shield, UserCheck, Search, Copy, Check, Lock, Mail, Calendar, User, Eye, Building2 } from 'lucide-react';
 
 interface OrderBooker {
+  id: string;
+  name: string;
+}
+
+interface Company {
   id: string;
   name: string;
 }
@@ -22,6 +27,7 @@ interface UserItem {
   role: string;
   orderBookerId: string | null;
   orderBooker: { id: string; name: string } | null;
+  assignedCompanies?: Company[]; // populated for order bookers
   createdAt: string;
 }
 
@@ -30,7 +36,7 @@ function ActionButton({
   icon: Icon,
   label,
   onClick,
-  variant = 'default',
+  variant = 'green',
   disabled = false,
 }: {
   icon: React.ElementType;
@@ -39,7 +45,7 @@ function ActionButton({
   variant?: 'blue' | 'red' | 'green' | 'amber';
   disabled?: boolean;
 }) {
-  const colorMap = {
+  const colorMap: Record<'blue' | 'red' | 'green' | 'amber', string> = {
     blue: 'border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300',
     red: 'border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300',
     green: 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300',
@@ -61,12 +67,14 @@ function ActionButton({
 export function UsersManager() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [companiesDialogOpen, setCompaniesDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -78,15 +86,17 @@ export function UsersManager() {
     password: '',
     role: 'orderbooker',
     orderBookerId: '',
+    assignedCompanyIds: [] as string[],
   });
   const [newPassword, setNewPassword] = useState('');
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [usersRes, obRes] = await Promise.all([
+      const [usersRes, obRes, compRes] = await Promise.all([
         fetch('/api/users'),
         fetch('/api/order-bookers'),
+        fetch('/api/companies'),
       ]);
       if (usersRes.ok) {
         const data = await usersRes.json();
@@ -95,6 +105,10 @@ export function UsersManager() {
       if (obRes.ok) {
         const data = await obRes.json();
         if (Array.isArray(data)) setOrderBookers(data);
+      }
+      if (compRes.ok) {
+        const data = await compRes.json();
+        if (Array.isArray(data)) setCompanies(data);
       }
     } catch (e) {
       console.error(e);
@@ -125,7 +139,10 @@ export function UsersManager() {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          assignedCompanyIds: form.role === 'orderbooker' ? form.assignedCompanyIds : [],
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -133,7 +150,7 @@ export function UsersManager() {
         return;
       }
       setDialogOpen(false);
-      setForm({ name: '', email: '', password: '', role: 'orderbooker', orderBookerId: '' });
+      setForm({ name: '', email: '', password: '', role: 'orderbooker', orderBookerId: '', assignedCompanyIds: [] });
       load();
     } catch (e) {
       console.error(e);
@@ -141,6 +158,48 @@ export function UsersManager() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveCompanies = async () => {
+    if (!selectedUser) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // Send only fields we want to update
+          name: selectedUser.name,
+          email: selectedUser.email,
+          role: selectedUser.role,
+          orderBookerId: selectedUser.orderBookerId,
+          assignedCompanyIds: form.assignedCompanyIds,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Failed to update companies');
+        return;
+      }
+      setCompaniesDialogOpen(false);
+      setSelectedUser(null);
+      setForm((prev) => ({ ...prev, assignedCompanyIds: [] }));
+      load();
+    } catch (e) {
+      console.error(e);
+      alert('Network error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openCompaniesDialog = (user: UserItem) => {
+    setSelectedUser(user);
+    setForm((prev) => ({
+      ...prev,
+      assignedCompanyIds: user.assignedCompanies?.map((c) => c.id) || [],
+    }));
+    setCompaniesDialogOpen(true);
   };
 
   const handleDelete = async (user: UserItem) => {
@@ -260,7 +319,7 @@ export function UsersManager() {
             label="Create Login"
             variant="green"
             onClick={() => {
-              setForm({ name: '', email: '', password: '', role: 'orderbooker', orderBookerId: '' });
+              setForm({ name: '', email: '', password: '', role: 'orderbooker', orderBookerId: '', assignedCompanyIds: [] });
               setDialogOpen(true);
             }}
           />
@@ -381,9 +440,28 @@ export function UsersManager() {
                             </span>
                             <span className="flex items-center gap-1 shrink-0"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
                           </div>
+                          {/* Assigned companies */}
+                          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                            <Building2 className="h-3 w-3 text-emerald-600 shrink-0" />
+                            {user.assignedCompanies && user.assignedCompanies.length > 0 ? (
+                              user.assignedCompanies.map((c) => (
+                                <Badge key={c.id} className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                                  {c.name}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-[10px] text-amber-600 italic">No company assigned — user will see nothing</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
+                        <ActionButton
+                          icon={Building2}
+                          label="Companies"
+                          variant="amber"
+                          onClick={() => openCompaniesDialog(user)}
+                        />
                         <ActionButton
                           icon={Key}
                           label="Password"
@@ -564,6 +642,52 @@ export function UsersManager() {
               </p>
             </div>
 
+            {form.role === 'orderbooker' && (
+              <div className="border-t pt-3">
+                <Label className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-emerald-600" />
+                  Assigned Companies
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1 mb-2">
+                  Order booker ko sirf inhi companies ke products aur shops dikhenge. Multi-select — at least ek company zaroor assign karein.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {companies.length === 0 ? (
+                    <p className="text-xs text-amber-600 col-span-full">Koi company define nahi hai. Pehle Master Data mein companies add karein.</p>
+                  ) : companies.map((c) => {
+                    const isAssigned = form.assignedCompanyIds.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            assignedCompanyIds: isAssigned
+                              ? prev.assignedCompanyIds.filter((id) => id !== c.id)
+                              : [...prev.assignedCompanyIds, c.id],
+                          }));
+                        }}
+                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                          isAssigned
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                            : 'bg-white text-gray-600 border-gray-300 hover:bg-emerald-50 hover:border-emerald-300'
+                        }`}
+                      >
+                        {isAssigned && <Check className="h-3 w-3" />}
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.assignedCompanyIds.length === 0 && (
+                  <p className="text-[10px] text-amber-600 mt-2 italic">
+                    ⚠ No company selected — user will see nothing after login.
+                  </p>
+                )}
+              </div>
+            )}
+
             {form.role === 'orderbooker' && form.orderBookerId && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm">
                 <p className="font-medium text-emerald-800 mb-1">Login Credentials:</p>
@@ -580,6 +704,68 @@ export function UsersManager() {
               disabled={saving}
             >
               {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</> : 'Create Login'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Companies Dialog */}
+      <Dialog open={companiesDialogOpen} onOpenChange={setCompaniesDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-emerald-600" />
+              Assign Companies
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{selectedUser?.name}</span> ko kaunsi companies assign karni hain?
+              Order booker ko sirf inhi companies ke products aur shops dikhenge.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {companies.length === 0 ? (
+                <p className="text-xs text-amber-600 col-span-full">Koi company define nahi hai. Pehle Master Data mein companies add karein.</p>
+              ) : companies.map((c) => {
+                const isAssigned = form.assignedCompanyIds.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        assignedCompanyIds: isAssigned
+                          ? prev.assignedCompanyIds.filter((id) => id !== c.id)
+                          : [...prev.assignedCompanyIds, c.id],
+                      }));
+                    }}
+                    className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg border-2 text-xs font-medium transition-all ${
+                      isAssigned
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-emerald-50 hover:border-emerald-300'
+                    }`}
+                  >
+                    {isAssigned && <Check className="h-3 w-3" />}
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+            {form.assignedCompanyIds.length === 0 && (
+              <p className="text-xs text-amber-600 italic mt-2">
+                ⚠ No company selected — user will see nothing after login.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompaniesDialogOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md"
+              onClick={handleSaveCompanies}
+              disabled={saving}
+            >
+              {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : 'Save Companies'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -7,6 +7,9 @@ export async function GET() {
   try {
     const users = await db.user.findMany({
       orderBy: { createdAt: 'desc' },
+      include: {
+        userCompanies: { select: { companyId: true, company: { select: { id: true, name: true } } } },
+      },
     });
 
     // Manually resolve orderBooker names for orderbooker users
@@ -21,11 +24,12 @@ export async function GET() {
       orderBookers.forEach(ob => { obMap[ob.id] = ob; });
     }
 
-    // Don't return passwords, add orderBooker info manually
-    const safeUsers = users.map(({ password, orderBookerId, ...user }) => ({
+    // Don't return passwords; add orderBooker + assignedCompanies info
+    const safeUsers = users.map(({ password, orderBookerId, userCompanies, ...user }) => ({
       ...user,
       orderBookerId,
       orderBooker: orderBookerId ? (obMap[orderBookerId] || null) : null,
+      assignedCompanies: userCompanies.map((uc) => uc.company),
     }));
 
     return NextResponse.json(safeUsers);
@@ -37,7 +41,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, role, orderBookerId } = await request.json();
+    const { name, email, password, role, orderBookerId, assignedCompanyIds } = await request.json();
 
     if (!name || !email || !password || !role) {
       return NextResponse.json({ error: 'Name, email, password, and role are required' }, { status: 400 });
@@ -64,17 +68,33 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = hashSync(password, 10);
 
-    const user = await db.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role,
-        orderBookerId: role === 'orderbooker' ? orderBookerId : null,
-      },
+    // Create user + UserCompany mappings atomically
+    const user = await db.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role,
+          orderBookerId: role === 'orderbooker' ? orderBookerId : null,
+        },
+      });
+
+      // If order booker with assigned companies, create the mappings
+      if (role === 'orderbooker' && Array.isArray(assignedCompanyIds) && assignedCompanyIds.length > 0) {
+        for (const cid of assignedCompanyIds) {
+          if (cid) {
+            await tx.userCompany.create({
+              data: { userId: created.id, companyId: cid },
+            });
+          }
+        }
+      }
+
+      return created;
     });
 
-    // Manually resolve orderBooker info
+    // Manually resolve orderBooker info + assignedCompanies
     let orderBookerInfo: { id: string; name: string } | null = null;
     if (user.orderBookerId) {
       const ob = await db.orderBooker.findUnique({
@@ -84,8 +104,17 @@ export async function POST(request: NextRequest) {
       orderBookerInfo = ob;
     }
 
+    // Fetch assigned companies for the response
+    const userComps = await db.userCompany.findMany({
+      where: { userId: user.id },
+      include: { company: { select: { id: true, name: true } } },
+    });
+
     const { password: _, ...safeUser } = user;
-    return NextResponse.json({ ...safeUser, orderBooker: orderBookerInfo }, { status: 201 });
+    return NextResponse.json(
+      { ...safeUser, orderBooker: orderBookerInfo, assignedCompanies: userComps.map((uc) => uc.company) },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Create user error:', error);
     const errMsg = error instanceof Error ? error.message : 'Internal server error';

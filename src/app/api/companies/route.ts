@@ -1,10 +1,23 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthContext } from '@/lib/auth-context';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = await getAuthContext(request);
+
+    // For admins, return all. For order bookers, return only their assigned companies.
+    // If an order booker has zero assignments, return nothing.
+    const companyWhere =
+      auth && auth.role !== 'admin'
+        ? (auth.assignedCompanyIds.length === 0
+            ? { id: { in: ['__none__'] } } // see nothing
+            : { id: { in: auth.assignedCompanyIds } })
+        : {};
+
     const companies = await db.company.findMany({
+      where: companyWhere,
       orderBy: { name: 'asc' },
       include: { _count: { select: { products: true } } },
     });

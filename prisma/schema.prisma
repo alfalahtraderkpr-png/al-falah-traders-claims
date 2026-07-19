@@ -17,6 +17,19 @@ model User {
   orderBooker   OrderBooker? @relation(fields: [orderBookerId], references: [id])
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  // Companies this user (order booker) is allowed to access
+  userCompanies UserCompany[]
+}
+
+model UserCompany {
+  id        String   @id @default(cuid())
+  userId    String
+  companyId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, companyId])
 }
 
 model Company {
@@ -31,6 +44,7 @@ model Company {
   claims          Claim[]
   shopOrderBookers ShopCompanyOrderBooker[]
   creditLimits     ShopCreditLimit[]
+  userCompanies    UserCompany[]
 }
 
 model Product {

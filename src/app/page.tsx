@@ -45,20 +45,42 @@ export default function Home() {
 
   useEffect(() => {
     // Check if user is already logged in
+    // Use AbortController with a short timeout so the page never gets stuck
+    // on the "Loading..." state if /api/auth/me is slow or unresponsive.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/auth/me', {
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
         }
-      } catch {
-        // Not authenticated
+      } catch (err) {
+        // Either not authenticated, or fetch was aborted due to timeout.
+        // In both cases, fall through to the login screen — never stay stuck.
+        if ((err as Error).name === 'AbortError') {
+          console.warn('[auth/me] Timed out after 8s — showing login screen');
+        } else {
+          console.warn('[auth/me] fetch failed:', (err as Error).message);
+        }
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };
     checkAuth();
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
   const handleLogin = (loggedInUser: User) => {
@@ -78,10 +100,17 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-emerald-100">
         <div className="text-center">
-          <div className="w-16 h-16 bg-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 bg-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg">
             <span className="text-white font-bold text-lg">AF</span>
           </div>
-          <p className="text-emerald-700 font-medium">Loading...</p>
+          <p className="text-emerald-700 font-medium mb-1">Loading...</p>
+          <p className="text-emerald-600/60 text-xs">Connecting to server</p>
+          <button
+            className="mt-4 text-xs text-emerald-700 underline hover:text-emerald-900"
+            onClick={() => { setLoading(false); }}
+          >
+            Skip to login
+          </button>
         </div>
       </div>
     );

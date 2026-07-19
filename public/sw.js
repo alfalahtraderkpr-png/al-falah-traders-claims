@@ -1,7 +1,13 @@
-const CACHE_NAME = 'al-falah-claims-v4';
+const CACHE_NAME = 'al-falah-claims-v5';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
+];
+
+// URLs that should NEVER be cached (always go to network)
+const NEVER_CACHE = [
+  '/api/auth/me',
+  '/api/auth/login',
 ];
 
 self.addEventListener('install', (event) => {
@@ -27,21 +33,57 @@ self.addEventListener('message', (event) => {
   }
 });
 
+// Fetch with timeout — if network is slow, fall back to cache
+function fetchWithTimeout(request, ms = 5000) {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ms);
+    fetch(request, { signal: controller.signal })
+      .then((response) => {
+        clearTimeout(timeoutId);
+        resolve(response);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        reject(err);
+      });
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // For API calls, network first, fallback to cache
+  // For auth endpoints — ALWAYS network only, NEVER cache
+  if (NEVER_CACHE.some((path) => url.pathname.includes(path))) {
+    event.respondWith(
+      fetchWithTimeout(event.request, 8000)
+        .catch(() => new Response(JSON.stringify({ error: 'Not authenticated' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+    );
+    return;
+  }
+
+  // For other API calls, network first with 5s timeout, fallback to cache
   if (url.pathname.includes('/api/')) {
     event.respondWith(
-      fetch(event.request)
+      fetchWithTimeout(event.request, 5000)
         .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(event.request).then((cached) =>
+          cached || new Response(JSON.stringify({ error: 'Network error' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        ))
     );
     return;
   }

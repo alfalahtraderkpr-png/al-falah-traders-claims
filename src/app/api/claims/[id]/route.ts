@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthContext } from '@/lib/auth-context';
 
 export async function GET(
   request: NextRequest,
@@ -46,6 +47,34 @@ export async function PUT(
     const claim = await db.claim.findUnique({ where: { id }, include: { company: true } });
     if (!claim) {
       return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
+    }
+
+    // ============================================================
+    // PERMISSION CHECK: order bookers can ONLY use 'update' action
+    // (to edit their own pending claims' items). All other actions
+    // (approve, reject, clear, partial, change_status, arrive_and_approve)
+    // are ADMIN-ONLY.
+    // ============================================================
+    const auth = await getAuthContext(request);
+
+    const ADMIN_ONLY_ACTIONS = ['approve', 'arrive_and_approve', 'partial', 'clear', 'reject', 'change_status'];
+    if (ADMIN_ONLY_ACTIONS.includes(action)) {
+      if (!auth || auth.role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Only admin can perform this action. Order bookers can only edit their own pending claims.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // For the 'update' action: order bookers can only update THEIR OWN claims
+    if (action === 'update' && auth && auth.role !== 'admin') {
+      if (!auth.orderBookerId || claim.orderBookerId !== auth.orderBookerId) {
+        return NextResponse.json(
+          { error: 'You can only edit your own claims.' },
+          { status: 403 }
+        );
+      }
     }
 
     let updateData: Record<string, unknown> = {};

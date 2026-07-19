@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthContext } from '@/lib/auth-context';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     const search = searchParams.get('search');
+
+    const auth = await getAuthContext(request);
 
     const where: Record<string, unknown> = {};
 
@@ -30,6 +33,18 @@ export async function GET(request: NextRequest) {
         { claimNumber: { contains: search } },
         { shop: { name: { contains: search } } },
       ];
+    }
+
+    // SECURITY: Order bookers can ONLY see claims they themselves created
+    // (assigned to their own orderBookerId). Admins see everything.
+    // This overrides any orderBookerId filter an OB tries to pass in the URL.
+    if (auth && auth.role !== 'admin') {
+      if (auth.orderBookerId) {
+        where.orderBookerId = auth.orderBookerId;
+      } else {
+        // OB with no orderBookerId link → see nothing
+        where.orderBookerId = '__none__';
+      }
     }
 
     const claims = await db.claim.findMany({

@@ -70,6 +70,7 @@ interface EditableItem {
 }
 
 export function StockNotReceived({ user }: StockNotReceivedProps) {
+  const isAdmin = user.role === 'admin';
   const [claims, setClaims] = useState<Claim[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -117,7 +118,17 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
       const params = new URLSearchParams();
       params.set('status', 'pending'); // Only show pending (Stock Not Received) claims
       if (filterCompany !== 'all') params.set('companyId', filterCompany);
-      if (filterOrderBooker !== 'all') params.set('orderBookerId', filterOrderBooker);
+      // SECURITY: Order bookers can ONLY see their own claims.
+      // The API enforces this server-side too, but we also pass the OB ID
+      // explicitly so the URL is unambiguous.
+      if (!isAdmin) {
+        if (user.orderBookerId) {
+          params.set('orderBookerId', user.orderBookerId);
+        }
+        // (OBs without orderBookerId will see nothing — see API)
+      } else if (filterOrderBooker !== 'all') {
+        params.set('orderBookerId', filterOrderBooker);
+      }
       if (search) params.set('search', search);
 
       const res = await fetch(`/api/claims?${params}`);
@@ -127,7 +138,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
     } finally {
       setLoading(false);
     }
-  }, [filterCompany, filterOrderBooker, search]);
+  }, [filterCompany, filterOrderBooker, search, isAdmin, user.orderBookerId]);
 
   useEffect(() => {
     loadFilters();
@@ -215,29 +226,53 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
   const handleApproveWithEdits = async () => {
     if (!approveDialog || editItems.length === 0) return;
     try {
+      // Admin uses 'arrive_and_approve' (verifies stock + approves in one go)
+      // Order booker uses 'update' (just edits items, keeps status=pending)
+      const action = isAdmin ? 'arrive_and_approve' : 'update';
+      const payload: Record<string, unknown> = { action };
+      if (isAdmin) {
+        payload.items = editItems.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          amount: item.amount,
+        }));
+      } else {
+        // 'update' action expects full claim fields
+        payload.date = approveDialog.date;
+        payload.companyId = approveDialog.companyId;
+        payload.shopId = approveDialog.shopId;
+        payload.supplierId = approveDialog.supplierId;
+        payload.orderBookerId = approveDialog.orderBookerId;
+        payload.items = editItems.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          amount: item.amount,
+        }));
+      }
+
       const res = await fetch(`/api/claims/${approveDialog.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'arrive_and_approve',
-          items: editItems.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            amount: item.amount,
-          })),
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        logAction({ userName: user.name, action: 'arrive_and_approve', entity: 'claim', entityId: approveDialog.id, details: 'Verified and approved with edits' });
+        logAction({
+          userName: user.name,
+          action: isAdmin ? 'arrive_and_approve' : 'update',
+          entity: 'claim',
+          entityId: approveDialog.id,
+          details: isAdmin ? 'Verified and approved with edits' : 'Order booker edited pending claim items',
+        });
         setApproveDialog(null);
         setEditItems([]);
         loadClaims();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to approve claim');
+        alert(data.error || 'Failed to save claim');
       }
     } catch (error) {
-      console.error('Approve with edits error:', error);
+      console.error('Save error:', error);
+      alert('Network error');
     }
   };
 
@@ -324,6 +359,11 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
       {/* Filters */}
       <Card className="shadow-sm">
         <CardContent className="pt-4">
+          {!isAdmin && (
+            <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2 mb-3">
+              ✓ Showing only claims created by you ({user.name}). Other order bookers' claims are hidden.
+            </p>
+          )}
           <div className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[200px]">
               <Input
@@ -344,17 +384,19 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filterOrderBooker} onValueChange={setFilterOrderBooker}>
-              <SelectTrigger className="w-full sm:w-[180px] border-emerald-200">
-                <SelectValue placeholder="All Bookers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Order Bookers</SelectItem>
-                {orderBookers.map(ob => (
-                  <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isAdmin && (
+              <Select value={filterOrderBooker} onValueChange={setFilterOrderBooker}>
+                <SelectTrigger className="w-full sm:w-[180px] border-emerald-200">
+                  <SelectValue placeholder="All Bookers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Order Bookers</SelectItem>
+                  {orderBookers.map(ob => (
+                    <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -449,29 +491,43 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
 
                 {/* Action Buttons */}
                 <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t">
-                  <Button
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => handleQuickApprove(claim)}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Approve As-Is
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    onClick={() => openApproveDialog(claim)}
-                  >
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Verify & Edit Before Approve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-red-300 text-red-700 hover:bg-red-50"
-                    onClick={() => { setRejectDialog(claim); setRejectReason(''); }}
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Reject
-                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => handleQuickApprove(claim)}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Approve As-Is
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                        onClick={() => openApproveDialog(claim)}
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Verify & Edit Before Approve
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-red-300 text-red-700 hover:bg-red-50"
+                        onClick={() => { setRejectDialog(claim); setRejectReason(''); }}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                  {!isAdmin && (
+                    <Button
+                      variant="outline"
+                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                      onClick={() => openApproveDialog(claim)}
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit Claim
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -513,19 +569,21 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
         </div>
       )}
 
-      {/* Verify & Edit Before Approve Dialog */}
+      {/* Verify & Edit Before Approve Dialog (admin) OR Edit Claim Dialog (OB) */}
       {approveDialog && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setApproveDialog(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <h3 className="text-lg font-bold text-emerald-700 mb-1">
-                Verify & Approve — {approveDialog.claimNumber}
+                {isAdmin ? `Verify & Approve — ${approveDialog.claimNumber}` : `Edit Claim — ${approveDialog.claimNumber}`}
               </h3>
               <p className="text-sm text-muted-foreground mb-1">
                 Shop: {approveDialog.shop.name} | Company: {approveDialog.company.name}
               </p>
               <p className="text-xs text-amber-600 mb-4">
-                Compare physical stock with items below. Edit quantities if needed, then approve.
+                {isAdmin
+                  ? 'Compare physical stock with items below. Edit quantities if needed, then approve.'
+                  : 'Edit quantities or add/remove items. The claim will remain pending — admin will approve when stock arrives.'}
               </p>
 
               {/* Editable Items */}
@@ -600,12 +658,15 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                   Cancel
                 </Button>
                 <Button
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className={isAdmin ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
                   onClick={handleApproveWithEdits}
                   disabled={editItems.length === 0}
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Approve (Arrived & Verified)
+                  {isAdmin ? (
+                    <><CheckCircle className="h-4 w-4 mr-2" />Approve (Arrived & Verified)</>
+                  ) : (
+                    <><Edit3 className="h-4 w-4 mr-2" />Save Changes</>
+                  )}
                 </Button>
               </div>
             </div>

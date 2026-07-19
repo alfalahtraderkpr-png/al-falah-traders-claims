@@ -17,6 +17,7 @@ interface User {
   email: string;
   role: string;
   orderBookerId: string | null;
+  assignedCompanyIds?: string[];
 }
 
 // Error boundary wrapper for safe component rendering

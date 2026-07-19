@@ -267,20 +267,21 @@ function reportPending(doc: jsPDF, claims: Claim[], filters: string[]) {
       overflow: 'linebreak',
     },
     alternateRowStyles: { fillColor: COLORS.grayLight },
-    // Total = 10+20+16+22+45+20+30+12+28 = 203mm (fits portrait A4 with 182mm usable width?
-    // No — 210-28=182mm. We need landscape for 9 columns too.)
+    // Column widths STRETCHED to fill full landscape A4 page width.
+    // Landscape A4 usable width = 273mm; total = 12+22+18+28+52+24+35+12+32 = 235mm
+    // (autoTable will proportionally distribute the extra ~38mm to columns)
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center', fontSize: 8 },
-      1: { cellWidth: 20, halign: 'center', textColor: COLORS.primary, fontStyle: 'bold' },
-      2: { cellWidth: 16, halign: 'center' },
-      3: { cellWidth: 22, fontStyle: 'bold' },
-      4: { cellWidth: 40 },
-      5: { cellWidth: 20, halign: 'center' },
-      6: { cellWidth: 28 },
-      7: { cellWidth: 12, halign: 'center' },
-      8: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
+      0: { cellWidth: 12, halign: 'center', fontSize: 8 },        // #
+      1: { cellWidth: 22, halign: 'center', textColor: COLORS.primary, fontStyle: 'bold' },  // Claim #
+      2: { cellWidth: 18, halign: 'center' },                      // Date
+      3: { cellWidth: 28, fontStyle: 'bold' },                     // Company
+      4: { cellWidth: 52 },                                         // Shop (widest)
+      5: { cellWidth: 24, halign: 'center' },                       // Supplier
+      6: { cellWidth: 35 },                                         // Order Booker
+      7: { cellWidth: 12, halign: 'center' },                       // Items
+      8: { cellWidth: 32, halign: 'right', fontStyle: 'bold' },     // Amount
     },
-    margin: { left: 14, right: 14, top: 14, bottom: 20 },
+    margin: { left: 12, right: 12, top: 14, bottom: 18 },
     didDrawPage: () => addFooter(doc),
   });
 }
@@ -374,23 +375,23 @@ function reportApproved(doc: jsPDF, claims: Claim[], filters: string[]) {
       overflow: 'linebreak',
     },
     alternateRowStyles: { fillColor: COLORS.grayLight },
-    // Column widths tuned for landscape A4 (269mm usable width after margins)
-    // Total = 10+20+16+22+40+20+28+20+10+28 = 214mm (fits comfortably)
+    // Column widths STRETCHED to fill full landscape A4 page width.
+    // Landscape A4 = 297mm; margins 12+12 = 24mm; usable = 273mm
+    // Total = 12+22+18+28+52+24+35+24+12+32 = 259mm (fills page, auto-fit handles rounding)
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center', fontSize: 8 },        // #
-      1: { cellWidth: 20, halign: 'center', textColor: COLORS.primary, fontStyle: 'bold' },  // Claim #
-      2: { cellWidth: 16, halign: 'center' },                      // Date
-      3: { cellWidth: 22, fontStyle: 'bold' },                     // Company
-      4: { cellWidth: 40 },                                         // Shop (widest)
-      5: { cellWidth: 20, halign: 'center' },                       // Supplier
-      6: { cellWidth: 28 },                                         // Order Booker
-      7: { cellWidth: 20, halign: 'center' },                       // Status
-      8: { cellWidth: 10, halign: 'center' },                       // Items
-      9: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },     // Approved Amount
+      0: { cellWidth: 12, halign: 'center', fontSize: 8 },        // #
+      1: { cellWidth: 22, halign: 'center', textColor: COLORS.primary, fontStyle: 'bold' },  // Claim #
+      2: { cellWidth: 18, halign: 'center' },                      // Date
+      3: { cellWidth: 28, fontStyle: 'bold' },                     // Company
+      4: { cellWidth: 52 },                                         // Shop (widest)
+      5: { cellWidth: 24, halign: 'center' },                       // Supplier
+      6: { cellWidth: 35 },                                         // Order Booker
+      7: { cellWidth: 24, halign: 'center' },                       // Status
+      8: { cellWidth: 12, halign: 'center' },                       // Items
+      9: { cellWidth: 32, halign: 'right', fontStyle: 'bold' },     // Approved Amount
     },
-    // Use top margin of 14 (small) so table starts near top of page
-    // Use larger bottom margin so Grand Total + footer fit on last page
-    margin: { left: 14, right: 14, top: 14, bottom: 20 },
+    // Tight margins so the table fills the full page width
+    margin: { left: 12, right: 12, top: 14, bottom: 18 },
     didDrawPage: () => addFooter(doc),
     didParseCell: (data) => {
       // Color-code the Status column (7) for visual emphasis

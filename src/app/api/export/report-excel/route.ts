@@ -17,7 +17,14 @@ async function fetchClaims(filters: {
   dateTo?: string;
 }) {
   const where: Record<string, unknown> = {};
-  if (filters.status) where.status = filters.status;
+  if (filters.status) {
+    // Support comma-separated list of statuses (e.g. 'approved,partial')
+    if (filters.status.includes(',')) {
+      where.status = { in: filters.status.split(',').map(s => s.trim()) };
+    } else {
+      where.status = filters.status;
+    }
+  }
   if (filters.companyId) where.companyId = filters.companyId;
   if (filters.supplierId) where.supplierId = filters.supplierId;
   if (filters.orderBookerId) where.orderBookerId = filters.orderBookerId;
@@ -515,6 +522,15 @@ export async function GET(request: NextRequest) {
       const pending = claims.filter(c => normalizeStatus(c.status) === 'pending');
       const ws = buildClaimsSheet(pending);
       XLSX.utils.book_append_sheet(wb, ws, 'Pending Claims');
+    }
+    if (reportType === 'all' || reportType === 'approved') {
+      // Approved + partial — stock has arrived on floor, payment still pending
+      const approved = claims.filter(c => {
+        const s = normalizeStatus(c.status);
+        return s === 'approved' || s === 'partial';
+      });
+      const ws = buildClaimsSheet(approved);
+      XLSX.utils.book_append_sheet(wb, ws, 'Approved Claims');
     }
     if (reportType === 'all' || reportType === 'cleared') {
       const cleared = claims.filter(c => normalizeStatus(c.status) === 'cleared');

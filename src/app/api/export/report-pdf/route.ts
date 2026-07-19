@@ -18,7 +18,15 @@ async function fetchClaims(filters: {
   dateTo?: string;
 }) {
   const where: Record<string, unknown> = {};
-  if (filters.status) where.status = filters.status;
+  if (filters.status) {
+    // Support comma-separated list of statuses (e.g. 'approved,partial')
+    // OR a single status string.
+    if (filters.status.includes(',')) {
+      where.status = { in: filters.status.split(',').map(s => s.trim()) };
+    } else {
+      where.status = filters.status;
+    }
+  }
   if (filters.companyId) where.companyId = filters.companyId;
   if (filters.supplierId) where.supplierId = filters.supplierId;
   if (filters.orderBookerId) where.orderBookerId = filters.orderBookerId;
@@ -229,6 +237,72 @@ function reportPending(doc: jsPDF, claims: Claim[], filters: string[]) {
       1: { cellWidth: 28, textColor: COLORS.primary, fontStyle: 'bold' },
       7: { cellWidth: 16, halign: 'center' },
       8: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+    },
+    margin: { left: 14, right: 14 },
+    styles: { cellPadding: 3 },
+  });
+}
+
+// ─────────────────────────────────────────────
+// Approved Claims Report (stock arrived on floor, payment pending)
+// Used by the 'Pending Claims (Arrived)' tab in the Reports page
+// ─────────────────────────────────────────────
+
+function reportApproved(doc: jsPDF, claims: Claim[], filters: string[]) {
+  // Show approved AND partial claims (both have stock arrived, payment not yet cleared)
+  const data = claims.filter(c => {
+    const s = normalizeStatus(c.status);
+    return s === 'approved' || s === 'partial';
+  });
+  const total = data.reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
+  const generatedAt = new Date().toLocaleString('en-GB');
+
+  let y = addHeader(doc, 'Approved Claims Report (Stock Arrived)', filters, generatedAt);
+  y = addSummaryBoxes(doc, y, [
+    { label: 'Approved Claims', value: String(data.length), bg: COLORS.green, fg: COLORS.primaryDark },
+    { label: 'Total Approved Amount', value: fmtMoney(total), bg: COLORS.primaryLight, fg: COLORS.primaryDark },
+    { label: 'Avg Per Claim', value: data.length ? fmtMoney(total / data.length) : 'Rs. 0', bg: COLORS.grayLight, fg: COLORS.grayDark },
+  ]);
+
+  if (data.length === 0) {
+    doc.setTextColor(...COLORS.gray);
+    doc.setFontSize(11);
+    doc.text('No approved claims found. Stock not yet received at distribution.', 14, y + 10);
+    return;
+  }
+
+  autoTable(doc, {
+    startY: y,
+    head: [['#', 'Claim #', 'Date', 'Company', 'Shop', 'Supplier', 'Order Booker', 'Status', 'Items', 'Approved Amount']],
+    body: data.map((c, i) => {
+      const s = normalizeStatus(c.status);
+      const statusLabel = s === 'partial' ? 'Partial' : 'Approved';
+      const amt = c.approvedAmount != null ? c.approvedAmount : (c.netAmount || c.totalAmount);
+      return [
+        i + 1,
+        c.claimNumber,
+        fmtDate(c.date),
+        c.company.name,
+        c.shop.name,
+        c.supplier.name,
+        c.orderBooker?.name || '-',
+        statusLabel,
+        c.claimItems.length,
+        { content: fmtMoney(amt), styles: { halign: 'right' } },
+      ];
+    }),
+    foot: [['', '', '', '', '', '', '', '', 'Grand Total:', { content: fmtMoney(total), styles: { halign: 'right', textColor: COLORS.white } }]],
+    theme: 'striped',
+    headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 9 },
+    footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
+    bodyStyles: { fontSize: 9, textColor: COLORS.black },
+    alternateRowStyles: { fillColor: COLORS.grayLight },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 26, textColor: COLORS.primary, fontStyle: 'bold' },
+      7: { cellWidth: 18, halign: 'center' },
+      8: { cellWidth: 14, halign: 'center' },
+      9: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
     },
     margin: { left: 14, right: 14 },
     styles: { cellPadding: 3 },
@@ -618,6 +692,7 @@ export async function GET(request: NextRequest) {
 
     const reportMap: Record<string, (d: jsPDF, c: Claim[], f: string[]) => void> = {
       pending: reportPending,
+      approved: reportApproved,
       summary: reportSummary,
       aging: reportAging,
       cleared: reportCleared,

@@ -1454,11 +1454,13 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
   const [filterOB, setFilterOB] = useState('all');
   const [filterCompany, setFilterCompany] = useState('all');
 
-  // Pending + Approved Claims = Stock not yet received OR arrived on floor but not cleared
+  // Approved + Partial Claims = Stock has ARRIVED on floor, payment still pending.
+  // (Pending claims — stock NOT received — are shown in the 'Pending Claims' tab,
+  // NOT here. This tab is for claims where stock has arrived.)
   // Also handles legacy statuses (arrived_approved → approved, partially_approved/partially_cleared → partial)
   const filtered = allClaims.filter(c => {
     const normalized = normalizeStatus(c.status);
-    if (normalized !== 'pending' && normalized !== 'approved' && normalized !== 'partial') return false;
+    if (normalized !== 'approved' && normalized !== 'partial') return false;
     if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
     if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
     return true;
@@ -1496,9 +1498,13 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
               </SelectContent>
             </Select>
             <ReportActionButtons
-              reportType="pending"
+              reportType="approved"
               onPrint={onPrint}
-              filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
+              filters={{
+                status: 'approved,partial',
+                orderBookerId: filterOB !== 'all' ? filterOB : undefined,
+                companyId: filterCompany !== 'all' ? filterCompany : undefined,
+              }}
             />
           </div>
         </CardContent>
@@ -1507,7 +1513,7 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
       {/* Print Header */}
       <div className="hidden print-block print-header">
         <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Pending Claims Report</h2>
+        <h2 className="text-lg font-semibold text-center mt-1">Approved Claims Report (Stock Arrived)</h2>
         {(selectedOB || selectedComp) && (
           <p className="text-sm text-center mt-1">
             {selectedOB ? `Order Booker: ${selectedOB.name}` : ''}

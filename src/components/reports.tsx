@@ -13,6 +13,117 @@ interface Company { id: string; name: string }
 interface Supplier { id: string; name: string }
 interface OrderBooker { id: string; name: string }
 
+// ─────────────────────────────────────────────
+// Shared Export Helper — used by every report component
+// ─────────────────────────────────────────────
+export interface ExportFilters {
+  reportType: string;
+  status?: string;
+  companyId?: string;
+  supplierId?: string;
+  orderBookerId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export async function exportReport(
+  format: 'pdf' | 'excel',
+  filters: ExportFilters,
+  onSuccess?: () => void,
+  onError?: (msg: string) => void
+) {
+  try {
+    const params = new URLSearchParams();
+    params.set('type', filters.reportType);
+    params.set('t', String(Date.now())); // cache buster
+    if (filters.status) params.set('status', filters.status);
+    if (filters.companyId) params.set('companyId', filters.companyId);
+    if (filters.supplierId) params.set('supplierId', filters.supplierId);
+    if (filters.orderBookerId) params.set('orderBookerId', filters.orderBookerId);
+    if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.set('dateTo', filters.dateTo);
+
+    const endpoint = format === 'pdf' ? 'report-pdf' : 'report-excel';
+    const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+    const url = `/api/export/${endpoint}?${params.toString()}`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Failed to generate ${format.toUpperCase()}`);
+    }
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `al-falah-${filters.reportType}-report-${new Date().toISOString().slice(0, 10)}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+    onSuccess?.();
+  } catch (err) {
+    console.error(`${format} export error:`, err);
+    const msg = err instanceof Error ? err.message : `Failed to export ${format.toUpperCase()}`;
+    onError?.(msg);
+    alert(`${format.toUpperCase()} export failed: ${msg}`);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Report Action Buttons — Print + Export PDF + Export Excel
+// Used by every report component with their local filters
+// ─────────────────────────────────────────────
+function ReportActionButtons({
+  reportType,
+  onPrint,
+  filters,
+}: {
+  reportType: string;
+  onPrint: () => void;
+  filters: Omit<ExportFilters, 'reportType'>;
+}) {
+  const [exporting, setExporting] = useState<'pdf' | 'excel' | null>(null);
+
+  const handleExport = async (format: 'pdf' | 'excel') => {
+    setExporting(format);
+    await exportReport(format, { reportType, ...filters });
+    setExporting(null);
+  };
+
+  return (
+    <div className="flex flex-wrap gap-2 no-print">
+      <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white" variant="default">
+        <Printer className="h-4 w-4 mr-2" /> Print Report
+      </Button>
+      <Button
+        onClick={() => handleExport('pdf')}
+        disabled={exporting !== null}
+        variant="outline"
+        className="border-red-300 text-red-700 hover:bg-red-50"
+      >
+        {exporting === 'pdf' ? (
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+        ) : (
+          <><FileDown className="h-4 w-4 mr-2" /> Export PDF</>
+        )}
+      </Button>
+      <Button
+        onClick={() => handleExport('excel')}
+        disabled={exporting !== null}
+        variant="outline"
+        className="border-green-300 text-green-700 hover:bg-green-50"
+      >
+        {exporting === 'excel' ? (
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+        ) : (
+          <><FileSpreadsheet className="h-4 w-4 mr-2" /> Export Excel</>
+        )}
+      </Button>
+    </div>
+  );
+}
+
 interface ClaimItem {
   id: string;
   productId: string;
@@ -433,9 +544,11 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
                 {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <Printer className="h-4 w-4 mr-2" /> Print Report
-            </Button>
+            <ReportActionButtons
+              reportType="pending"
+              onPrint={onPrint}
+              filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
+            />
           </div>
         </CardContent>
       </Card>
@@ -593,7 +706,11 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
             </Select>
             <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
             <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white"><Printer className="h-4 w-4 mr-2" /> Print</Button>
+            <ReportActionButtons
+              reportType="summary"
+              onPrint={onPrint}
+              filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
+            />
           </div>
         </CardContent>
       </Card>
@@ -745,7 +862,11 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
               <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All Companies</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
-            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white"><Printer className="h-4 w-4 mr-2" /> Print</Button>
+            <ReportActionButtons
+              reportType="aging"
+              onPrint={onPrint}
+              filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
+            />
           </div>
         </CardContent>
       </Card>
@@ -870,7 +991,11 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
             <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white"><Printer className="h-4 w-4 mr-2" /> Print</Button>
+            <ReportActionButtons
+              reportType="order-booker"
+              onPrint={onPrint}
+              filters={{ dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
+            />
           </div>
         </CardContent>
       </Card>
@@ -974,7 +1099,11 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
             </Select>
             <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
             <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white"><Printer className="h-4 w-4 mr-2" /> Print</Button>
+            <ReportActionButtons
+              reportType="company"
+              onPrint={onPrint}
+              filters={{ companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
+            />
           </div>
         </CardContent>
       </Card>
@@ -1112,7 +1241,11 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
             </Select>
             <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} placeholder="Cleared From" />
             <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} placeholder="Cleared To" />
-            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white"><Printer className="h-4 w-4 mr-2" /> Print</Button>
+            <ReportActionButtons
+              reportType="cleared"
+              onPrint={onPrint}
+              filters={{ status: 'cleared', orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
+            />
           </div>
         </CardContent>
       </Card>
@@ -1225,7 +1358,11 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
               />
             </div>
             <Button onClick={handleSearch} className="bg-emerald-600 hover:bg-emerald-700 text-white">Search</Button>
-            {claim && <Button onClick={onPrint} variant="outline" className="border-emerald-300"><Printer className="h-4 w-4 mr-2" /> Print</Button>}
+            {claim && <ReportActionButtons
+              reportType="detail"
+              onPrint={onPrint}
+              filters={{}}
+            />}
           </div>
         </CardContent>
       </Card>
@@ -1358,9 +1495,11 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
                 {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <Printer className="h-4 w-4 mr-2" /> Print Report
-            </Button>
+            <ReportActionButtons
+              reportType="pending"
+              onPrint={onPrint}
+              filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
+            />
           </div>
         </CardContent>
       </Card>
@@ -1514,9 +1653,11 @@ function ClearedClaimsReport({ companies, orderBookers, allClaims, formatAmount,
                 {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <Printer className="h-4 w-4 mr-2" /> Print Report
-            </Button>
+            <ReportActionButtons
+              reportType="cleared"
+              onPrint={onPrint}
+              filters={{ status: 'cleared', orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
+            />
           </div>
         </CardContent>
       </Card>

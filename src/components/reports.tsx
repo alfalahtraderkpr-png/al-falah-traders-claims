@@ -352,16 +352,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
 
       {/* iOS-style Sliding Tab Navigation */}
       <div className="no-print">
-        <div className="relative flex items-center bg-gray-200/80 backdrop-blur-sm rounded-xl p-1.5 overflow-x-auto scrollbar-hide gap-0.5">
-          {/* Sliding white indicator */}
-          <div
-            className="absolute top-1.5 h-[calc(100%-12px)] bg-white rounded-lg shadow-md border border-gray-100/50 transition-all duration-300 ease-out z-0"
-            style={{
-              width: `${100 / tabs.length}%`,
-              left: `calc(${(tabs.findIndex(t => t.value === activeTab) / tabs.length) * 100}% + 6px)`,
-              maxWidth: `calc(${100 / tabs.length}% - 4px)`,
-            }}
-          />
+        <div className="relative flex items-center bg-gray-200/80 backdrop-blur-sm rounded-xl p-1.5 overflow-x-auto scrollbar-hide gap-1">
           {/* Tab buttons */}
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -370,10 +361,10 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`relative z-10 flex items-center justify-center gap-1 py-2 px-1.5 sm:px-3 rounded-lg text-[11px] sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap ${isActive ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${isActive ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
-                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate max-w-[70px] sm:max-w-none">{tab.label}</span>
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                <span>{tab.label}</span>
               </button>
             );
           })}

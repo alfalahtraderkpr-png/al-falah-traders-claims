@@ -87,49 +87,49 @@ const COLORS = {
 function addHeader(doc: jsPDF, title: string, filters: string[], generatedAt: string) {
   const pageWidth = doc.internal.pageSize.getWidth();
 
-  // Top brand strip
+  // Top brand strip — compact (height 22 instead of 28) so table gets more space
   doc.setFillColor(...COLORS.primary);
-  doc.rect(0, 0, pageWidth, 28, 'F');
+  doc.rect(0, 0, pageWidth, 22, 'F');
 
   // Brand mark "AF"
   doc.setFillColor(...COLORS.white);
-  doc.roundedRect(14, 7, 14, 14, 2, 2, 'F');
+  doc.roundedRect(12, 5, 12, 12, 2, 2, 'F');
   doc.setTextColor(...COLORS.primary);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text('AF', 21, 16, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text('AF', 18, 13, { align: 'center' });
 
-  // Company name
+  // Company name + report title (compact font sizes)
   doc.setTextColor(...COLORS.white);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('AL FALAH TRADERS', 32, 14);
+  doc.setFontSize(12);
+  doc.text('AL FALAH TRADERS', 28, 11);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text('Claim Management System', 32, 21);
+  doc.setFontSize(8);
+  doc.text('Claim Management System', 28, 17);
 
   // Right side: report title + generated date
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text(title, pageWidth - 14, 14, { align: 'right' });
+  doc.setFontSize(11);
+  doc.text(title, pageWidth - 12, 11, { align: 'right' });
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(220, 255, 220);
-  doc.text(`Generated: ${generatedAt}`, pageWidth - 14, 21, { align: 'right' });
+  doc.text(`Generated: ${generatedAt}`, pageWidth - 12, 17, { align: 'right' });
 
-  // Filters box (if any)
-  let y = 36;
+  // Filters box (if any) — compact, single line if possible
+  let y = 28;
   if (filters.length > 0) {
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.grayDark);
-    doc.text('Filters Applied:', 14, y);
+    doc.text('Filters:', 12, y);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...COLORS.gray);
     const filterText = filters.join('   |   ');
-    const wrappedFilters = doc.splitTextToSize(filterText, pageWidth - 28);
-    doc.text(wrappedFilters, 14, y + 5);
-    y += 5 + wrappedFilters.length * 4 + 4;
+    const wrappedFilters = doc.splitTextToSize(filterText, pageWidth - 50);
+    doc.text(wrappedFilters, 38, y);
+    y += 3 + wrappedFilters.length * 3.5;
   }
 
   return y;
@@ -170,7 +170,8 @@ function addSummaryBoxes(
   const pageWidth = doc.internal.pageSize.getWidth();
   const gap = 4;
   const boxW = (pageWidth - 28 - gap * (boxes.length - 1)) / boxes.length;
-  const boxH = 22;
+  // Compact boxes (height 18 instead of 22) so table starts higher on page
+  const boxH = 18;
 
   boxes.forEach((b, i) => {
     const x = 14 + i * (boxW + gap);
@@ -178,15 +179,15 @@ function addSummaryBoxes(
     doc.roundedRect(x, y, boxW, boxH, 2, 2, 'F');
     doc.setTextColor(...COLORS.gray);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(b.label.toUpperCase(), x + 4, y + 7);
+    doc.setFontSize(7);
+    doc.text(b.label.toUpperCase(), x + 4, y + 6);
     doc.setTextColor(...b.fg);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text(b.value, x + 4, y + 17);
+    doc.setFontSize(12);
+    doc.text(b.value, x + 4, y + 14);
   });
 
-  return y + boxH + 6;
+  return y + boxH + 4;
 }
 
 // ─────────────────────────────────────────────
@@ -236,6 +237,10 @@ function reportPending(doc: jsPDF, claims: Claim[], filters: string[]) {
       { content: fmtMoney(c.netAmount || c.totalAmount), styles: { halign: 'right' } },
     ]),
     foot: [['', '', '', '', '', '', '', 'Grand Total:', { content: fmtMoney(total), styles: { halign: 'right', textColor: COLORS.white } }]],
+    // Show Grand Total row ONLY on the LAST page (not every page)
+    showFoot: 'lastPage',
+    // Repeat table header on every page
+    showHead: 'everyPage',
     theme: 'grid',
     headStyles: {
       fillColor: COLORS.primary,
@@ -339,6 +344,10 @@ function reportApproved(doc: jsPDF, claims: Claim[], filters: string[]) {
       ];
     }),
     foot: [['', '', '', '', '', '', '', '', 'Grand Total:', { content: fmtMoney(total), styles: { halign: 'right', textColor: COLORS.white } }]],
+    // Show Grand Total row ONLY on the LAST page (not every page)
+    showFoot: 'lastPage',
+    // Repeat table header on every page (so users know what each column is)
+    showHead: 'everyPage',
     theme: 'grid',
     headStyles: {
       fillColor: COLORS.primary,
@@ -379,6 +388,8 @@ function reportApproved(doc: jsPDF, claims: Claim[], filters: string[]) {
       8: { cellWidth: 10, halign: 'center' },                       // Items
       9: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },     // Approved Amount
     },
+    // Use top margin of 14 (small) so table starts near top of page
+    // Use larger bottom margin so Grand Total + footer fit on last page
     margin: { left: 14, right: 14, top: 14, bottom: 20 },
     didDrawPage: () => addFooter(doc),
     didParseCell: (data) => {
@@ -429,6 +440,8 @@ function reportSummary(doc: jsPDF, claims: Claim[], filters: string[]) {
       ['Rejected', rejected.length, fmtMoney(rejected.reduce((s, c) => s + c.totalAmount, 0)), '-', pct(rejected.length, claims.length)],
     ],
     foot: [['Total', claims.length, fmtMoney(totalAmount), fmtMoney(totalApproved), '100%']],
+    showFoot: 'lastPage',
+    showHead: 'everyPage',
     theme: 'grid',
     headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
     footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
@@ -489,6 +502,8 @@ function reportAging(doc: jsPDF, claims: Claim[], filters: string[]) {
       pct(b.claims.length, open.length),
     ]),
     foot: [['Total Open', open.length, fmtMoney(totalOpen), '100%']],
+    showFoot: 'lastPage',
+    showHead: 'everyPage',
     theme: 'grid',
     headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
     footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
@@ -537,6 +552,8 @@ function reportCleared(doc: jsPDF, claims: Claim[], filters: string[]) {
       { content: fmtMoney(c.approvedAmount || c.netAmount || c.totalAmount), styles: { halign: 'right' } },
     ]),
     foot: [['', '', '', '', '', '', 'Grand Total:', { content: fmtMoney(total), styles: { halign: 'right', textColor: COLORS.white } }]],
+    showFoot: 'lastPage',
+    showHead: 'everyPage',
     theme: 'striped',
     headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 9 },
     footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
@@ -605,6 +622,8 @@ function reportDetail(doc: jsPDF, claims: Claim[], filters: string[]) {
     head: [['Claim #', 'Date', 'Company', 'Shop', 'Product', 'Qty', 'Rate', 'Amount']],
     body: rows,
     foot: [['', '', '', '', '', '', 'Grand Total:', { content: fmtMoney(totalAmount), styles: { halign: 'right', textColor: COLORS.white } }]],
+    showFoot: 'lastPage',
+    showHead: 'everyPage',
     theme: 'plain',
     headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 9 },
     footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
@@ -659,6 +678,8 @@ function reportByCompany(doc: jsPDF, claims: Claim[], filters: string[]) {
       fmtMoney(r.approved),
     ]),
     foot: [['', 'Total', claims.length, fmtMoney(grandTotal), '', fmtMoney(rows.reduce((s, r) => s + r.net, 0)), fmtMoney(rows.reduce((s, r) => s + r.approved, 0))]],
+    showFoot: 'lastPage',
+    showHead: 'everyPage',
     theme: 'striped',
     headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
     footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
@@ -719,6 +740,8 @@ function reportByOrderBooker(doc: jsPDF, claims: Claim[], filters: string[]) {
       fmtMoney(r.approved),
     ]),
     foot: [['', 'Total', claims.length, '', '', fmtMoney(grandTotal), fmtMoney(rows.reduce((s, r) => s + r.approved, 0))]],
+    showFoot: 'lastPage',
+    showHead: 'everyPage',
     theme: 'striped',
     headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
     footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },

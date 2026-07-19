@@ -58,30 +58,33 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (role) updateData.role = role;
     updateData.orderBookerId = role === 'orderbooker' ? (orderBookerId || null) : null;
 
-    // Update user + assigned companies atomically
-    const user = await db.$transaction(async (tx) => {
-      const updated = await tx.user.update({
-        where: { id },
-        data: updateData,
-      });
+    // Update user record (no transaction — UserCompany operations are
+    // defensive and should not block user updates)
+    const user = await db.user.update({
+      where: { id },
+      data: updateData,
+    });
 
-      // Update assigned companies if provided AND user is order booker
-      if (Array.isArray(assignedCompanyIds) && (role || existing.role) === 'orderbooker') {
+    // Update assigned companies if provided AND user is order booker.
+    // Defensive: if UserCompany table doesn't exist, skip silently.
+    if (Array.isArray(assignedCompanyIds) && (role || existing.role) === 'orderbooker') {
+      try {
         // Delete all existing mappings
-        await tx.userCompany.deleteMany({ where: { userId: id } });
+        await db.userCompany.deleteMany({ where: { userId: id } });
 
         // Create new mappings
         for (const cid of assignedCompanyIds) {
           if (cid) {
-            await tx.userCompany.create({
+            await db.userCompany.create({
               data: { userId: id, companyId: cid },
             });
           }
         }
+      } catch (e) {
+        console.warn('[users PUT] Failed to update UserCompany mappings (table may not exist yet):', (e as Error).message);
+        // Not fatal — user was updated successfully
       }
-
-      return updated;
-    });
+    }
 
     // Manually resolve orderBooker info + assignedCompanies
     let orderBookerInfo: { id: string; name: string } | null = null;
@@ -93,16 +96,22 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       orderBookerInfo = ob;
     }
 
-    const userComps = await db.userCompany.findMany({
-      where: { userId: user.id },
-      include: { company: { select: { id: true, name: true } } },
-    });
+    let assignedCompanies: Array<{ id: string; name: string }> = [];
+    try {
+      const userComps = await db.userCompany.findMany({
+        where: { userId: user.id },
+        include: { company: { select: { id: true, name: true } } },
+      });
+      assignedCompanies = userComps.map((uc) => uc.company);
+    } catch (e) {
+      console.warn('[users PUT] Failed to load userCompanies:', (e as Error).message);
+    }
 
     const { password: _, ...safeUser } = user;
     return NextResponse.json({
       ...safeUser,
       orderBooker: orderBookerInfo,
-      assignedCompanies: userComps.map((uc) => uc.company),
+      assignedCompanies,
     });
   } catch (error) {
     console.error('Update user error:', error);

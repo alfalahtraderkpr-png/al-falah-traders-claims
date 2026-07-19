@@ -11,11 +11,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
+    // Fetch user WITHOUT the userCompanies include — if the UserCompany table
+    // doesn't exist yet (before /api/setup-user-companies is run), this still
+    // works.
     const user = await db.user.findUnique({
       where: { email },
-      include: {
-        userCompanies: { select: { companyId: true } },
-      },
     });
 
     if (!user) {
@@ -25,6 +25,19 @@ export async function POST(request: NextRequest) {
     const isValid = compareSync(password, user.password);
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    // Separately (and defensively) load assigned company IDs
+    let assignedCompanyIds: string[] = [];
+    try {
+      const rows = await db.userCompany.findMany({
+        where: { userId: user.id },
+        select: { companyId: true },
+      });
+      assignedCompanyIds = rows.map((r) => r.companyId);
+    } catch (e) {
+      // UserCompany table may not exist yet — login should still succeed
+      console.warn('[login] Failed to load userCompanies (table may not exist yet):', (e as Error).message);
     }
 
     // Create a simple session token
@@ -37,7 +50,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         orderBookerId: user.orderBookerId,
-        assignedCompanyIds: user.userCompanies.map((uc) => uc.companyId),
+        assignedCompanyIds,
       },
       token,
     });

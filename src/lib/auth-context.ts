@@ -11,6 +11,24 @@ export interface AuthContext {
 }
 
 /**
+ * Safely resolve assigned company IDs for a user.
+ * Returns [] if the UserCompany table doesn't exist yet (e.g., before
+ * /api/setup-user-companies has been run) or on any DB error.
+ */
+async function safeFetchAssignedCompanyIds(userId: string): Promise<string[]> {
+  try {
+    const rows = await db.userCompany.findMany({
+      where: { userId },
+      select: { companyId: true },
+    });
+    return rows.map((r) => r.companyId);
+  } catch (e) {
+    console.warn('[auth-context] Failed to load userCompanies (table may not exist yet):', (e as Error).message);
+    return [];
+  }
+}
+
+/**
  * Reads the auth cookies from the request and resolves the current user,
  * including their assigned companies (empty array for admins).
  *
@@ -24,14 +42,16 @@ export async function getAuthContext(request: NextRequest): Promise<AuthContext 
     const parsed = JSON.parse(userData);
     if (!parsed?.id) return null;
 
-    // Re-fetch from DB to get fresh assignedCompanyIds (the cookie does
-    // NOT contain them on purpose — they may change mid-session)
+    // Fetch user WITHOUT the userCompanies include first — if the UserCompany
+    // table doesn't exist yet, this still succeeds.
     const dbUser = await db.user.findUnique({
       where: { id: parsed.id },
-      include: { userCompanies: { select: { companyId: true } } },
     });
 
     if (!dbUser) return null;
+
+    // Separately (and defensively) load assigned company IDs
+    const assignedCompanyIds = await safeFetchAssignedCompanyIds(dbUser.id);
 
     return {
       userId: dbUser.id,
@@ -39,7 +59,7 @@ export async function getAuthContext(request: NextRequest): Promise<AuthContext 
       email: dbUser.email,
       role: dbUser.role,
       orderBookerId: dbUser.orderBookerId,
-      assignedCompanyIds: dbUser.userCompanies.map((uc) => uc.companyId),
+      assignedCompanyIds,
     };
   } catch {
     return null;

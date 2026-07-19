@@ -5,11 +5,9 @@ import { hashSync } from 'bcryptjs';
 
 export async function GET() {
   try {
+    // Fetch users WITHOUT userCompanies include — table may not exist yet
     const users = await db.user.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
-        userCompanies: { select: { companyId: true, company: { select: { id: true, name: true } } } },
-      },
     });
 
     // Manually resolve orderBooker names for orderbooker users
@@ -24,12 +22,29 @@ export async function GET() {
       orderBookers.forEach(ob => { obMap[ob.id] = ob; });
     }
 
+    // Defensively load all UserCompany rows (one query)
+    let allUserCompanies: Array<{ userId: string; companyId: string; company: { id: string; name: string } }> = [];
+    try {
+      allUserCompanies = await db.userCompany.findMany({
+        include: { company: { select: { id: true, name: true } } },
+      });
+    } catch (e) {
+      console.warn('[users GET] Failed to load userCompanies (table may not exist yet):', (e as Error).message);
+    }
+
+    // Group by userId for fast lookup
+    const byUser: Record<string, Array<{ id: string; name: string }>> = {};
+    for (const uc of allUserCompanies) {
+      if (!byUser[uc.userId]) byUser[uc.userId] = [];
+      byUser[uc.userId].push(uc.company);
+    }
+
     // Don't return passwords; add orderBooker + assignedCompanies info
-    const safeUsers = users.map(({ password, orderBookerId, userCompanies, ...user }) => ({
+    const safeUsers = users.map(({ password, orderBookerId, ...user }) => ({
       ...user,
       orderBookerId,
       orderBooker: orderBookerId ? (obMap[orderBookerId] || null) : null,
-      assignedCompanies: userCompanies.map((uc) => uc.company),
+      assignedCompanies: byUser[user.id] || [],
     }));
 
     return NextResponse.json(safeUsers);
@@ -68,31 +83,34 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = hashSync(password, 10);
 
-    // Create user + UserCompany mappings atomically
-    const user = await db.$transaction(async (tx) => {
-      const created = await tx.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          role,
-          orderBookerId: role === 'orderbooker' ? orderBookerId : null,
-        },
-      });
+    // Create user first; UserCompany mappings added separately so the user
+    // creation still succeeds even if the UserCompany table doesn't exist yet.
+    const user = await db.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        orderBookerId: role === 'orderbooker' ? orderBookerId : null,
+      },
+    });
 
-      // If order booker with assigned companies, create the mappings
-      if (role === 'orderbooker' && Array.isArray(assignedCompanyIds) && assignedCompanyIds.length > 0) {
+    // If order booker with assigned companies, try to create the mappings
+    // (defensive — table may not exist yet on a fresh DB)
+    if (role === 'orderbooker' && Array.isArray(assignedCompanyIds) && assignedCompanyIds.length > 0) {
+      try {
         for (const cid of assignedCompanyIds) {
           if (cid) {
-            await tx.userCompany.create({
-              data: { userId: created.id, companyId: cid },
+            await db.userCompany.create({
+              data: { userId: user.id, companyId: cid },
             });
           }
         }
+      } catch (e) {
+        console.warn('[users POST] Failed to create UserCompany mappings (table may not exist yet):', (e as Error).message);
+        // Not fatal — user was created successfully
       }
-
-      return created;
-    });
+    }
 
     // Manually resolve orderBooker info + assignedCompanies
     let orderBookerInfo: { id: string; name: string } | null = null;
@@ -104,15 +122,21 @@ export async function POST(request: NextRequest) {
       orderBookerInfo = ob;
     }
 
-    // Fetch assigned companies for the response
-    const userComps = await db.userCompany.findMany({
-      where: { userId: user.id },
-      include: { company: { select: { id: true, name: true } } },
-    });
+    // Defensively fetch assigned companies for the response
+    let assignedCompanies: Array<{ id: string; name: string }> = [];
+    try {
+      const userComps = await db.userCompany.findMany({
+        where: { userId: user.id },
+        include: { company: { select: { id: true, name: true } } },
+      });
+      assignedCompanies = userComps.map((uc) => uc.company);
+    } catch (e) {
+      console.warn('[users POST] Failed to load userCompanies:', (e as Error).message);
+    }
 
     const { password: _, ...safeUser } = user;
     return NextResponse.json(
-      { ...safeUser, orderBooker: orderBookerInfo, assignedCompanies: userComps.map((uc) => uc.company) },
+      { ...safeUser, orderBooker: orderBookerInfo, assignedCompanies },
       { status: 201 }
     );
   } catch (error) {

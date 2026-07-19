@@ -212,40 +212,78 @@ function reportPending(doc: jsPDF, claims: Claim[], filters: string[]) {
     return;
   }
 
+  // Short date format
+  const fmtShortDate = (d: Date | string) => {
+    const date = new Date(d);
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yy = String(date.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
   autoTable(doc, {
     startY: y,
     head: [['#', 'Claim #', 'Date', 'Company', 'Shop', 'Supplier', 'Order Booker', 'Items', 'Amount']],
     body: data.map((c, i) => [
-      i + 1,
+      String(i + 1),
       c.claimNumber,
-      fmtDate(c.date),
+      fmtShortDate(c.date),
       c.company.name,
       c.shop.name,
       c.supplier.name,
       c.orderBooker?.name || '-',
-      c.claimItems.length,
+      String(c.claimItems.length),
       { content: fmtMoney(c.netAmount || c.totalAmount), styles: { halign: 'right' } },
     ]),
     foot: [['', '', '', '', '', '', '', 'Grand Total:', { content: fmtMoney(total), styles: { halign: 'right', textColor: COLORS.white } }]],
-    theme: 'striped',
-    headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 9 },
-    footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
-    bodyStyles: { fontSize: 9, textColor: COLORS.black },
-    alternateRowStyles: { fillColor: COLORS.grayLight },
-    columnStyles: {
-      0: { cellWidth: 12, halign: 'center' },
-      1: { cellWidth: 28, textColor: COLORS.primary, fontStyle: 'bold' },
-      7: { cellWidth: 16, halign: 'center' },
-      8: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+    theme: 'grid',
+    headStyles: {
+      fillColor: COLORS.primary,
+      textColor: COLORS.white,
+      fontStyle: 'bold',
+      fontSize: 9,
+      halign: 'center',
+      valign: 'middle',
+      cellPadding: 3,
     },
-    margin: { left: 14, right: 14 },
-    styles: { cellPadding: 3 },
+    footStyles: {
+      fillColor: COLORS.primaryDark,
+      textColor: COLORS.white,
+      fontStyle: 'bold',
+      fontSize: 10,
+      halign: 'right',
+      cellPadding: 3,
+    },
+    bodyStyles: {
+      fontSize: 8.5,
+      textColor: COLORS.black,
+      valign: 'middle',
+      cellPadding: 1.5,
+      overflow: 'linebreak',
+    },
+    alternateRowStyles: { fillColor: COLORS.grayLight },
+    // Total = 10+20+16+22+45+20+30+12+28 = 203mm (fits portrait A4 with 182mm usable width?
+    // No — 210-28=182mm. We need landscape for 9 columns too.)
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center', fontSize: 8 },
+      1: { cellWidth: 20, halign: 'center', textColor: COLORS.primary, fontStyle: 'bold' },
+      2: { cellWidth: 16, halign: 'center' },
+      3: { cellWidth: 22, fontStyle: 'bold' },
+      4: { cellWidth: 40 },
+      5: { cellWidth: 20, halign: 'center' },
+      6: { cellWidth: 28 },
+      7: { cellWidth: 12, halign: 'center' },
+      8: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
+    },
+    margin: { left: 14, right: 14, top: 14, bottom: 20 },
+    didDrawPage: () => addFooter(doc),
   });
 }
 
 // ─────────────────────────────────────────────
 // Approved Claims Report (stock arrived on floor, payment pending)
 // Used by the 'Pending Claims (Arrived)' tab in the Reports page
+// Uses LANDSCAPE orientation for better column fit
 // ─────────────────────────────────────────────
 
 function reportApproved(doc: jsPDF, claims: Claim[], filters: string[]) {
@@ -271,6 +309,15 @@ function reportApproved(doc: jsPDF, claims: Claim[], filters: string[]) {
     return;
   }
 
+  // Short date format for compact column (e.g., "19/07/26")
+  const fmtShortDate = (d: Date | string) => {
+    const date = new Date(d);
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yy = String(date.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
   autoTable(doc, {
     startY: y,
     head: [['#', 'Claim #', 'Date', 'Company', 'Shop', 'Supplier', 'Order Booker', 'Status', 'Items', 'Approved Amount']],
@@ -279,33 +326,74 @@ function reportApproved(doc: jsPDF, claims: Claim[], filters: string[]) {
       const statusLabel = s === 'partial' ? 'Partial' : 'Approved';
       const amt = c.approvedAmount != null ? c.approvedAmount : (c.netAmount || c.totalAmount);
       return [
-        i + 1,
+        String(i + 1),
         c.claimNumber,
-        fmtDate(c.date),
+        fmtShortDate(c.date),
         c.company.name,
         c.shop.name,
         c.supplier.name,
         c.orderBooker?.name || '-',
         statusLabel,
-        c.claimItems.length,
+        String(c.claimItems.length),
         { content: fmtMoney(amt), styles: { halign: 'right' } },
       ];
     }),
     foot: [['', '', '', '', '', '', '', '', 'Grand Total:', { content: fmtMoney(total), styles: { halign: 'right', textColor: COLORS.white } }]],
-    theme: 'striped',
-    headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: 'bold', fontSize: 9 },
-    footStyles: { fillColor: COLORS.primaryDark, textColor: COLORS.white, fontStyle: 'bold', fontSize: 10 },
-    bodyStyles: { fontSize: 9, textColor: COLORS.black },
-    alternateRowStyles: { fillColor: COLORS.grayLight },
-    columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 26, textColor: COLORS.primary, fontStyle: 'bold' },
-      7: { cellWidth: 18, halign: 'center' },
-      8: { cellWidth: 14, halign: 'center' },
-      9: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
+    theme: 'grid',
+    headStyles: {
+      fillColor: COLORS.primary,
+      textColor: COLORS.white,
+      fontStyle: 'bold',
+      fontSize: 9,
+      halign: 'center',
+      valign: 'middle',
+      cellPadding: 3,
     },
-    margin: { left: 14, right: 14 },
-    styles: { cellPadding: 3 },
+    footStyles: {
+      fillColor: COLORS.primaryDark,
+      textColor: COLORS.white,
+      fontStyle: 'bold',
+      fontSize: 10,
+      halign: 'right',
+      cellPadding: 3,
+    },
+    bodyStyles: {
+      fontSize: 8.5,
+      textColor: COLORS.black,
+      valign: 'middle',
+      cellPadding: 1.5,
+      overflow: 'linebreak',
+    },
+    alternateRowStyles: { fillColor: COLORS.grayLight },
+    // Column widths tuned for landscape A4 (269mm usable width after margins)
+    // Total = 10+20+16+22+40+20+28+20+10+28 = 214mm (fits comfortably)
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center', fontSize: 8 },        // #
+      1: { cellWidth: 20, halign: 'center', textColor: COLORS.primary, fontStyle: 'bold' },  // Claim #
+      2: { cellWidth: 16, halign: 'center' },                      // Date
+      3: { cellWidth: 22, fontStyle: 'bold' },                     // Company
+      4: { cellWidth: 40 },                                         // Shop (widest)
+      5: { cellWidth: 20, halign: 'center' },                       // Supplier
+      6: { cellWidth: 28 },                                         // Order Booker
+      7: { cellWidth: 20, halign: 'center' },                       // Status
+      8: { cellWidth: 10, halign: 'center' },                       // Items
+      9: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },     // Approved Amount
+    },
+    margin: { left: 14, right: 14, top: 14, bottom: 20 },
+    didDrawPage: () => addFooter(doc),
+    didParseCell: (data) => {
+      // Color-code the Status column (7) for visual emphasis
+      if (data.section === 'body' && data.column.index === 7) {
+        const val = String(data.cell.text[0] || '');
+        if (val === 'Approved') {
+          data.cell.styles.textColor = [4, 120, 87]; // emerald-700
+          data.cell.styles.fontStyle = 'bold';
+        } else if (val === 'Partial') {
+          data.cell.styles.textColor = [180, 83, 9]; // amber-700
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
   });
 }
 
@@ -686,7 +774,11 @@ export async function GET(request: NextRequest) {
     if (filterLabels.length === 0) filterLabels.push('All data (no filters)');
 
     // Build PDF
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    // Use landscape orientation for wide reports that have many columns
+    // (approved has 10 columns, pending has 9 columns — both need extra horizontal space)
+    const wideReports = ['approved', 'pending', 'detail'];
+    const orientation = wideReports.includes(reportType) ? 'landscape' : 'portrait';
+    const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 

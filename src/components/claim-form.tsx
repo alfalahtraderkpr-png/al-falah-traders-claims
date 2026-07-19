@@ -107,6 +107,16 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
 
+  // AUTO-SELECT COMPANY: If user is order booker and has exactly 1 company
+  // assigned (companies prop is already filtered to their assignments by
+  // the parent via /api/companies), and no company is currently selected,
+  // auto-select it so they don't have to manually pick.
+  useEffect(() => {
+    if (!companyId && companies.length === 1 && user.role === 'orderbooker') {
+      setCompanyId(companies[0].id);
+    }
+  }, [companies, companyId, user.role]);
+
   // Quick shop create dialog state
   const [showQuickShop, setShowQuickShop] = useState(false);
   const [quickShopName, setQuickShopName] = useState('');
@@ -526,11 +536,27 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                   <SelectValue placeholder="Select Company" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}{c.multiTierPricing ? ' (Multi-Tier)' : ''}{c.claimDeductionPercent && c.claimDeductionPercent > 0 ? ` (${c.claimDeductionPercent}% Ded.)` : ''}</SelectItem>
-                  ))}
+                  {companies.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-amber-600 italic">
+                      No companies assigned to you. Ask admin to assign companies from Users tab.
+                    </div>
+                  ) : (
+                    companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}{c.multiTierPricing ? ' (Multi-Tier)' : ''}{c.claimDeductionPercent && c.claimDeductionPercent > 0 ? ` (${c.claimDeductionPercent}% Ded.)` : ''}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              {user.role === 'orderbooker' && companies.length === 1 && (
+                <p className="text-[11px] text-emerald-600 mt-1">
+                  ✓ Auto-selected: {companies[0].name} (your assigned company)
+                </p>
+              )}
+              {user.role === 'orderbooker' && companies.length === 0 && (
+                <p className="text-[11px] text-amber-600 mt-1">
+                  ⚠ You have no companies assigned. Please contact admin.
+                </p>
+              )}
             </div>
             <div>
               <Label className="text-sm font-medium">Shop *</Label>

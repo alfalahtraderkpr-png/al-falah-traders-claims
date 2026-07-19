@@ -33,13 +33,8 @@ export function MasterData({ initialTab = 'companies' }: { initialTab?: string }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-emerald-800 animate-fade-in-up flex items-center gap-2">
-        <Building2 className="h-6 w-6" />
-        Master Data
-      </h2>
-
       {/* iOS-style Sliding Tab Navigation */}
-      <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+      <div className="animate-fade-in-up">
         <div className="relative flex items-center bg-gray-200/80 backdrop-blur-sm rounded-xl p-1.5 overflow-x-auto scrollbar-hide gap-0.5">
           {/* Sliding white indicator */}
           <div

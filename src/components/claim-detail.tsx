@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Share2, Printer, FileText, Image, FileDown, MessageCircle, Package, CheckCircle, Banknote, Camera, Split } from 'lucide-react';
+import {
+  ArrowLeft, Printer, FileText, Image as ImageIcon, FileDown, Loader2,
+  MessageCircle, Package, CheckCircle, Banknote, Camera, Split, Clock,
+  Lightbulb, XCircle,
+} from 'lucide-react';
 import { Receipt, ReceiptType } from './receipt';
 
 interface ClaimDetailProps {
@@ -52,40 +53,33 @@ interface ClaimData {
   attachments?: ClaimAttachment[];
 }
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  approved: 'bg-green-100 text-green-800 border-green-300',
-  partial: 'bg-orange-100 text-orange-800 border-orange-300',
-  cleared: 'bg-blue-100 text-blue-800 border-blue-300',
-  rejected: 'bg-red-100 text-red-800 border-red-300',
+const statusBdg: Record<string, string> = {
+  pending: 'pending',
+  approved: 'arrived',
+  partial: 'partial',
+  cleared: 'cleared',
+  rejected: 'rejected',
   // Legacy
-  arrived_approved: 'bg-green-100 text-green-800 border-green-300',
-  partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
-  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
+  arrived_approved: 'arrived',
+  partially_approved: 'partial',
+  partially_cleared: 'partial',
 };
 
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
-  approved: 'Approved',
+  approved: 'Arrived & Approved',
   partial: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
   // Legacy
-  arrived_approved: 'Approved',
+  arrived_approved: 'Arrived & Approved',
   partially_approved: 'Partial',
   partially_cleared: 'Partial',
 };
 
 const statusLabelsOB: Record<string, string> = {
+  ...statusLabels,
   pending: 'Stock Not Received',
-  approved: 'Approved',
-  partial: 'Partial',
-  cleared: 'Cleared',
-  rejected: 'Rejected',
-  // Legacy
-  arrived_approved: 'Approved',
-  partially_approved: 'Partial',
-  partially_cleared: 'Partial',
 };
 
 const getStatusLabel = (status: string, isOrderBooker: boolean) => {
@@ -118,22 +112,22 @@ const normalizeStatus = (status: string) => {
 };
 
 // Get available receipt types based on claim status
-function getAvailableReceiptTypes(status: string): { type: ReceiptType; label: string; icon: React.ReactNode; color: string; description: string }[] {
+function getAvailableReceiptTypes(status: string): { type: ReceiptType; label: string; description: string }[] {
   const normStatus = normalizeStatus(status);
   const types = [
-    { type: 'received' as ReceiptType, label: 'Expiry Stock Received', icon: <Package className="h-5 w-5" />, color: 'from-indigo-500 to-indigo-600', description: 'Stock receive confirmation' },
+    { type: 'received' as ReceiptType, label: 'Expiry Stock Received', description: 'Stock receive confirmation — share when claim is first recorded' },
   ];
 
   if (normStatus === 'approved' || normStatus === 'partial' || normStatus === 'cleared') {
-    types.push({ type: 'approved' as ReceiptType, label: 'Claim Approved', icon: <CheckCircle className="h-5 w-5" />, color: 'from-green-500 to-green-600', description: 'Approval confirmation' });
+    types.push({ type: 'approved' as ReceiptType, label: 'Claim Approved', description: 'Approval confirmation — share when stock has arrived and claim is approved' });
   }
 
   if (normStatus === 'partial') {
-    types.push({ type: 'partial' as ReceiptType, label: 'Partial', icon: <Split className="h-5 w-5" />, color: 'from-orange-500 to-orange-600', description: 'Partial amount deducted' });
+    types.push({ type: 'partial' as ReceiptType, label: 'Partial', description: 'Partial payment confirmation — share when partial amount is deducted' });
   }
 
   if (normStatus === 'cleared') {
-    types.push({ type: 'cleared' as ReceiptType, label: 'Claim Cleared', icon: <Banknote className="h-5 w-5" />, color: 'from-blue-500 to-blue-600', description: 'Claim cleared confirmation' });
+    types.push({ type: 'cleared' as ReceiptType, label: 'Claim Cleared', description: 'Claim cleared confirmation — share when full amount is deducted' });
   }
 
   return types;
@@ -145,7 +139,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
   const [selectedType, setSelectedType] = useState<ReceiptType>('received');
   const availableTypes = getAvailableReceiptTypes(claim.status);
 
-  const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
+  const formatAmount = (amount: number) => `Rs ${amount.toLocaleString()}`;
 
   const handleDownloadImage = async () => {
     if (!receiptRef.current) return;
@@ -221,7 +215,6 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
             return;
           }
         } catch (shareError) {
-          // If native share fails or is cancelled, fall through to WhatsApp web
           if ((shareError as Error).name !== 'AbortError') {
             console.log('Native share failed, falling back to WhatsApp web');
           } else {
@@ -236,7 +229,6 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
       link.href = dataUrl;
       link.click();
 
-      // Open WhatsApp with prefilled text
       window.open(`https://wa.me/?text=${text}`, '_blank');
     } catch (error) {
       console.error('WhatsApp share error:', error);
@@ -255,319 +247,260 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
     window.print();
   };
 
+  const norm = normalizeStatus(claim.status);
+  const remaining = claim.totalAmount - (claim.approvedAmount || 0);
+
+  // Timeline items derived from status
+  const fmtDate = (d: string) => new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const timeline: Array<{ title: string; desc: string; state: 'done' | 'current' | 'todo' }> = [
+    { title: 'Claim created', desc: `${fmtDate(claim.date)} · by ${claim.createdBy || 'Admin'}`, state: 'done' },
+    { title: 'Submitted for approval', desc: `${fmtDate(claim.date)} · Auto`, state: 'done' },
+  ];
+  if (norm === 'rejected') {
+    timeline.push({ title: 'Rejected', desc: claim.rejectReason ? `Reason: ${claim.rejectReason}` : 'Rejected by admin', state: 'current' });
+  } else {
+    timeline.push({
+      title: 'Stock received & verified',
+      desc: norm === 'pending' ? 'Waiting for stock at distribution' : 'Stock arrived on floor',
+      state: norm === 'pending' ? 'current' : 'done',
+    });
+    if (norm === 'cleared') {
+      timeline.push({ title: 'Payment cleared', desc: claim.clearedDate ? `${fmtDate(claim.clearedDate)}${claim.clearedBy ? ` · by ${claim.clearedBy}` : ''}` : 'Cleared', state: 'done' });
+    } else {
+      timeline.push({ title: 'Awaiting payment clearance', desc: norm === 'partial' ? `Partial deducted: ${formatAmount(claim.approvedAmount || 0)} · remaining ${formatAmount(remaining)}` : 'In progress', state: 'current' });
+      timeline.push({ title: 'Cleared', desc: 'Pending', state: 'todo' });
+    }
+  }
+
+  const selectedTypeDesc = availableTypes.find((t) => t.type === selectedType)?.description || '';
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between animate-slide-up">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={onBack} className="btn-enhanced btn-ripple border-indigo-300 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-400 h-10 w-10 rounded-xl shadow-sm">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
-              <FileText className="h-6 w-6" />
-              Claim {claim.claimNumber}
-            </h2>
-            <Badge className={`${statusColors[claim.status]} border mt-1 transition-transform hover:scale-105 px-3 py-0.5`}>
+    <>
+      <button className="back-link" onClick={onBack}>
+        <ArrowLeft className="ic sm" /> Back to claims
+      </button>
+
+      <div className="page-head">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div className="h1">{claim.claimNumber}</div>
+            <span className={`bdg ${statusBdg[claim.status] || 'neutral'}`}>
               {getStatusLabel(claim.status, user.role === 'orderbooker')}
-            </Badge>
+            </span>
           </div>
+          <div className="sub">
+            {claim.shop.name} · {claim.company.name} · Submitted {new Date(claim.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {claim.orderBooker ? ` by ${claim.orderBooker.name}` : ''}
+          </div>
+        </div>
+        <div className="ph-actions no-print">
+          <button className="btn btn-o" onClick={handleShareWhatsApp.bind(null, selectedType)} disabled={generating}>
+            <MessageCircle className="ic sm" /> WhatsApp
+          </button>
+          <button className="btn btn-o" onClick={handleDownloadImage} disabled={generating}>
+            <ImageIcon className="ic sm" /> PNG
+          </button>
+          <button className="btn btn-o" onClick={handleDownloadPDF} disabled={generating}>
+            <FileDown className="ic sm" /> PDF
+          </button>
+          <button className="btn btn-p" onClick={handlePrint}>
+            <Printer className="ic sm" /> Print Receipt
+          </button>
         </div>
       </div>
 
-      {/* Claim Info */}
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '80ms' }}>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
-            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
-              <p className="text-muted-foreground text-xs">Date</p>
-              <p className="font-medium">{new Date(claim.date).toLocaleDateString()}</p>
-            </div>
-            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
-              <p className="text-muted-foreground text-xs">Company</p>
-              <p className="font-medium">{claim.company.name}</p>
-            </div>
-            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
-              <p className="text-muted-foreground text-xs">Shop</p>
-              <p className="font-medium">{claim.shop.name}</p>
-            </div>
-            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
-              <p className="text-muted-foreground text-xs">Address</p>
-              <p className="font-medium">{claim.shop.address || '-'}</p>
-            </div>
-            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
-              <p className="text-muted-foreground text-xs">Supplier</p>
-              <p className="font-medium">{claim.supplier.name}</p>
-            </div>
-            <div className="bg-gray-50/50 rounded-lg p-2 transition-colors hover:bg-gray-50">
-              <p className="text-muted-foreground text-xs">Order Booker</p>
-              <p className="font-medium">{claim.orderBooker?.name || '-'}</p>
-            </div>
-            {claim.createdBy && (
-              <div className="bg-purple-50/50 rounded-lg p-2 transition-colors hover:bg-purple-50">
-                <p className="text-muted-foreground text-xs">Entered By</p>
-                <p className="font-medium text-purple-700">{claim.createdBy}</p>
-              </div>
-            )}
-            <div className="bg-indigo-50/50 rounded-lg p-2 transition-colors hover:bg-indigo-50">
-              <p className="text-muted-foreground text-xs">Total Claim</p>
-              <p className="font-bold text-indigo-700">{formatAmount(claim.totalAmount)}</p>
-            </div>
-            {claim.deductionAmount > 0 && (
-              <div className="bg-amber-50/50 rounded-lg p-2 transition-colors hover:bg-amber-50">
-                <p className="text-muted-foreground text-xs">Deduction ({claim.company.claimDeductionPercent}%)</p>
-                <p className="font-bold text-amber-700">- {formatAmount(claim.deductionAmount)}</p>
-              </div>
-            )}
-            {claim.deductionAmount > 0 && (
-              <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
-                <p className="text-muted-foreground text-xs">Net Amount</p>
-                <p className="font-bold text-blue-700">{formatAmount(claim.netAmount)}</p>
-              </div>
-            )}
-            <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
-              <p className="text-muted-foreground text-xs">
-                {normalizeStatus(claim.status) === 'approved' ? 'Deducted Amount' : normalizeStatus(claim.status) === 'partial' ? 'Deducted Amount' : 'Cleared Amount'}
-              </p>
-              <p className={`font-bold ${normalizeStatus(claim.status) === 'approved' ? 'text-amber-600' : 'text-blue-700'}`}>
-                {normalizeStatus(claim.status) === 'approved' ? 'Payment Pending' : claim.approvedAmount ? formatAmount(claim.approvedAmount) : '-'}
-              </p>
-            </div>
-            {normalizeStatus(claim.status) === 'approved' && (
-              <div className="bg-indigo-50/50 rounded-lg p-2 transition-colors hover:bg-indigo-50">
-                <p className="text-muted-foreground text-xs">Claim Amount</p>
-                <p className="font-bold text-indigo-700">{formatAmount(claim.netAmount || claim.totalAmount)}</p>
-              </div>
-            )}
-            {normalizeStatus(claim.status) !== 'approved' && claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
-              <div className="bg-orange-50/50 rounded-lg p-2 transition-colors hover:bg-orange-50">
-                <p className="text-muted-foreground text-xs">Remaining Pending</p>
-                <p className={`font-bold ${claim.totalAmount - claim.approvedAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {formatAmount(claim.totalAmount - claim.approvedAmount)}
-                </p>
-              </div>
-            )}
-            {claim.clearedBy && (
-              <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
-                <p className="text-muted-foreground text-xs">Cleared By</p>
-                <p className="font-medium">{claim.clearedBy}</p>
-              </div>
-            )}
-            {claim.clearedDate && (
-              <div className="bg-blue-50/50 rounded-lg p-2 transition-colors hover:bg-blue-50">
-                <p className="text-muted-foreground text-xs">Cleared Date</p>
-                <p className="font-medium">{new Date(claim.clearedDate).toLocaleDateString()}</p>
-              </div>
-            )}
-            {claim.rejectReason && (
-              <div className="col-span-2 bg-red-50/50 rounded-lg p-2">
-                <p className="text-muted-foreground text-xs">Reject Reason</p>
-                <p className="font-medium text-red-600">{claim.rejectReason}</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Items Table */}
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '160ms' }}>
-        <CardHeader>
-          <CardTitle className="text-lg">Claim Items</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left py-3 px-4 font-medium">#</th>
-                  <th className="text-left py-3 px-4 font-medium">Product</th>
-                  <th className="text-right py-3 px-4 font-medium">Price</th>
-                  <th className="text-center py-3 px-4 font-medium">Qty</th>
-                  <th className="text-right py-3 px-4 font-medium">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {claim.claimItems.map((item, index) => (
-                  <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
-                    <td className="py-3 px-4">{index + 1}</td>
-                    <td className="py-3 px-4 font-medium">{item.product.name}</td>
-                    <td className="py-3 px-4 text-right">Rs.{item.product.claimPrice && item.product.claimPrice > 0 ? item.product.claimPrice : item.product.price}</td>
-                    <td className="py-3 px-4 text-center">{item.quantity}</td>
-                    <td className="py-3 px-4 text-right font-medium">Rs.{item.amount.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 bg-indigo-50">
-                  <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
-                    Total:
-                  </td>
-                  <td className="py-3 px-4 text-right font-bold text-lg text-indigo-700">
-                    {formatAmount(claim.totalAmount)}
-                  </td>
-                </tr>
-                {claim.deductionAmount > 0 && (
-                  <tr className="bg-amber-50">
-                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
-                      Deduction ({claim.company.claimDeductionPercent}%):
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-lg text-amber-700">
-                      - {formatAmount(claim.deductionAmount)}
-                    </td>
-                  </tr>
-                )}
-                {claim.deductionAmount > 0 && (
-                  <tr className="bg-blue-50">
-                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
-                      Net Amount:
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-lg text-blue-700">
-                      {formatAmount(claim.netAmount)}
-                    </td>
-                  </tr>
-                )}
-                {normalizeStatus(claim.status) === 'approved' && (
-                  <tr className="bg-amber-50">
-                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
-                      Payment Status:
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-lg text-amber-600">
-                      Pending Deduction
-                    </td>
-                  </tr>
-                )}
-                {normalizeStatus(claim.status) !== 'approved' && claim.approvedAmount !== null && (
-                  <tr className="bg-blue-50">
-                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
-                      Deducted:
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-lg text-blue-700">
-                      {formatAmount(claim.approvedAmount)}
-                    </td>
-                  </tr>
-                )}
-              </tfoot>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Claim Photos Gallery */}
-      {claim.attachments && claim.attachments.length > 0 && (
-        <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '180ms' }}>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Camera className="h-5 w-5 text-indigo-600" />
-              Claim Photos
-              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">{claim.attachments.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {claim.attachments.map((attachment) => (
-                <div key={attachment.id} className="relative group rounded-lg overflow-hidden border aspect-square">
-                  <img src={attachment.url} alt="Claim attachment" className="w-full h-full object-cover" />
-                  <a
-                    href={attachment.url}
-                    download={`claim-${claim.claimNumber}-photo.png`}
-                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                  >
-                    <Download className="h-6 w-6 text-white" />
-                  </a>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {claim.rejectReason && (
+        <div className="note" style={{ borderColor: 'var(--af-bad)', background: 'var(--af-bad-soft)' }}>
+          <XCircle className="ic" style={{ color: 'var(--af-bad)' }} />
+          <div><b style={{ color: 'var(--af-bad)' }}>Reject Reason:</b> {claim.rejectReason}</div>
+        </div>
       )}
 
-      {/* Receipt Type Selection */}
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <CardHeader>
-          <CardTitle className="text-lg">Share Receipt on WhatsApp</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Receipt Type Tabs */}
-          <div className="flex flex-wrap gap-2 mb-4">
+      <div className="detail-grid">
+        {/* ── LEFT: claim info + items ─────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="card">
+            <div className="card-h"><div className="card-t"><FileText className="ic sm" /> Claim Information</div></div>
+            <div className="card-b">
+              <div className="grid4" style={{ gap: 12 }}>
+                <div className="info-tile"><div className="k">Company</div><div className="v">{claim.company.name}</div></div>
+                <div className="info-tile"><div className="k">Shop</div><div className="v">{claim.shop.name}</div></div>
+                <div className="info-tile"><div className="k">Supplier</div><div className="v">{claim.supplier.name}</div></div>
+                <div className="info-tile"><div className="k">Order Booker</div><div className="v">{claim.orderBooker?.name || '—'}</div></div>
+              </div>
+              <div className="grid4" style={{ gap: 12, marginTop: 12 }}>
+                <div className="info-tile"><div className="k">Claim Date</div><div className="v">{new Date(claim.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
+                <div className="info-tile"><div className="k">Address</div><div className="v" style={{ fontSize: 12.5 }}>{claim.shop.address || '—'}</div></div>
+                <div className="info-tile"><div className="k">Entered By</div><div className="v">{claim.createdBy || '—'}</div></div>
+                <div className="info-tile"><div className="k">Payment Status</div>
+                  <div className="v" style={{ color: norm === 'cleared' ? 'var(--af-ok)' : norm === 'rejected' ? 'var(--af-bad)' : norm === 'partial' ? 'var(--af-violet)' : 'var(--af-teal)' }}>
+                    {norm === 'cleared' ? 'Cleared' : norm === 'rejected' ? 'Rejected' : norm === 'partial' ? 'Partial cleared' : norm === 'approved' ? 'Awaiting clearance' : 'Awaiting stock'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-h">
+              <div className="card-t"><Package className="ic sm" /> Items ({claim.claimItems.length})</div>
+            </div>
+            <div className="tbl-wrap card-b tight">
+              <table className="tbl" style={{ minWidth: 560 }}>
+                <thead>
+                  <tr>
+                    <th>#</th><th>Product</th><th className="num">Qty</th><th className="num">Claim Rate</th><th className="num">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {claim.claimItems.map((item, index) => (
+                    <tr key={item.id}>
+                      <td className="muted">{index + 1}</td>
+                      <td className="strong">{item.product.name}</td>
+                      <td className="num">{item.quantity} {item.product.unit}</td>
+                      <td className="num">Rs {item.product.claimPrice && item.product.claimPrice > 0 ? item.product.claimPrice : item.product.price}</td>
+                      <td className="num strong">{formatAmount(item.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT: payment summary + timeline + attachments ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="card">
+            <div className="card-h"><div className="card-t"><Banknote className="ic sm" /> Payment Summary</div></div>
+            <div className="card-b">
+              <div className="sum-row"><span>Total Amount</span><b>{formatAmount(claim.totalAmount)}</b></div>
+              {claim.deductionAmount > 0 && (
+                <div className="sum-row">
+                  <span>Deduction ({claim.company.claimDeductionPercent}% company policy)</span>
+                  <b style={{ color: 'var(--af-bad)' }}>− {formatAmount(claim.deductionAmount)}</b>
+                </div>
+              )}
+              <div className="sum-row">
+                <span>{norm === 'approved' ? 'Payment' : 'Deducted Amount'}</span>
+                <b>{norm === 'approved' ? 'Pending' : claim.approvedAmount ? formatAmount(claim.approvedAmount) : '—'}</b>
+              </div>
+              {norm !== 'approved' && claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
+                <div className="sum-row">
+                  <span>Balance Due</span>
+                  <b style={remaining > 0 ? { color: 'var(--af-bad)' } : { color: 'var(--af-ok)' }}>{formatAmount(remaining)}</b>
+                </div>
+              )}
+              <div className="sum-total">
+                <span className="lbl">Net Payable</span>
+                <span className="val">{formatAmount(claim.netAmount || claim.totalAmount)}</span>
+              </div>
+              {claim.clearedBy && (
+                <p className="small muted" style={{ marginTop: 10 }}>
+                  Cleared by <b style={{ color: 'var(--af-text)' }}>{claim.clearedBy}</b>
+                  {claim.clearedDate ? ` on ${new Date(claim.clearedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                </p>
+              )}
+              <p className="small muted" style={{ marginTop: 8, textAlign: 'center' }}>
+                Status changes Claims list se hoti hain (⋯ menu)
+              </p>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-h"><div className="card-t"><Clock className="ic sm" /> Timeline</div></div>
+            <div className="card-b">
+              <div className="tl">
+                {timeline.map((t, i) => (
+                  <div className={`tl-item ${t.state === 'done' ? 'done' : t.state === 'current' ? 'current' : ''}`} key={i}>
+                    <div className="tl-dot" />
+                    <div>
+                      <div className="tl-t" style={t.state === 'todo' ? { color: 'var(--af-text3)' } : undefined}>{t.title}</div>
+                      <div className="tl-d">{t.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {claim.attachments && claim.attachments.length > 0 && (
+            <div className="card">
+              <div className="card-h"><div className="card-t"><Camera className="ic sm" /> Attachments ({claim.attachments.length})</div></div>
+              <div className="card-b">
+                <div className="attach-row">
+                  {claim.attachments.map((attachment) => (
+                    <a className="attach" key={attachment.id} href={attachment.url} download={`claim-${claim.claimNumber}-photo.png`} title="Download">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={attachment.url} alt="Claim attachment" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Receipt sharing section */}
+      <div className="card no-print">
+        <div className="card-h">
+          <div>
+            <div className="card-t"><MessageCircle className="ic sm" /> Share Receipt on WhatsApp</div>
+            <div className="card-sub">{selectedTypeDesc}</div>
+          </div>
+        </div>
+        <div className="card-b" style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+          <div className="master-tabs">
             {availableTypes.map((t) => (
               <button
                 key={t.type}
+                className={`mtab ${selectedType === t.type ? 'active' : ''}`}
                 onClick={() => setSelectedType(t.type)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  selectedType === t.type
-                    ? `bg-gradient-to-r ${t.color} text-white shadow-lg scale-105`
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
               >
-                {t.icon}
+                {t.type === 'received' && <Package className="ic sm" />}
+                {t.type === 'approved' && <CheckCircle className="ic sm" />}
+                {t.type === 'partial' && <Split className="ic sm" />}
+                {t.type === 'cleared' && <Banknote className="ic sm" />}
                 {t.label}
               </button>
             ))}
           </div>
 
-          {/* Selected type description */}
-          <p className="text-sm text-muted-foreground mb-4">
-            {selectedType === 'received' && 'Stock receive confirmation - share when claim is first recorded'}
-            {selectedType === 'approved' && 'Approval confirmation - share when stock has arrived and claim is approved'}
-            {selectedType === 'partial' && 'Partial payment confirmation - share when partial amount is deducted from shopkeeper'}
-            {selectedType === 'cleared' && 'Claim cleared confirmation - share when full amount is deducted from shopkeeper'}
-          </p>
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Button
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
+          <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-p"
               onClick={() => handleShareWhatsApp(selectedType)}
               disabled={generating}
             >
-              <MessageCircle className="h-5 w-5 mr-2" />
-              WhatsApp
-            </Button>
-            <Button
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
-              onClick={handleDownloadImage}
-              disabled={generating}
-            >
-              <Image className="h-5 w-5 mr-2" />
-              Download PNG
-            </Button>
-            <Button
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold"
-              onClick={handleDownloadPDF}
-              disabled={generating}
-            >
-              <FileDown className="h-5 w-5 mr-2" />
-              Download PDF
-            </Button>
-            <Button
-              variant="outline"
-              className="border-2 border-gray-400 btn-enhanced btn-ripple h-12 rounded-xl text-sm font-semibold hover:bg-gray-50"
-              onClick={handlePrint}
-            >
-              <Printer className="h-5 w-5 mr-2" />
-              Print
-            </Button>
+              {generating ? <Loader2 className="ic sm animate-spin" /> : <MessageCircle className="ic sm" />} WhatsApp (Image + Text)
+            </button>
+            <button className="btn btn-o" onClick={handleQuickShareWhatsApp.bind(null, selectedType)}>
+              <MessageCircle className="ic sm" /> Quick Share (Text Only)
+            </button>
+            <button className="btn btn-o" onClick={handleDownloadImage} disabled={generating}>
+              <ImageIcon className="ic sm" /> Download PNG
+            </button>
+            <button className="btn btn-o" onClick={handleDownloadPDF} disabled={generating}>
+              <FileDown className="ic sm" /> Download PDF
+            </button>
+            <button className="btn btn-o" onClick={handlePrint}>
+              <Printer className="ic sm" /> Print
+            </button>
           </div>
-
-          {/* Quick Text Share */}
-          <div className="mt-3 pt-3 border-t">
-            <Button
-              variant="outline"
-              className="w-full border-2 border-green-400 text-green-700 hover:bg-green-50 btn-enhanced btn-ripple h-10 rounded-xl text-sm font-semibold"
-              onClick={() => handleQuickShareWhatsApp(selectedType)}
-            >
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Quick Share (Text Only - No Image)
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Receipt Preview - centered for proper image generation */}
-      <div className="flex justify-center">
-        <div className="print-area w-full max-w-2xl">
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div className="print-area" style={{ width: '100%', maxWidth: 672 }}>
           <Receipt claim={claim} receiptType={selectedType} ref={receiptRef} />
         </div>
       </div>
-    </div>
+
+      <div className="note no-print">
+        <Lightbulb className="ic" />
+        <div><b>Timeline audit trail:</b> Har step ka record claim ke status se aata hai — kisne, kab, kya kiya. Receipt print ka format bilkul wahi rahega jo abhi hai, sirf styling upgrade hogi.</div>
+      </div>
+    </>
   );
 }

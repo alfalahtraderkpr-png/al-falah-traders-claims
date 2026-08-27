@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Trash2, ArrowLeft, Store, Search, X, ChevronDown, Package, Minus, ShoppingCart, Lock, Camera, AlertTriangle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import {
+  Loader2, Plus, Trash2, ArrowLeft, Store, Search, X, ChevronDown, Package,
+  Minus, Lock, Camera, AlertTriangle, FileText, Check, Lightbulb, XCircle, Banknote,
+} from 'lucide-react';
 
 interface ClaimFormProps {
   claim: ClaimData | null;
@@ -81,6 +79,14 @@ interface ClaimData {
   }>;
 }
 
+const CO_GRADIENTS = [
+  'linear-gradient(135deg,#4f46e5,#6366f1)',
+  'linear-gradient(135deg,#7c3aed,#8b5cf6)',
+  'linear-gradient(135deg,#0d9488,#14b8a6)',
+  'linear-gradient(135deg,#0369a1,#0ea5e9)',
+  'linear-gradient(135deg,#b45309,#f59e0b)',
+];
+
 export function ClaimForm({ claim, companies, user, onSave, onCancel, existingClaims, quickClaim }: ClaimFormProps) {
   const [date, setDate] = useState(claim ? new Date(claim.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
   const [companyId, setCompanyId] = useState(claim?.companyId || quickClaim?.companyId || '');
@@ -107,10 +113,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
 
-  // AUTO-SELECT COMPANY: If user is order booker and has exactly 1 company
-  // assigned (companies prop is already filtered to their assignments by
-  // the parent via /api/companies), and no company is currently selected,
-  // auto-select it so they don't have to manually pick.
+  // AUTO-SELECT COMPANY: If user is order booker and has exactly 1 company assigned
   useEffect(() => {
     if (!companyId && companies.length === 1 && user.role === 'orderbooker') {
       setCompanyId(companies[0].id);
@@ -130,10 +133,8 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
   const shopDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Product search state - for the product picker
+  // Product search state
   const [productSearch, setProductSearch] = useState('');
-  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
-  const productDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadDropdowns();
@@ -174,6 +175,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
       });
       setItems(newItems);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId]);
 
   // Check credit limit when shop/company changes
@@ -192,8 +194,8 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
             if (claimsRes.ok) {
               const claims = await claimsRes.json();
               const pending = claims
-                .filter((c: { shopId: string; companyId: string; status: string; id: string }) => 
-                  c.shopId === shopId && c.companyId === companyId && 
+                .filter((c: { shopId: string; companyId: string; status: string; id: string }) =>
+                  c.shopId === shopId && c.companyId === companyId &&
                   (c.status === 'pending' || c.status === 'approved' || c.status === 'partial') &&
                   c.id !== claim?.id)
                 .reduce((sum: number, c: { totalAmount: number }) => sum + c.totalAmount, 0);
@@ -211,9 +213,6 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
     const handleClickOutside = (e: MouseEvent) => {
       if (shopDropdownRef.current && !shopDropdownRef.current.contains(e.target as Node)) {
         setShopDropdownOpen(false);
-      }
-      if (productDropdownRef.current && !productDropdownRef.current.contains(e.target as Node)) {
-        setProductDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -248,10 +247,8 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   const getEffectiveShopType = (compId: string): string => {
     const shop = shops.find((s) => s.id === shopId);
     if (!shop) return 'retail';
-    // Check company-specific override in ShopCompanyOrderBooker
     const companyMapping = shop.companyOrderBookers?.find((cob) => cob.companyId === compId);
     if (companyMapping?.shopType) return companyMapping.shopType;
-    // Fall back to shop's default type
     return shop.shopType || 'retail';
   };
 
@@ -266,7 +263,6 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
         return product.lmtPrice;
       }
     }
-    // Use claimPrice if available, otherwise fall back to price
     if (product.claimPrice && product.claimPrice > 0) {
       return product.claimPrice;
     }
@@ -279,17 +275,15 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   };
 
   const getPriceLabel = (product: Product): string => {
-    // For multi-tier companies, show the tier price first
     if (product.company?.multiTierPricing) {
       const effectiveType = getEffectiveShopType(product.companyId);
       if (effectiveType === 'wholesale' && product.wholesalePrice) {
-        return `Ws:Rs.${product.wholesalePrice}`;
+        return `Ws: Rs.${product.wholesalePrice}`;
       }
       if (effectiveType === 'lmt' && product.lmtPrice) {
-        return `LMT:Rs.${product.lmtPrice}`;
+        return `LMT: Rs.${product.lmtPrice}`;
       }
     }
-    // Show claim price if set, otherwise show effective price
     const claimPrice = product.claimPrice && product.claimPrice > 0 ? product.claimPrice : null;
     if (claimPrice) {
       return `Rs.${claimPrice}`;
@@ -301,7 +295,6 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
-    // Check if already added - increase quantity instead
     const existingIndex = items.findIndex((i) => i.productId === productId);
     if (existingIndex >= 0) {
       const newItems = [...items];
@@ -312,8 +305,6 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
       const amount = calculateClaimAmount(product, 1);
       setItems([...items, { productId, quantity: 1, amount }]);
     }
-    setProductSearch('');
-    setProductDropdownOpen(false);
   };
 
   const removeItem = (index: number) => {
@@ -337,7 +328,6 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   const selectedCompany = companies.find((c) => c.id === companyId);
   const isMultiTier = selectedCompany?.multiTierPricing || false;
   const selectedShop = shops.find((s) => s.id === shopId);
-  // Use company-specific shop type for the selected company, fallback to shop default
   const effectiveShopType = companyId ? getEffectiveShopType(companyId) : (selectedShop?.shopType || 'retail');
   const shopTypeLabel = effectiveShopType === 'wholesale' ? 'Wholesale' : effectiveShopType === 'lmt' ? 'LMT' : 'Retail';
 
@@ -346,6 +336,15 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   const hasDeduction = deductionPercent > 0;
   const deductionAmount = hasDeduction ? Math.round(totalAmount * deductionPercent / 100) : 0;
   const netAmount = totalAmount - deductionAmount;
+
+  // Credit meter values
+  const creditUsed = pendingAmount;
+  const creditAfter = pendingAmount + totalAmount;
+  const creditPct = creditLimit && creditLimit > 0 ? Math.min(100, Math.round((creditAfter / creditLimit) * 100)) : 0;
+  const creditExceeded = creditLimit !== null && creditLimit > 0 && creditAfter > creditLimit;
+
+  // Total units
+  const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
 
   // 24-hour edit lock check
   const isOlderThan24hr = claim?.createdAt ? new Date(claim.createdAt).getTime() + 24 * 60 * 60 * 1000 < Date.now() : false;
@@ -456,7 +455,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
     } finally {
       setSaving(false);
     }
-  }, [companyId, shopId, supplierId, items, claim, existingClaims, date, totalAmount, orderBookerId, user.name, onSave, photos]);
+  }, [companyId, shopId, supplierId, items, claim, existingClaims, date, totalAmount, orderBookerId, user.name, user.role, onSave, photos]);
 
   // Keyboard shortcuts: Ctrl+S = Save, Esc = Cancel
   useEffect(() => {
@@ -479,484 +478,491 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
     const search = productSearch.toLowerCase();
     return p.name.toLowerCase().includes(search);
   });
+  const shownProducts = productSearch ? filteredProducts.slice(0, 24) : filteredProducts.slice(0, 12);
 
-  // Products not yet in claim
-  const availableProducts = filteredProducts.filter(
-    (p) => !items.some((i) => i.productId === p.id)
-  );
+  const title = claim
+    ? (isResubmit ? `Resubmit Claim ${claim.claimNumber}` : `Edit Claim ${claim.claimNumber}`)
+    : quickClaim ? `Quick Claim (from ${quickClaim.claimNumber || ''})` : 'New Claim';
+
+  const coInitials = selectedCompany
+    ? selectedCompany.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+    : '—';
+  const coIdx = companies.findIndex((c) => c.id === companyId);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 animate-fade-in-up">
-        <Button variant="outline" size="icon" onClick={onCancel} className="btn-enhanced border-indigo-200 text-indigo-700 hover:bg-indigo-50">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
-          <ShoppingCart className="h-6 w-6" />
-          {claim ? (isResubmit ? `Resubmit Claim ${claim.claimNumber}` : `Edit Claim ${claim.claimNumber}`) : quickClaim ? `Quick Claim (from ${quickClaim.claimNumber || ''})` : 'New Claim'}
-        </h2>
+    <>
+      <div className="page-head">
+        <div>
+          <div className="h1">{title}</div>
+          <div className="sub">
+            Damage, expiry ya stock return claim create karein
+            {!claim && !quickClaim && ' · Claim # auto-generate hoga'}
+          </div>
+        </div>
+        <div className="ph-actions">
+          <button className="btn btn-g" onClick={onCancel}>
+            <ArrowLeft className="ic sm" /> Cancel
+          </button>
+        </div>
       </div>
 
       {/* 24hr Edit Lock Warning */}
       {claim && isOlderThan24hr && !isResubmit && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
-          <Lock className="h-5 w-5 text-red-500 shrink-0" />
+        <div className="note" style={{ borderColor: 'var(--af-bad)', background: 'var(--af-bad-soft)' }}>
+          <Lock className="ic" style={{ color: 'var(--af-bad)' }} />
           <div>
-            <p className="text-sm font-medium text-red-800">This claim is older than 24 hours. Editing is restricted.</p>
-            <p className="text-xs text-red-600">Claims can only be edited within 24 hours of creation.</p>
+            <b style={{ color: 'var(--af-bad)' }}>This claim is older than 24 hours. Editing is restricted.</b>{' '}
+            Claims can only be edited within 24 hours of creation.
           </div>
         </div>
       )}
 
       {/* Rejected Claim Resubmit Info */}
       {isResubmit && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
-          <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
+        <div className="note">
+          <AlertTriangle className="ic" />
           <div>
-            <p className="text-sm font-medium text-orange-800">This claim was rejected. Edit and resubmit for admin approval.</p>
+            <b>This claim was rejected.</b> Edit and resubmit for admin approval.
             {(claim as { rejectReason?: string }).rejectReason && (
-              <p className="text-xs text-orange-600 mt-1">Reject Reason: <strong>{(claim as { rejectReason?: string }).rejectReason}</strong></p>
+              <div className="small" style={{ marginTop: 4 }}>Reject Reason: <strong>{(claim as { rejectReason?: string }).rejectReason}</strong></div>
             )}
           </div>
         </div>
       )}
 
-      {/* Claim Details - Compact single card */}
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '80ms' }}>
-        <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-sm font-medium">Date</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1" />
+      <div className="form-grid">
+        {/* ── LEFT: step cards ─────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Step 1 — Claim Details */}
+          <div className="card">
+            <div className="card-h">
+              <div className="card-t"><FileText className="ic sm" /> Claim Details</div>
+              <span className="bdg neutral">Step 1 of 3</span>
             </div>
-            <div>
-              <Label className="text-sm font-medium">Company *</Label>
-              <Select value={companyId} onValueChange={(v) => { setCompanyId(v); setItems([]); }}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select Company" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.length === 0 ? (
-                    <div className="px-3 py-2 text-xs text-amber-600 italic">
-                      No companies assigned to you. Ask admin to assign companies from Users tab.
-                    </div>
-                  ) : (
-                    companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}{c.multiTierPricing ? ' (Multi-Tier)' : ''}{c.claimDeductionPercent && c.claimDeductionPercent > 0 ? ` (${c.claimDeductionPercent}% Ded.)` : ''}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {user.role === 'orderbooker' && companies.length === 1 && (
-                <p className="text-[11px] text-indigo-600 mt-1">
-                  ✓ Auto-selected: {companies[0].name} (your assigned company)
-                </p>
-              )}
-              {user.role === 'orderbooker' && companies.length === 0 && (
-                <p className="text-[11px] text-amber-600 mt-1">
-                  ⚠ You have no companies assigned. Please contact admin.
-                </p>
-              )}
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Shop *</Label>
-              <div className="flex gap-1 mt-1">
-                <div ref={shopDropdownRef} className="relative flex-1">
-                  {shopId ? (
-                    <div className="flex items-center justify-between h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                      <span className="truncate">
-                        {selectedShop?.name}
-                        {selectedShop?.address ? ` (${selectedShop.address})` : ''}
-                        {selectedShop?.shopType && selectedShop.shopType !== 'retail' && (
-                          <span className="ml-1 text-xs text-purple-600 font-medium">[{selectedShop.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}]</span>
-                        )}
-                      </span>
-                      <button type="button" className="text-muted-foreground hover:text-foreground ml-2 shrink-0 transition-colors" onClick={() => { setShopId(''); setShopSearch(''); }}>
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search shop..."
-                        value={shopSearch}
-                        onChange={(e) => { setShopSearch(e.target.value); setShopDropdownOpen(true); }}
-                        onFocus={() => setShopDropdownOpen(true)}
-                        className="pl-9 pr-9"
-                      />
-                      <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShopDropdownOpen(!shopDropdownOpen)}>
-                        <ChevronDown className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                  {shopDropdownOpen && !shopId && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto animate-scale-in">
-                      {shops
-                        .filter((s) => {
-                          if (!shopSearch) return true;
-                          const search = shopSearch.toLowerCase();
-                          return s.name.toLowerCase().includes(search) || (s.address && s.address.toLowerCase().includes(search));
-                        })
-                        .length === 0 ? (
-                        <div className="px-3 py-4 text-center">
-                          <p className="text-sm text-muted-foreground mb-2">No shop found</p>
-                          <Button type="button" size="sm" className="bg-indigo-600 hover:bg-indigo-700 btn-enhanced" onClick={() => { setQuickShopName(shopSearch); setQuickShopAddress(''); setQuickShopOB(''); setShowQuickShop(true); setShopDropdownOpen(false); }}>
-                            <Store className="h-3.5 w-3.5 mr-1" /> Create &quot;{shopSearch}&quot;
-                          </Button>
+            <div className="card-b">
+              <div className="grid3">
+                <div className="field">
+                  <label className="label">Claim Date <span className="req">*</span></label>
+                  <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label className="label">Company <span className="req">*</span></label>
+                  <Select value={companyId} onValueChange={(v) => { setCompanyId(v); setItems([]); }}>
+                    <SelectTrigger className="af-sel"><SelectValue placeholder="Select Company" /></SelectTrigger>
+                    <SelectContent>
+                      {companies.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-amber-600 italic">
+                          No companies assigned to you. Ask admin to assign companies from Users tab.
                         </div>
                       ) : (
-                        shops
+                        companies.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}{c.multiTierPricing ? ' (Multi-Tier)' : ''}{c.claimDeductionPercent && c.claimDeductionPercent > 0 ? ` (${c.claimDeductionPercent}% Ded.)` : ''}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {user.role === 'orderbooker' && companies.length === 1 && (
+                    <p className="small" style={{ color: 'var(--af-primary)' }}>✓ Auto-selected: {companies[0].name} (your assigned company)</p>
+                  )}
+                  {user.role === 'orderbooker' && companies.length === 0 && (
+                    <p className="small" style={{ color: 'var(--af-warn)' }}>⚠ You have no companies assigned. Please contact admin.</p>
+                  )}
+                </div>
+                <div className="field">
+                  <label className="label">Supplier <span className="req">*</span></label>
+                  <Select value={supplierId} onValueChange={setSupplierId}>
+                    <SelectTrigger className="af-sel"><SelectValue placeholder="Select Supplier" /></SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid3" style={{ marginTop: 14 }}>
+                {/* Shop — searchable dropdown + quick create */}
+                <div className="field">
+                  <label className="label">Shop <span className="req">*</span></label>
+                  <div ref={shopDropdownRef} style={{ position: 'relative' }}>
+                    {shopId ? (
+                      <div className="sel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {selectedShop?.name}
+                          {selectedShop?.address ? ` (${selectedShop.address})` : ''}
+                          {selectedShop?.shopType && selectedShop.shopType !== 'retail' && (
+                            <span style={{ color: 'var(--af-violet)', fontWeight: 700, marginLeft: 4 }}>[{selectedShop.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}]</span>
+                          )}
+                        </span>
+                        <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                          <button type="button" className="ra" style={{ width: 26, height: 26 }} title="Quick Create Shop" onClick={() => { setQuickShopName(''); setQuickShopAddress(''); setQuickShopOB(''); setQuickShopType('retail'); setShowQuickShop(true); }}>
+                            <Store className="ic sm" />
+                          </button>
+                          <button type="button" className="ra danger" style={{ width: 26, height: 26 }} title="Clear shop" onClick={() => { setShopId(''); setShopSearch(''); }}>
+                            <X className="ic sm" />
+                          </button>
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ position: 'relative', flex: 1 }}>
+                          <Search className="ic sm" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--af-text3)' }} />
+                          <input
+                            className="input"
+                            style={{ paddingLeft: 34, paddingRight: 34 }}
+                            placeholder="Search shop…"
+                            value={shopSearch}
+                            onChange={(e) => { setShopSearch(e.target.value); setShopDropdownOpen(true); }}
+                            onFocus={() => setShopDropdownOpen(true)}
+                          />
+                          <button type="button" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 0, cursor: 'pointer', color: 'var(--af-text3)', padding: 6 }} onClick={() => setShopDropdownOpen(!shopDropdownOpen)}>
+                            <ChevronDown className="ic sm" />
+                          </button>
+                        </div>
+                        <button type="button" className="btn btn-o" style={{ padding: '6px 10px' }} title="Quick Create Shop" onClick={() => { setQuickShopName(''); setQuickShopAddress(''); setQuickShopOB(''); setQuickShopType('retail'); setShowQuickShop(true); }}>
+                          <Store className="ic sm" />
+                        </button>
+                      </div>
+                    )}
+                    {shopDropdownOpen && !shopId && (
+                      <div style={{ position: 'absolute', zIndex: 50, top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--af-surface)', border: '1px solid var(--af-border)', borderRadius: 10, boxShadow: 'var(--af-sh-lg)', maxHeight: 240, overflowY: 'auto' }}>
+                        {shops
                           .filter((s) => {
                             if (!shopSearch) return true;
                             const search = shopSearch.toLowerCase();
                             return s.name.toLowerCase().includes(search) || (s.address && s.address.toLowerCase().includes(search));
                           })
-                          .map((s) => (
-                            <button key={s.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-800 transition-all duration-150 border-b last:border-b-0" onClick={() => { setShopId(s.id); setShopSearch(''); setShopDropdownOpen(false); }}>
-                              <span className="font-medium">{s.name}</span>
-                              {s.address && <span className="text-muted-foreground ml-1">({s.address})</span>}
-                              {s.shopType !== 'retail' && <span className="ml-1 text-xs text-purple-600 font-medium">[{s.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}]</span>}
-                              {companyId && s.companyOrderBookers?.find((cob) => cob.companyId === companyId)?.orderBooker && (
-                                <span className="text-indigo-600 ml-1 text-xs">- {s.companyOrderBookers.find((cob) => cob.companyId === companyId)?.orderBooker?.name}</span>
-                              )}
+                          .length === 0 ? (
+                          <div style={{ padding: '14px 12px', textAlign: 'center' }}>
+                            <p className="small muted" style={{ marginBottom: 8 }}>No shop found</p>
+                            <button type="button" className="btn btn-p btn-sm" onClick={() => { setQuickShopName(shopSearch); setQuickShopAddress(''); setQuickShopOB(''); setShowQuickShop(true); setShopDropdownOpen(false); }}>
+                              <Store className="ic sm" /> Create &quot;{shopSearch}&quot;
                             </button>
-                          ))
-                      )}
-                    </div>
-                  )}
-                </div>
-                <Button type="button" variant="outline" size="icon" className="shrink-0 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 btn-enhanced border-indigo-200" title="Quick Create Shop" onClick={() => { setQuickShopName(''); setQuickShopAddress(''); setQuickShopOB(''); setQuickShopType('retail'); setShowQuickShop(true); }}>
-                  <Store className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Supplier *</Label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select Supplier" /></SelectTrigger>
-                <SelectContent>{suppliers.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Order Booker</Label>
-              {user.role === 'orderbooker' ? (
-                <div className="mt-1 h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
-                  {orderBookers.find((ob) => ob.id === orderBookerId)?.name || user.name}
-                </div>
-              ) : (
-                <Select value={orderBookerId} onValueChange={setOrderBookerId}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Auto / Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {orderBookers.map((ob) => (<SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          </div>
-
-          {/* Multi-tier pricing info banner */}
-          {isMultiTier && companyId && shopId && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
-              <span className="text-sm font-medium text-purple-800">Multi-Tier Pricing Active</span>
-              <span className="text-xs text-purple-600">|</span>
-              <span className="text-xs text-purple-700">Shop Type: <strong>{shopTypeLabel}</strong></span>
-            </div>
-          )}
-
-          {/* Deduction info banner */}
-          {hasDeduction && companyId && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2 animate-scale-in">
-              <span className="text-sm font-medium text-amber-800">Claim Deduction: {deductionPercent}%</span>
-              <span className="text-xs text-amber-600">|</span>
-              <span className="text-xs text-amber-700">Total pe {deductionPercent}% minus hoga, net amount hi claim hoga</span>
-            </div>
-          )}
-
-          {/* Credit Limit Warning */}
-          {creditLimit !== null && creditLimit > 0 && (totalAmount + pendingAmount) > creditLimit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm flex items-start gap-2 animate-scale-in">
-              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">Credit limit exceeded!</p>
-                <p className="text-xs mt-0.5">Limit: Rs. {creditLimit.toLocaleString()}, Current Pending: Rs. {pendingAmount.toLocaleString()}, This Claim: Rs. {totalAmount.toLocaleString()}</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Products Section - Redesigned */}
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '160ms' }}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Package className="h-5 w-5 text-indigo-600" />
-            Products
-            {items.length > 0 && (
-              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 animate-scale-in">{items.length} items</Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!companyId ? (
-            <div className="text-center py-10">
-              <Package className="h-12 w-12 text-gray-300 mx-auto mb-3 animate-pulse" />
-              <p className="text-muted-foreground">Pehle company select karo products add karne ke liye</p>
-            </div>
-          ) : (
-            <>
-              {/* Search & Add Product Bar */}
-              <div ref={productDropdownRef} className="relative">
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search product by name..."
-                      value={productSearch}
-                      onChange={(e) => { setProductSearch(e.target.value); setProductDropdownOpen(true); }}
-                      onFocus={() => { if (productSearch || products.length > 0) setProductDropdownOpen(true); }}
-                      className="pl-9"
-                      disabled={!companyId}
-                    />
-                  </div>
-                </div>
-
-                {/* Product Search Results Dropdown */}
-                {productDropdownOpen && companyId && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-72 overflow-y-auto animate-scale-in">
-                    {productSearch && filteredProducts.length === 0 ? (
-                      <div className="px-4 py-6 text-center">
-                        <p className="text-sm text-muted-foreground">No product found for &quot;{productSearch}&quot;</p>
-                      </div>
-                    ) : !productSearch && products.length === 0 ? (
-                      <div className="px-4 py-6 text-center">
-                        <p className="text-sm text-muted-foreground">No products in this company</p>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Already added products section */}
-                        {items.length > 0 && !productSearch && (
-                          <>
-                            <div className="px-3 py-2 bg-gray-50 text-xs font-medium text-gray-500 sticky top-0 border-b">ALREADY IN CLAIM</div>
-                            {items.map((item) => {
-                              const product = products.find((p) => p.id === item.productId);
-                              if (!product) return null;
-                              return (
-                                <div key={product.id} className="flex items-center justify-between px-3 py-2 border-b bg-gray-50/50">
-                                  <div className="flex-1">
-                                    <span className="text-sm font-medium text-gray-600">{product.name}</span>
-                                    <span className="text-xs text-gray-400 ml-2">{getPriceLabel(product)}/{product.unit}</span>
-                                  </div>
-                                  <span className="text-xs text-indigo-600 font-medium mr-2">Qty: {item.quantity}</span>
-                                </div>
-                              );
-                            })}
-                            {availableProducts.length > 0 && (
-                              <div className="px-3 py-2 bg-indigo-50 text-xs font-medium text-indigo-700 sticky top-0 border-b">CLICK TO ADD</div>
-                            )}
-                          </>
+                          </div>
+                        ) : (
+                          shops
+                            .filter((s) => {
+                              if (!shopSearch) return true;
+                              const search = shopSearch.toLowerCase();
+                              return s.name.toLowerCase().includes(search) || (s.address && s.address.toLowerCase().includes(search));
+                            })
+                            .map((s) => (
+                              <button key={s.id} type="button" style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 13, background: 'transparent', border: 0, borderBottom: '1px solid var(--af-border)', cursor: 'pointer', color: 'var(--af-text2)', fontFamily: 'inherit' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--af-primary-soft)'; e.currentTarget.style.color = 'var(--af-primary)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--af-text2)'; }}
+                                onClick={() => { setShopId(s.id); setShopSearch(''); setShopDropdownOpen(false); }}
+                              >
+                                <span style={{ fontWeight: 600, color: 'var(--af-text)' }}>{s.name}</span>
+                                {s.address && <span className="muted"> ({s.address})</span>}
+                                {s.shopType !== 'retail' && <span style={{ color: 'var(--af-violet)', fontWeight: 600, marginLeft: 4 }}>[{s.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}]</span>}
+                                {companyId && s.companyOrderBookers?.find((cob) => cob.companyId === companyId)?.orderBooker && (
+                                  <span style={{ color: 'var(--af-primary)', marginLeft: 4 }}>- {s.companyOrderBookers.find((cob) => cob.companyId === companyId)?.orderBooker?.name}</span>
+                                )}
+                              </button>
+                            ))
                         )}
-                        {/* Available products */}
-                        {(productSearch ? filteredProducts : availableProducts).map((product) => (
-                          <button
-                            key={product.id}
-                            type="button"
-                            className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 transition-all duration-150 border-b last:border-b-0 flex items-center justify-between group"
-                            onClick={() => addProductToClaim(product.id)}
-                          >
-                            <div className="flex-1">
-                              <span className="text-sm font-medium group-hover:text-indigo-800 transition-colors">{product.name}</span>
-                              <span className="text-xs text-muted-foreground ml-2">{getPriceLabel(product)}/{product.unit}</span>
-                              {isMultiTier && product.wholesalePrice && product.lmtPrice && (
-                                <span className="text-xs text-purple-500 ml-1">(Ws:{product.wholesalePrice} / LMT:{product.lmtPrice})</span>
-                              )}
-                            </div>
-                            <Plus className="h-4 w-4 text-muted-foreground group-hover:text-indigo-600 group-hover:scale-125 transition-all duration-200 shrink-0 ml-2" />
-                          </button>
-                        ))}
-                      </>
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-
-              {/* Added Products List - Card Style */}
-              {items.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
-                  <Package className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Search aur click karke products add karo</p>
-                  <p className="text-xs text-muted-foreground mt-1">Ya &quot;+&quot; button se quantity badhao</p>
                 </div>
-              ) : (
-                <div className="space-y-2 stagger-children">
-                  {items.map((item, index) => {
-                    const product = products.find((p) => p.id === item.productId);
-                    if (!product) return null;
-                    const effectivePrice = getProductPrice(product);
-                    return (
-                      <div key={index} className="p-3 bg-white border rounded-lg card-hover animate-fade-in-up shadow-sm">
-                        {/* Row 1: Product Info (always full width) */}
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{product.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {getPriceLabel(product)}/{product.unit}
-                              {isMultiTier && <span className="text-purple-600 ml-1">({shopTypeLabel})</span>}
-                              <span className="ml-1">= Rs.{Math.round(effectivePrice)}/unit</span>
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            className="h-8 w-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 active:scale-90 transition-all duration-150 shrink-0"
-                            onClick={() => removeItem(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
 
-                        {/* Row 2: Qty + Amount on the bottom row */}
-                        <div className="flex items-center justify-between gap-2">
-                          {/* Quantity Control */}
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-red-50 hover:border-red-300 hover:text-red-600 active:scale-90 transition-all duration-150"
-                              onClick={() => updateQuantity(index, item.quantity - 1)}
-                            >
-                              <Minus className="h-3.5 w-3.5" />
-                            </button>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => updateQuantity(index, Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-14 h-8 text-center text-sm p-0 border-gray-300 font-medium"
-                            />
-                            <button
-                              type="button"
-                              className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 active:scale-90 transition-all duration-150"
-                              onClick={() => updateQuantity(index, item.quantity + 1)}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                {/* Order Booker */}
+                <div className="field">
+                  <label className="label">Order Booker</label>
+                  {user.role === 'orderbooker' ? (
+                    <div className="sel" style={{ display: 'flex', alignItems: 'center', background: 'var(--af-surface2)', fontWeight: 600, color: 'var(--af-primary)' }}>
+                      {orderBookers.find((ob) => ob.id === orderBookerId)?.name || user.name}
+                    </div>
+                  ) : (
+                    <Select value={orderBookerId || 'none'} onValueChange={(v) => setOrderBookerId(v === 'none' ? '' : v)}>
+                      <SelectTrigger className="af-sel"><SelectValue placeholder="Auto / Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {orderBookers.map((ob) => (<SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
 
-                          {/* Amount */}
-                          <div className="text-right">
-                            <p className="font-bold text-sm text-indigo-700">Rs.{item.amount.toLocaleString()}</p>
-                            <p className="text-[11px] text-muted-foreground">Rs.{Math.round(effectivePrice)} x {item.quantity}</p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Total */}
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-indigo-100/50 border border-indigo-200 rounded-lg animate-fade-in-up">
-                    <span className="font-bold text-indigo-800 text-lg">Total Claim Amount</span>
-                    <span className="font-bold text-xl text-indigo-700">Rs.{totalAmount.toLocaleString()}</span>
-                  </div>
-
-                  {/* Deduction Section */}
-                  {hasDeduction && (
-                    <div className="space-y-2 animate-scale-in">
-                      <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <span className="font-medium text-amber-800">Deduction ({deductionPercent}%)</span>
-                        <span className="font-bold text-amber-700 text-lg">- Rs.{deductionAmount.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-                        <span className="font-bold text-blue-800 text-lg">Net Claim Amount</span>
-                        <span className="font-bold text-2xl text-blue-700">Rs.{netAmount.toLocaleString()}</span>
-                      </div>
+                {/* Shop Credit Status */}
+                <div className="field">
+                  <label className="label">Shop Credit Status</label>
+                  {creditLimit !== null && creditLimit > 0 ? (
+                    <div className="sel" style={{ display: 'flex', alignItems: 'center', gap: 9, background: creditExceeded ? 'var(--af-bad-soft)' : 'var(--af-ok-soft)', borderColor: 'transparent', fontWeight: 600, color: creditExceeded ? 'var(--af-bad)' : 'var(--af-ok)' }}>
+                      {creditExceeded
+                        ? <>⚠ Rs {creditAfter.toLocaleString()} / {creditLimit.toLocaleString()} — limit exceeded</>
+                        : <>✓ Rs {(creditLimit - creditUsed).toLocaleString()} available (limit {creditLimit.toLocaleString()})</>}
+                    </div>
+                  ) : (
+                    <div className="sel" style={{ display: 'flex', alignItems: 'center', color: 'var(--af-text3)' }}>
+                      No credit limit set
                     </div>
                   )}
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </div>
 
-      {/* Claim Photos Section */}
-      <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Camera className="h-5 w-5 text-indigo-600" />
-            Claim Photos
-            {photos.length > 0 && (
-              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 animate-scale-in">{photos.length}/3</Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-3">
-            <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed transition-all cursor-pointer ${photos.length >= 3 ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-indigo-300 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-400'}`}>
-              <Camera className="h-4 w-4" />
-              <span className="text-sm font-medium">{photos.length >= 3 ? 'Max Reached' : 'Add Photo'}</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handlePhotoSelect}
-                className="hidden"
-                disabled={photos.length >= 3}
-              />
-            </label>
-            <span className="text-xs text-muted-foreground">Max 3 photos, 2MB each</span>
-          </div>
-          {photos.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              {photos.map((photo, idx) => (
-                <div key={idx} className="relative group rounded-lg overflow-hidden border aspect-square">
-                  <img src={photo} alt={`Claim photo ${idx + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setPhotos(photos.filter((_, i) => i !== idx))}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+              {/* Multi-tier / deduction info */}
+              {isMultiTier && companyId && shopId && (
+                <div className="note" style={{ marginTop: 14 }}>
+                  <Lightbulb className="ic" />
+                  <div><b>Multi-Tier Pricing Active</b> — Shop Type: <b>{shopTypeLabel}</b>. Rates isi tier ke hisaab se lagengi.</div>
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+
+          {/* Step 2 — Add Products */}
+          <div className="card">
+            <div className="card-h">
+              <div>
+                <div className="card-t"><Package className="ic sm" /> Add Products</div>
+                <div className="card-sub">Claim price per product ke hisaab se lagti hai</div>
+              </div>
+              <span className="bdg neutral">Step 2 of 3</span>
+            </div>
+            <div className="card-b" style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+              {!companyId ? (
+                <div className="empty-state">
+                  <Package className="ic" />
+                  <p className="small">Pehle company select karo products add karne ke liye</p>
+                </div>
+              ) : (
+                <>
+                  <div className="f-search" style={{ width: '100%' }}>
+                    <Search className="ic sm" />
+                    <input
+                      placeholder="Search product by name… (e.g. Biryani Masala)"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                    />
+                  </div>
+
+                  {shownProducts.length === 0 ? (
+                    <div className="empty-state">
+                      <Package className="ic" />
+                      <p className="small">{productSearch ? `No product found for "${productSearch}"` : 'No products in this company'}</p>
+                    </div>
+                  ) : (
+                    <div className="prod-grid">
+                      {shownProducts.map((product) => {
+                        const added = items.some((i) => i.productId === product.id);
+                        return (
+                          <div className={`prod ${added ? '' : ''}`} key={product.id} style={added ? { borderColor: 'var(--af-violet)', boxShadow: 'var(--af-sh)' } : undefined}>
+                            <div className="prod-nm">{product.name}</div>
+                            <div className="prod-pr">
+                              Price Rs {product.price} · <b>{getPriceLabel(product)}</b> / {product.unit}
+                              {isMultiTier && product.wholesalePrice && product.lmtPrice && (
+                                <span className="muted"> (Ws:{product.wholesalePrice} / LMT:{product.lmtPrice})</span>
+                              )}
+                            </div>
+                            <div className="prod-foot">
+                              <span className="chip c3">{product.company?.name || ''}</span>
+                              {added ? (
+                                <span className="chip c1"><Check className="ic" /> Added</span>
+                              ) : (
+                                <button className="btn btn-p btn-sm" onClick={() => addProductToClaim(product.id)}>
+                                  <Plus className="ic sm" /> Add
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {!productSearch && filteredProducts.length > 12 && (
+                    <p className="small muted" style={{ textAlign: 'center' }}>
+                      +{filteredProducts.length - 12} more products — search to narrow down
+                    </p>
+                  )}
+
+                  {/* Items in this claim */}
+                  <div style={{ borderTop: '1px solid var(--af-border)', paddingTop: 15, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.8px', textTransform: 'uppercase', color: 'var(--af-text3)' }}>
+                      Items in this claim ({items.length})
+                    </div>
+                    {items.length === 0 ? (
+                      <div className="empty-state" style={{ padding: '24px 16px' }}>
+                        <Package className="ic" />
+                        <p className="small">Search aur click karke products add karo</p>
+                      </div>
+                    ) : (
+                      items.map((item, index) => {
+                        const product = products.find((p) => p.id === item.productId);
+                        if (!product) return null;
+                        return (
+                          <div className="item-row" key={item.productId}>
+                            <div className="nm">
+                              <div style={{ fontWeight: 600, color: 'var(--af-text)', fontSize: 13 }}>{product.name}</div>
+                              <div className="small muted">
+                                {getPriceLabel(product)} / {product.unit}
+                                {isMultiTier && <span style={{ color: 'var(--af-violet)', marginLeft: 4 }}>({shopTypeLabel})</span>}
+                              </div>
+                            </div>
+                            <div className="stepper">
+                              <button className="stp" type="button" onClick={() => updateQuantity(index, item.quantity - 1)}><Minus className="ic sm" /></button>
+                              <input
+                                className="stp-val"
+                                style={{ border: 0, outline: 0, background: 'transparent', fontFamily: 'inherit' }}
+                                type="number"
+                                min={1}
+                                value={item.quantity}
+                                onChange={(e) => updateQuantity(index, Math.max(1, parseInt(e.target.value) || 1))}
+                              />
+                              <button className="stp" type="button" onClick={() => updateQuantity(index, item.quantity + 1)}><Plus className="ic sm" /></button>
+                            </div>
+                            <div style={{ width: 100, textAlign: 'right', fontWeight: 700, color: 'var(--af-text)', fontVariantNumeric: 'tabular-nums' }}>
+                              Rs {item.amount.toLocaleString()}
+                            </div>
+                            <button className="ra danger" type="button" title="Remove" onClick={() => removeItem(index)}>
+                              <Trash2 className="ic sm" />
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Step 3 — Attachments */}
+          <div className="card">
+            <div className="card-h">
+              <div className="card-t"><Camera className="ic sm" /> Attachments <span className="muted" style={{ fontWeight: 400 }}>(optional)</span></div>
+              <span className="bdg neutral">Step 3 of 3</span>
+            </div>
+            <div className="card-b">
+              <div className="attach-row">
+                {photos.map((photo, idx) => (
+                  <div className="attach" key={idx} style={{ position: 'relative' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo} alt={`Claim photo ${idx + 1}`} />
+                    <button
+                      type="button"
+                      onClick={() => setPhotos(photos.filter((_, i) => i !== idx))}
+                      style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 99, background: 'var(--af-bad)', color: '#fff', border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      aria-label="Remove photo"
+                    >
+                      <X className="ic sm" style={{ width: 12, height: 12 }} />
+                    </button>
+                  </div>
+                ))}
+                <label className="attach add" style={{ cursor: photos.length >= 3 ? 'not-allowed' : 'pointer', opacity: photos.length >= 3 ? 0.5 : 1 }}>
+                  <Camera className="ic" />
+                  {photos.length >= 3 ? 'Max 3 photos' : 'Add Photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                    style={{ display: 'none' }}
+                    disabled={photos.length >= 3}
+                  />
+                </label>
+              </div>
+              <p className="small muted" style={{ marginTop: 11 }}>Damage/expiry photos — shopkeeper ko dikhane aur proof ke liye (max 3, 2MB each)</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT: sticky summary ─────────────────────────── */}
+        <div className="sticky-side">
+          <div className="card" style={{ position: 'sticky', top: 80 }}>
+            <div className="card-h"><div className="card-t"><Banknote className="ic sm" /> Summary</div></div>
+            <div className="card-b">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9, paddingBottom: 13, borderBottom: '1px solid var(--af-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  <div className="co-logo" style={{ background: CO_GRADIENTS[coIdx >= 0 ? coIdx % CO_GRADIENTS.length : 0], fontSize: 11 }}>{coInitials}</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--af-text)' }}>{selectedCompany?.name || 'No company selected'}</div>
+                    <div className="small muted">{hasDeduction ? `${deductionPercent}% claim deduction policy` : 'No deduction policy'}</div>
+                  </div>
+                </div>
+                <div className="small" style={{ color: 'var(--af-text2)' }}>
+                  {selectedShop?.name || 'No shop selected'} · {orderBookers.find((ob) => ob.id === orderBookerId)?.name || user.name}
+                </div>
+              </div>
+              <div style={{ paddingTop: 11 }}>
+                <div className="sum-row"><span>Items</span><b>{items.length} products · {totalUnits} units</b></div>
+                <div className="sum-row"><span>Total Amount</span><b>Rs {totalAmount.toLocaleString()}</b></div>
+                <div className="sum-row"><span>Deduction ({deductionPercent}%)</span><b style={{ color: 'var(--af-bad)' }}>− Rs {deductionAmount.toLocaleString()}</b></div>
+                <div className="sum-total">
+                  <span className="lbl">Net Payable</span>
+                  <span className="val">Rs {netAmount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {creditLimit !== null && creditLimit > 0 && (
+                <div style={{ marginTop: 15 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--af-text3)', marginBottom: 6 }}>
+                    <span>Shop credit limit</span>
+                    <span>{creditPct}% used</span>
+                  </div>
+                  <div className={`prog ${creditPct >= 80 ? 'bad' : creditPct >= 50 ? 'warn' : ''}`}>
+                    <i style={{ width: `${creditPct}%` }} />
+                  </div>
+                  <p className="small muted" style={{ marginTop: 6 }}>
+                    Rs {creditUsed.toLocaleString()} / {creditLimit.toLocaleString()} used · is claim ke baad Rs {creditAfter.toLocaleString()}
+                  </p>
+                </div>
+              )}
+
+              {creditExceeded && (
+                <div className="note" style={{ marginTop: 12, borderColor: 'var(--af-bad)', background: 'var(--af-bad-soft)' }}>
+                  <AlertTriangle className="ic" style={{ color: 'var(--af-bad)' }} />
+                  <div><b style={{ color: 'var(--af-bad)' }}>Credit limit exceeded!</b> Limit: Rs {creditLimit?.toLocaleString()}, Pending: Rs {creditUsed.toLocaleString()}, This Claim: Rs {totalAmount.toLocaleString()}</div>
+                </div>
+              )}
+
+              <button className="btn btn-p btn-lg btn-block" style={{ marginTop: 16 }} onClick={handleSave} disabled={saving || (claim ? isOlderThan24hr : false)}>
+                {saving ? (<><Loader2 className="ic sm animate-spin" /> Saving…</>) : (<><Check className="ic sm" /> {claim ? 'Update Claim' : 'Submit Claim'}</>)}
+              </button>
+              <button className="btn btn-o btn-block" style={{ marginTop: 8 }} onClick={onCancel}>Cancel</button>
+              {user.role === 'orderbooker' && (
+                <p className="small muted" style={{ marginTop: 10, textAlign: 'center' }}>⚠ Order booker claims admin approval ke baad process hongi</p>
+              )}
+              <p className="small muted" style={{ marginTop: 6, textAlign: 'center' }}>Ctrl+S = Save · Esc = Cancel</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="note">
+        <Lightbulb className="ic" />
+        <div><b>Auto-calculations:</b> {hasDeduction ? `${deductionPercent}% deduction company setting se automatic lagega` : 'deduction company setting se automatic lagega (agar set hai)'}, claim price per product se — koi manual hisaab nahi. <b>Credit limit meter:</b> 80% cross hone par red warning.</div>
+      </div>
 
       {/* Quick Shop Create Dialog */}
       <Dialog open={showQuickShop} onOpenChange={setShowQuickShop}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-indigo-800 flex items-center gap-2">
-              <Store className="h-5 w-5" />
-              Quick Create Shop
+        <DialogContent className="af-dialog sm:max-w-[440px]">
+          <div className="dlg-h">
+            <DialogTitle className="dlg-t" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Store className="ic sm" style={{ color: 'var(--af-primary)' }} /> Quick Create Shop
             </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label>Shop Name *</Label>
-              <Input placeholder="Enter shop name" value={quickShopName} onChange={(e) => setQuickShopName(e.target.value)} autoFocus />
+          </div>
+          <div className="dlg-b">
+            <div className="field">
+              <label className="label">Shop Name <span className="req">*</span></label>
+              <input className="input" placeholder="Enter shop name" value={quickShopName} onChange={(e) => setQuickShopName(e.target.value)} autoFocus />
             </div>
-            <div>
-              <Label>Address</Label>
-              <Input placeholder="Enter address (optional)" value={quickShopAddress} onChange={(e) => setQuickShopAddress(e.target.value)} />
+            <div className="field">
+              <label className="label">Address</label>
+              <input className="input" placeholder="Enter address (optional)" value={quickShopAddress} onChange={(e) => setQuickShopAddress(e.target.value)} />
             </div>
-            <div>
-              <Label>Shop Type *</Label>
-              <p className="text-xs text-muted-foreground mb-2">Affects claim rate for multi-tier companies like Cadbury</p>
-              <div className="grid grid-cols-3 gap-2">
+            <div className="field">
+              <label className="label">Shop Type <span className="req">*</span></label>
+              <p className="small muted">Affects claim rate for multi-tier companies like Cadbury</p>
+              <div style={{ display: 'flex', gap: 8 }}>
                 {['retail', 'wholesale', 'lmt'].map((type) => (
                   <button
                     key={type}
                     type="button"
-                    className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all duration-200 btn-enhanced ${
-                      quickShopType === type
-                        ? type === 'retail' ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                          : type === 'wholesale' ? 'bg-orange-600 text-white border-orange-600 shadow-md'
-                          : 'bg-purple-600 text-white border-purple-600 shadow-md'
-                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                    }`}
+                    className={`btn btn-sm ${quickShopType === type ? 'btn-p' : 'btn-o'}`}
+                    style={{ flex: 1 }}
                     onClick={() => setQuickShopType(type)}
                   >
                     {type === 'retail' ? 'Retail' : type === 'wholesale' ? 'Wholesale' : 'LMT'}
@@ -964,15 +970,15 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                 ))}
               </div>
             </div>
-            <div>
-              <Label>Order Booker {companyId ? `(for ${companies.find((c) => c.id === companyId)?.name})` : ''}</Label>
+            <div className="field">
+              <label className="label">Order Booker {companyId ? `(for ${companies.find((c) => c.id === companyId)?.name})` : ''}</label>
               {user.role === 'orderbooker' ? (
-                <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
+                <div className="sel" style={{ display: 'flex', alignItems: 'center', background: 'var(--af-surface2)', fontWeight: 600, color: 'var(--af-primary)' }}>
                   {orderBookers.find((ob) => ob.id === user.orderBookerId)?.name || user.name}
                 </div>
               ) : (
-                <Select value={quickShopOB} onValueChange={setQuickShopOB}>
-                  <SelectTrigger><SelectValue placeholder="Select Order Booker" /></SelectTrigger>
+                <Select value={quickShopOB || 'none'} onValueChange={setQuickShopOB}>
+                  <SelectTrigger className="af-sel"><SelectValue placeholder="Select Order Booker" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {orderBookers.map((ob) => (<SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>))}
@@ -981,10 +987,10 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
               )}
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowQuickShop(false)} className="btn-enhanced">Cancel</Button>
-            <Button
-              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced shadow-md"
+          <div className="dlg-f">
+            <button className="btn btn-g" onClick={() => setShowQuickShop(false)}>Cancel</button>
+            <button
+              className="btn btn-p"
               disabled={creatingShop || !quickShopName.trim()}
               onClick={async () => {
                 setCreatingShop(true);
@@ -1008,27 +1014,11 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                 finally { setCreatingShop(false); }
               }}
             >
-              {creatingShop ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</>) : 'Create Shop'}
-            </Button>
-          </DialogFooter>
+              {creatingShop ? (<><Loader2 className="ic sm animate-spin" /> Creating…</>) : (<><Check className="ic sm" /> Create Shop</>)}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
-
-      {/* Save Button - Sticky at bottom on mobile */}
-      <div className="flex justify-end gap-3 pb-4 animate-slide-up">
-        <Button variant="outline" onClick={onCancel} className="btn-enhanced btn-ripple px-6 h-11 rounded-xl border-gray-300 font-medium">Cancel</Button>
-        <Button
-          className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced btn-ripple shadow-lg px-8 py-3 text-base font-bold rounded-xl"
-          onClick={handleSave}
-          disabled={saving || (claim ? isOlderThan24hr : false)}
-        >
-          {saving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>) : claim ? 'Update Claim' : 'Create Claim'}
-        </Button>
-        <div className="text-xs text-muted-foreground flex gap-3 mt-2">
-          <span>Ctrl+S = Save</span>
-          <span>Esc = Cancel</span>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

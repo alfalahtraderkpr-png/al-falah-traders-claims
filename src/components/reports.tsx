@@ -1,16 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Printer, FileText, BarChart3, Clock, Users, Building2, Banknote, ClipboardList, Search, Download, FileSpreadsheet, FileDown, ChevronDown } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import {
+  Loader2, Printer, FileText, BarChart3, Clock, Users, Building2, Banknote,
+  ClipboardList, Search, Download, FileSpreadsheet, FileDown, Lightbulb,
+} from 'lucide-react';
 
 interface Company { id: string; name: string }
-interface Supplier { id: string; name: string }
 interface OrderBooker { id: string; name: string }
 
 // ─────────────────────────────────────────────
@@ -92,34 +88,26 @@ function ReportActionButtons({
   };
 
   return (
-    <div className="flex flex-wrap gap-2 no-print">
-      <Button onClick={onPrint} className="bg-indigo-600 hover:bg-indigo-700 text-white" variant="default">
-        <Printer className="h-4 w-4 mr-2" /> Print Report
-      </Button>
-      <Button
+    <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }} className="no-print">
+      <button className="btn btn-o btn-sm" onClick={onPrint}>
+        <Printer className="ic sm" /> Print
+      </button>
+      <button
+        className="btn btn-o btn-sm"
         onClick={() => handleExport('pdf')}
         disabled={exporting !== null}
-        variant="outline"
-        className="border-red-300 text-red-700 hover:bg-red-50"
+        style={{ color: 'var(--af-bad)', borderColor: 'color-mix(in srgb, var(--af-bad) 35%, transparent)' }}
       >
-        {exporting === 'pdf' ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
-        ) : (
-          <><FileDown className="h-4 w-4 mr-2" /> Export PDF</>
-        )}
-      </Button>
-      <Button
+        {exporting === 'pdf' ? (<><Loader2 className="ic sm animate-spin" /> Generating…</>) : (<><FileDown className="ic sm" /> PDF</>)}
+      </button>
+      <button
+        className="btn btn-o btn-sm"
         onClick={() => handleExport('excel')}
         disabled={exporting !== null}
-        variant="outline"
-        className="border-green-300 text-green-700 hover:bg-green-50"
+        style={{ color: 'var(--af-ok)', borderColor: 'color-mix(in srgb, var(--af-ok) 35%, transparent)' }}
       >
-        {exporting === 'excel' ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
-        ) : (
-          <><FileSpreadsheet className="h-4 w-4 mr-2" /> Export Excel</>
-        )}
-      </Button>
+        {exporting === 'excel' ? (<><Loader2 className="ic sm animate-spin" /> Generating…</>) : (<><FileSpreadsheet className="ic sm" /> Excel</>)}
+      </button>
     </div>
   );
 }
@@ -163,16 +151,15 @@ function normalizeStatus(status: string): string {
   return status;
 }
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  approved: 'bg-green-100 text-green-800 border-green-300',
-  partial: 'bg-orange-100 text-orange-800 border-orange-300',
-  cleared: 'bg-blue-100 text-blue-800 border-blue-300',
-  rejected: 'bg-red-100 text-red-800 border-red-300',
-  // Legacy
-  arrived_approved: 'bg-green-100 text-green-800 border-green-300',
-  partially_approved: 'bg-orange-100 text-orange-800 border-orange-300',
-  partially_cleared: 'bg-orange-100 text-orange-800 border-orange-300',
+const statusBdg: Record<string, string> = {
+  pending: 'pending',
+  approved: 'arrived',
+  partial: 'partial',
+  cleared: 'cleared',
+  rejected: 'rejected',
+  arrived_approved: 'arrived',
+  partially_approved: 'partial',
+  partially_cleared: 'partial',
 };
 
 const statusLabels: Record<string, string> = {
@@ -181,11 +168,25 @@ const statusLabels: Record<string, string> = {
   partial: 'Partial',
   cleared: 'Cleared',
   rejected: 'Rejected',
-  // Legacy
   arrived_approved: 'Approved',
   partially_approved: 'Partial',
   partially_cleared: 'Partial',
 };
+
+// Compact KPI card for report summaries
+function StatKpi({ label, value, icon: Icon, style }: { label: string; value: string | number; icon?: React.ElementType; style?: React.CSSProperties }) {
+  return (
+    <div className="kpi" style={style}>
+      <div className="kpi-top">
+        {Icon && <div className="kpi-ic"><Icon className="ic" /></div>}
+      </div>
+      <div>
+        <div className="kpi-lbl">{label}</div>
+        <div className="kpi-val">{value}</div>
+      </div>
+    </div>
+  );
+}
 
 export function Reports({ user }: { user: { id: string; name: string; email: string; role: string; orderBookerId: string | null } }) {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -197,12 +198,12 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
   const isAdmin = user.role === 'admin';
 
   const adminTabs = [
-    { value: 'pending_claims', label: 'Pending Claims', icon: Clock },
+    { value: 'pending_claims', label: 'Pending (Arrived)', icon: Clock },
     { value: 'cleared_claims', label: 'Cleared Claims', icon: Banknote },
     { value: 'summary', label: 'Summary', icon: BarChart3 },
     { value: 'aging', label: 'Aging', icon: Clock },
-    { value: 'performance', label: 'OB Report', icon: Users },
-    { value: 'company', label: 'Company', icon: Building2 },
+    { value: 'performance', label: 'Order Booker', icon: Users },
+    { value: 'company', label: 'Company-wise', icon: Building2 },
     { value: 'detail', label: 'Detail', icon: ClipboardList },
   ];
 
@@ -249,7 +250,6 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
             setAllClaims(d);
           }
         }
-        console.log('Reports: Loaded', allClaims.length, 'claims from API');
       } else {
         // Fallback: try /api/claims if /api/reports fails
         console.error('Reports API error:', claimsRes.status, '- falling back to /api/claims');
@@ -263,7 +263,6 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
               } else {
                 setAllClaims(d);
               }
-              console.log('Reports: Loaded', d.length, 'claims from fallback /api/claims');
             }
           } else {
             setLoadError('Failed to load claims data. Please refresh the page.');
@@ -282,7 +281,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
+  const formatAmount = (amount: number) => `Rs ${amount.toLocaleString()}`;
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -359,130 +358,75 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-3" />
-          <p className="text-muted-foreground">Loading reports...</p>
-        </div>
+      <div className="empty-state" style={{ minHeight: 320 }}>
+        <Loader2 className="ic animate-spin" />
+        <p className="small">Loading reports…</p>
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <FileText className="h-12 w-12 text-red-300 mx-auto mb-3" />
-          <p className="text-red-600 font-medium mb-2">{loadError}</p>
-          <Button onClick={loadData} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-            Retry
-          </Button>
+      <div className="card">
+        <div className="empty-state" style={{ minHeight: 260 }}>
+          <FileText className="ic" style={{ color: 'var(--af-bad)', opacity: 0.6 }} />
+          <p style={{ color: 'var(--af-bad)', fontWeight: 600 }}>{loadError}</p>
+          <button className="btn btn-p btn-sm" onClick={loadData}>Retry</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header - hidden on print */}
-      <div className="flex justify-between items-center no-print gap-2 flex-wrap">
-        <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
-          <BarChart3 className="h-6 w-6" />
-          Reports
-        </h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          {!isAdmin && (
-            <Badge className="bg-blue-100 text-blue-700 border-blue-200 px-3 py-1">
-              My Claims Only
-            </Badge>
-          )}
-
-          {/* Export Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
-                disabled={exportingPdf || exportingExcel}
-              >
-                {(exportingPdf || exportingExcel) ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Report
-                    <ChevronDown className="h-3 w-3 ml-1.5 opacity-80" />
-                  </>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="text-indigo-700 font-semibold">
-                Export {activeTab.replace('_', ' ')} report as
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleExportPdf}
-                disabled={exportingPdf}
-                className="cursor-pointer focus:bg-red-50 focus:text-red-700"
-              >
-                <FileDown className="h-4 w-4 mr-2 text-red-600" />
-                <div className="flex flex-col">
-                  <span className="font-medium">PDF Document</span>
-                  <span className="text-xs text-muted-foreground">Printable, formatted report</span>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleExportExcel}
-                disabled={exportingExcel}
-                className="cursor-pointer focus:bg-green-50 focus:text-green-700"
-              >
-                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
-                <div className="flex flex-col">
-                  <span className="font-medium">Excel Spreadsheet</span>
-                  <span className="text-xs text-muted-foreground">Multi-sheet with all data</span>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handlePrint}
-                className="cursor-pointer focus:bg-blue-50 focus:text-blue-700"
-              >
-                <Printer className="h-4 w-4 mr-2 text-blue-600" />
-                <div className="flex flex-col">
-                  <span className="font-medium">Print</span>
-                  <span className="text-xs text-muted-foreground">Open print dialog</span>
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* Header — hidden on print */}
+      <div className="page-head no-print">
+        <div>
+          <div className="h1">Reports</div>
+          <div className="sub">
+            Claims performance aur financial summaries
+            {!isAdmin && <span className="chip c1" style={{ marginLeft: 8 }}>My Claims Only</span>}
+          </div>
+        </div>
+        <div className="ph-actions">
+          <button
+            className="btn btn-o"
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            style={{ color: 'var(--af-bad)', borderColor: 'color-mix(in srgb, var(--af-bad) 35%, transparent)' }}
+          >
+            {exportingPdf ? <Loader2 className="ic sm animate-spin" /> : <Download className="ic sm" />} PDF
+          </button>
+          <button
+            className="btn btn-o"
+            onClick={handleExportExcel}
+            disabled={exportingExcel}
+            style={{ color: 'var(--af-ok)', borderColor: 'color-mix(in srgb, var(--af-ok) 35%, transparent)' }}
+          >
+            {exportingExcel ? <Loader2 className="ic sm animate-spin" /> : <Download className="ic sm" />} Excel
+          </button>
         </div>
       </div>
 
-      {/* iOS-style Sliding Tab Navigation */}
-      <div className="no-print">
-        <div className="relative flex items-center bg-gray-200/80 backdrop-blur-sm rounded-xl p-1.5 overflow-x-auto scrollbar-hide gap-1">
-          {/* Tab buttons */}
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.value;
-            return (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${isActive ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Tabs — mockup master-tabs */}
+      <div className="master-tabs no-print">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.value;
+          return (
+            <button
+              key={tab.value}
+              className={`mtab ${isActive ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.value)}
+            >
+              <Icon className="ic sm" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div ref={printRef} className="print-area">
+      <div ref={printRef} className="print-area" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {activeTab === 'pending' && <PendingClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'pending_claims' && isAdmin && <PendingClaimsArrivedReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'summary' && <ClaimsSummaryReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
@@ -498,7 +442,32 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
 }
 
 /* ─────────────────────────────────────────────
-   REPORT 1: Pending Claims Report
+   Shared filter bar + print header
+   ───────────────────────────────────────────── */
+function FilterBar({ children, actions }: { children: React.ReactNode; actions: React.ReactNode }) {
+  return (
+    <div className="filters card no-print">
+      {children}
+      <div className="spacer" />
+      {actions}
+    </div>
+  );
+}
+
+function PrintHeader({ title, sub }: { title: string; sub?: string }) {
+  return (
+    <div className="hidden print-block print-header">
+      <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
+      <h2 className="text-lg font-semibold text-center mt-1">{title}</h2>
+      {sub && <p className="text-sm text-center mt-1">{sub}</p>}
+      <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
+      <hr className="my-3 border-gray-400" />
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   REPORT 1: Pending Claims Report (Stock Not Received)
    ───────────────────────────────────────────── */
 function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
   companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -519,71 +488,42 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
   const selectedComp = companies.find(c => c.id === filterCompany);
 
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {isOB ? (
-              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
-                {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
-              </div>
-            ) : (
-              <Select value={filterOB} onValueChange={setFilterOB}>
-                <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Order Bookers</SelectItem>
-                  {orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Companies</SelectItem>
-                {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <ReportActionButtons
-              reportType="pending"
-              onPrint={onPrint}
-              filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
-            />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <FilterBar actions={
+        <ReportActionButtons
+          reportType="pending"
+          onPrint={onPrint}
+          filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
+        />
+      }>
+        {isOB ? (
+          <div className="sel" style={{ display: 'flex', alignItems: 'center', background: 'var(--af-surface2)', fontWeight: 600, color: 'var(--af-primary)', minWidth: 150 }}>
+            {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Print Header */}
-      <div className="hidden print-block print-header">
-        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Pending Claims Report</h2>
-        {(selectedOB || selectedComp) && (
-          <p className="text-sm text-center mt-1">
-            {selectedOB ? `Order Booker: ${selectedOB.name}` : ''}
-            {selectedOB && selectedComp ? ' | ' : ''}
-            {selectedComp ? `Company: ${selectedComp.name}` : ''}
-          </p>
+        ) : (
+          <select className="sel" value={filterOB} onChange={(e) => setFilterOB(e.target.value)}>
+            <option value="all">All Order Bookers</option>
+            {orderBookers.map(ob => <option key={ob.id} value={ob.id}>{ob.name}</option>)}
+          </select>
         )}
-        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-        <hr className="my-3 border-gray-400" />
-      </div>
+        <select className="sel" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </FilterBar>
 
-      {/* Summary - screen: cards, print: inline compact row */}
-      <Card className="shadow-sm print-hide-cards">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="bg-yellow-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Pending Claims</p>
-              <p className="text-2xl font-bold text-yellow-700">{filtered.length}</p>
-            </div>
-            <div className="bg-indigo-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Total Pending Amount</p>
-              <p className="text-2xl font-bold text-indigo-700">{formatAmount(grandTotal)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      {/* Print-only compact summary */}
+      <PrintHeader
+        title="Pending Claims Report"
+        sub={selectedOB || selectedComp
+          ? `${selectedOB ? `Order Booker: ${selectedOB.name}` : ''}${selectedOB && selectedComp ? ' | ' : ''}${selectedComp ? `Company: ${selectedComp.name}` : ''}`
+          : undefined}
+      />
+
+      {/* Summary */}
+      <div className="kpis print-hide-cards" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
+        <StatKpi label="Pending Claims" value={filtered.length} icon={Clock} style={{ '--kc': 'linear-gradient(90deg,#f59e0b,#f97316)', '--kc2': 'var(--af-warn)', '--kb': 'var(--af-warn-soft)' } as React.CSSProperties} />
+        <StatKpi label="Total Pending Amount" value={formatAmount(grandTotal)} icon={Banknote} />
+      </div>
       <div className="hidden print-block print-summary">
         <span className="print-summary-item"><span className="print-summary-label">Pending Claims:</span> <span className="print-summary-value">{filtered.length}</span></span>
         <span className="print-summary-item"><span className="print-summary-label">Total Amount:</span> <span className="print-summary-value">{formatAmount(grandTotal)}</span></span>
@@ -591,64 +531,55 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <Card className="shadow-sm"><CardContent className="py-12 text-center"><FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-muted-foreground">No pending claims found</p></CardContent></Card>
+        <div className="card"><div className="empty-state" style={{ minHeight: 200 }}>
+          <FileText className="ic" />
+          <p className="small">No pending claims found</p>
+        </div></div>
       ) : (
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm print-table">
-                <thead>
-                  <tr className="border-b bg-gray-50 print-bg-gray">
-                    <th className="text-left py-2 px-3 font-medium">#</th>
-                    <th className="text-left py-2 px-3 font-medium">Claim #</th>
-                    <th className="text-left py-2 px-3 font-medium">Date</th>
-                    <th className="text-left py-2 px-3 font-medium">Company</th>
-                    <th className="text-left py-2 px-3 font-medium">Shop</th>
-                    <th className="text-left py-2 px-3 font-medium">Supplier</th>
-                    <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                    <th className="text-left py-2 px-3 font-medium">Items</th>
-                    <th className="text-right py-2 px-3 font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((claim, i) => (
-                    <tr key={claim.id} className="border-b">
-                      <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-indigo-700">{claim.claimNumber}</td>
-                      <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
-                      <td className="py-2 px-3">{claim.company.name}</td>
-                      <td className="py-2 px-3">{claim.shop.name}</td>
-                      <td className="py-2 px-3">{claim.supplier.name}</td>
-                      <td className="py-2 px-3">{claim.orderBooker?.name || '-'}</td>
-                      <td className="py-2 px-3 text-center">{claim.claimItems.length}</td>
-                      <td className="py-2 px-3 text-right font-medium">
-                        {claim.deductionAmount > 0 ? (
-                          <div>
-                            <div className="text-blue-700">{formatAmount(claim.netAmount)}</div>
-                            <div className="text-xs text-amber-600">-{formatAmount(claim.deductionAmount)} ({claim.company.claimDeductionPercent}%)</div>
-                          </div>
-                        ) : formatAmount(claim.totalAmount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
-                    <td colSpan={8} className="py-2 px-3 font-bold text-indigo-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(grandTotal)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="card tbl-wrap">
+          <table className="tbl print-table">
+            <thead>
+              <tr className="print-bg-gray">
+                <th>#</th><th>Claim #</th><th>Date</th><th>Company</th><th>Shop</th><th>Supplier</th><th>Order Booker</th><th className="num">Items</th><th className="num">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((claim, i) => (
+                <tr key={claim.id}>
+                  <td className="muted">{i + 1}</td>
+                  <td className="strong claim-no">{claim.claimNumber}</td>
+                  <td>{new Date(claim.date).toLocaleDateString()}</td>
+                  <td>{claim.company.name}</td>
+                  <td>{claim.shop.name}</td>
+                  <td>{claim.supplier.name}</td>
+                  <td>{claim.orderBooker?.name || '—'}</td>
+                  <td className="num">{claim.claimItems.length}</td>
+                  <td className="num strong">
+                    {claim.deductionAmount > 0 ? (
+                      <div>
+                        <div>{formatAmount(claim.netAmount)}</div>
+                        <div className="small" style={{ color: 'var(--af-warn)' }}>−{formatAmount(claim.deductionAmount)} ({claim.company.claimDeductionPercent}%)</div>
+                      </div>
+                    ) : formatAmount(claim.totalAmount)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="print-bg-light" style={{ fontWeight: 700 }}>
+                <td colSpan={8} style={{ textAlign: 'right' }}>Grand Total:</td>
+                <td className="num">{formatAmount(grandTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       )}
     </div>
   );
 }
 
 /* ─────────────────────────────────────────────
-   REPORT 2: Claims Summary Report
+   REPORT 2: Claims Summary Report (mockup: KPIs + bar chart + monthly table)
    ───────────────────────────────────────────── */
 function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
   companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -668,6 +599,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
   });
 
   const totalAmount = filtered.reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
+  const totalDeduction = filtered.reduce((s, c) => s + (c.deductionAmount || 0), 0);
   const totalApproved = filtered.reduce((s, c) => s + (c.approvedAmount || 0), 0);
   const pendingAmount = filtered.filter(c => normalizeStatus(c.status) === 'pending').reduce((s, c) => s + (c.netAmount || c.totalAmount), 0);
   const clearedAmount = filtered.filter(c => normalizeStatus(c.status) === 'cleared').reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
@@ -685,72 +617,101 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
   const selectedOB = orderBookers.find(o => o.id === filterOB);
   const selectedComp = companies.find(c => c.id === filterCompany);
 
+  // Monthly aggregation (mockup: Monthly Claims Performance)
+  const monthly = useMemo(() => {
+    const map = new Map<string, { label: string; claims: number; total: number; deduction: number; net: number; cleared: number }>();
+    for (const c of filtered) {
+      const d = new Date(c.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const e = map.get(key) || { label: d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }), claims: 0, total: 0, deduction: 0, net: 0, cleared: 0 };
+      e.claims += 1;
+      e.total += c.totalAmount;
+      e.deduction += c.deductionAmount || 0;
+      e.net += c.netAmount || c.totalAmount;
+      if (normalizeStatus(c.status) === 'cleared') e.cleared += 1;
+      map.set(key, e);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([, v]) => v);
+  }, [filtered]);
+
+  const maxMonthly = Math.max(1, ...monthly.map((m) => m.claims));
+  const monthlyTotals = monthly.reduce((acc, m) => ({
+    claims: acc.claims + m.claims,
+    total: acc.total + m.total,
+    deduction: acc.deduction + m.deduction,
+    net: acc.net + m.net,
+    cleared: acc.cleared + m.cleared,
+  }), { claims: 0, total: 0, deduction: 0, net: 0, cleared: 0 });
+
   return (
-    <div className="space-y-4">
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {isOB ? (
-              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
-                {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
-              </div>
-            ) : (
-              <Select value={filterOB} onValueChange={setFilterOB}>
-                <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-                <SelectContent><SelectItem value="all">All Order Bookers</SelectItem>{orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}</SelectContent>
-              </Select>
-            )}
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All Companies</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
-            <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-            <ReportActionButtons
-              reportType="summary"
-              onPrint={onPrint}
-              filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
-            />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <FilterBar actions={
+        <ReportActionButtons
+          reportType="summary"
+          onPrint={onPrint}
+          filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
+        />
+      }>
+        {isOB ? (
+          <div className="sel" style={{ display: 'flex', alignItems: 'center', background: 'var(--af-surface2)', fontWeight: 600, color: 'var(--af-primary)', minWidth: 150 }}>
+            {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="hidden print-block print-header">
-        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Claims Summary Report</h2>
-        {(selectedOB || selectedComp || filterDateFrom || filterDateTo) && (
-          <p className="text-sm text-center mt-1">
-            {selectedOB ? `OB: ${selectedOB.name}` : ''}{selectedOB && selectedComp ? ' | ' : ''}{selectedComp ? `Company: ${selectedComp.name}` : ''}
-            {(filterDateFrom || filterDateTo) ? ` | ${filterDateFrom || 'Start'} to ${filterDateTo || 'Now'}` : ''}
-          </p>
+        ) : (
+          <select className="sel" value={filterOB} onChange={(e) => setFilterOB(e.target.value)}>
+            <option value="all">All Order Bookers</option>
+            {orderBookers.map(ob => <option key={ob.id} value={ob.id}>{ob.name}</option>)}
+          </select>
         )}
-        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-        <hr className="my-3 border-gray-400" />
+        <select className="sel" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span className="label" style={{ margin: 0 }}>From</span>
+          <input className="input" type="date" style={{ width: 'auto' }} value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
+        </div>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span className="label" style={{ margin: 0 }}>To</span>
+          <input className="input" type="date" style={{ width: 'auto' }} value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
+        </div>
+      </FilterBar>
+
+      <PrintHeader
+        title="Claims Summary Report"
+        sub={selectedOB || selectedComp || filterDateFrom || filterDateTo
+          ? `${selectedOB ? `OB: ${selectedOB.name}` : ''}${selectedOB && selectedComp ? ' | ' : ''}${selectedComp ? `Company: ${selectedComp.name}` : ''}${(filterDateFrom || filterDateTo) ? ` | ${filterDateFrom || 'Start'} to ${filterDateTo || 'Now'}` : ''}`
+          : undefined}
+      />
+
+      {/* KPI cards (mockup) */}
+      <div className="kpis print-hide-cards">
+        <StatKpi label="Claims (in range)" value={filtered.length} icon={FileText} />
+        <StatKpi label="Total Value" value={formatAmount(totalAmount)} icon={Banknote} style={{ '--kb': 'var(--af-violet-soft)', '--kc2': 'var(--af-violet)', '--kc': 'linear-gradient(90deg,#7c3aed,#8b5cf6)' } as React.CSSProperties} />
+        <StatKpi label="Deductions" value={formatAmount(totalDeduction)} icon={BarChart3} style={{ '--kb': 'var(--af-bad-soft)', '--kc2': 'var(--af-bad)', '--kc': 'linear-gradient(90deg,#f43f5e,#e11d48)' } as React.CSSProperties} />
+        <StatKpi label="Cleared" value={byStatus.cleared} icon={Banknote} style={{ '--kb': 'var(--af-ok-soft)', '--kc2': 'var(--af-ok)', '--kc': 'linear-gradient(90deg,#10b981,#059669)' } as React.CSSProperties} />
       </div>
 
-      {/* Summary Cards - hidden in print */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 print-hide-decor">
-        <Card className="shadow-sm bg-indigo-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total Claims</p><p className="text-xl font-bold text-indigo-700">{filtered.length}</p></CardContent></Card>
-        <Card className="shadow-sm bg-yellow-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Pending</p><p className="text-xl font-bold text-yellow-700">{byStatus.pending}</p></CardContent></Card>
-        <Card className="shadow-sm bg-green-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Approved</p><p className="text-xl font-bold text-green-700">{byStatus.approved}</p></CardContent></Card>
-        <Card className="shadow-sm bg-orange-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Partial</p><p className="text-xl font-bold text-orange-700">{byStatus.partial}</p></CardContent></Card>
-        <Card className="shadow-sm bg-blue-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Cleared</p><p className="text-xl font-bold text-blue-700">{byStatus.cleared}</p></CardContent></Card>
-        <Card className="shadow-sm bg-red-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Rejected</p><p className="text-xl font-bold text-red-700">{byStatus.rejected}</p></CardContent></Card>
+      {/* Status mini stats */}
+      <div className="mini-stats print-hide-decor">
+        <div className="mstat"><Clock className="ic sm" /><b>{byStatus.pending}</b> pending</div>
+        <div className="mstat"><Banknote className="ic sm" /><b>{byStatus.approved}</b> approved</div>
+        <div className="mstat"><BarChart3 className="ic sm" /><b>{byStatus.partial}</b> partial</div>
+        <div className="mstat"><FileText className="ic sm" /><b>{byStatus.cleared}</b> cleared</div>
+        <div className="mstat"><FileText className="ic sm" /><b>{byStatus.rejected}</b> rejected</div>
+        <div className="mstat">Remaining <b>{formatAmount(remainingAmount)}</b></div>
       </div>
 
-      {/* Amount Summary - hidden in print */}
-      <Card className="shadow-sm print-hide-cards">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
-            <div className="bg-indigo-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Claim</p><p className="text-lg font-bold text-indigo-700">{formatAmount(totalAmount)}</p></div>
-            <div className="bg-blue-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Cleared Amount</p><p className="text-lg font-bold text-blue-700">{formatAmount(clearedAmount)}</p></div>
-            <div className="bg-orange-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Remaining Pending</p><p className="text-lg font-bold text-orange-700">{formatAmount(remainingAmount)}</p></div>
-            <div className="bg-yellow-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Pending Amount</p><p className="text-lg font-bold text-yellow-700">{formatAmount(pendingAmount)}</p></div>
-            <div className="bg-green-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Approved Amount</p><p className="text-lg font-bold text-green-700">{formatAmount(totalApproved)}</p></div>
-          </div>
-        </CardContent>
-      </Card>
-      {/* Print-only compact summary */}
+      {/* Amount summary */}
+      <div className="card print-hide-cards">
+        <div className="card-b" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12 }}>
+          <div className="info-tile"><div className="k">Total Claim</div><div className="v">{formatAmount(totalAmount)}</div></div>
+          <div className="info-tile"><div className="k">Cleared Amount</div><div className="v" style={{ color: 'var(--af-ok)' }}>{formatAmount(clearedAmount)}</div></div>
+          <div className="info-tile"><div className="k">Approved Amount</div><div className="v" style={{ color: 'var(--af-info)' }}>{formatAmount(totalApproved)}</div></div>
+          <div className="info-tile"><div className="k">Remaining Pending</div><div className="v" style={{ color: 'var(--af-warn)' }}>{formatAmount(remainingAmount)}</div></div>
+          <div className="info-tile"><div className="k">Stock Pending Amount</div><div className="v">{formatAmount(pendingAmount)}</div></div>
+          <div className="info-tile"><div className="k">Rejected Amount</div><div className="v" style={{ color: 'var(--af-bad)' }}>{formatAmount(rejectedAmount)}</div></div>
+        </div>
+      </div>
       <div className="hidden print-block print-summary">
         <span className="print-summary-item"><span className="print-summary-label">Total:</span> <span className="print-summary-value">{filtered.length}</span></span>
         <span className="print-summary-item"><span className="print-summary-label">Pending:</span> <span className="print-summary-value">{byStatus.pending}</span></span>
@@ -763,53 +724,115 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
         <span className="print-summary-item"><span className="print-summary-label">Remaining:</span> <span className="print-summary-value">{formatAmount(remainingAmount)}</span></span>
       </div>
 
+      {/* Monthly bar chart (mockup) */}
+      {monthly.length > 1 && (
+        <div className="card print-hide-decor">
+          <div className="card-h">
+            <div>
+              <div className="card-t"><BarChart3 className="ic sm" /> Monthly Claims Performance</div>
+              <div className="card-sub">Claims per month · all filtered companies</div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div className="bars">
+              {monthly.map((m, i) => (
+                <div className="bar-col" key={m.label}>
+                  <div className="bar-val">{m.claims}</div>
+                  <div className={`bar ${i < monthly.length - 2 ? 'dim' : ''}`} style={{ ['--h' as string]: `${Math.max(4, (m.claims / maxMonthly) * 100)}%` }} />
+                  <div className="bar-lbl">{m.label.split(' ')[0].slice(0, 3)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Monthly table (mockup) */}
+      {monthly.length > 0 && (
+        <div className="card tbl-wrap">
+          <table className="tbl print-table">
+            <thead>
+              <tr className="print-bg-gray">
+                <th>Month</th><th className="num">Claims</th><th className="num">Total (Rs)</th><th className="num">Deduction</th><th className="num">Net (Rs)</th><th className="num">Cleared</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthly.map((m) => {
+                const inProcess = m.claims - m.cleared;
+                return (
+                  <tr key={m.label} className={m === monthly[monthly.length - 1] && inProcess > 0 ? 'row-warn' : ''}>
+                    <td className="strong">{m.label}</td>
+                    <td className="num">{m.claims}</td>
+                    <td className="num">{m.total.toLocaleString()}</td>
+                    <td className="num">{m.deduction.toLocaleString()}</td>
+                    <td className="num strong">{m.net.toLocaleString()}</td>
+                    <td className="num">{m.cleared}</td>
+                    <td>
+                      {inProcess === 0
+                        ? <span className="bdg cleared">Complete</span>
+                        : <span className="bdg partial">{inProcess} in process</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="row-total">
+                <td className="strong" style={{ fontSize: 14 }}>TOTAL</td>
+                <td className="num strong" style={{ fontSize: 14 }}>{monthlyTotals.claims}</td>
+                <td className="num strong" style={{ fontSize: 14 }}>{monthlyTotals.total.toLocaleString()}</td>
+                <td className="num strong" style={{ fontSize: 14 }}>{monthlyTotals.deduction.toLocaleString()}</td>
+                <td className="num strong" style={{ fontSize: 14, color: 'var(--af-primary)' }}>{monthlyTotals.net.toLocaleString()}</td>
+                <td className="num strong" style={{ fontSize: 14 }}>{monthlyTotals.cleared}</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* All Claims Table */}
       {filtered.length > 0 && (
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm print-table">
-                <thead><tr className="border-b bg-gray-50 print-bg-gray">
-                  <th className="text-left py-2 px-3 font-medium">#</th>
-                  <th className="text-left py-2 px-3 font-medium">Claim #</th>
-                  <th className="text-left py-2 px-3 font-medium">Date</th>
-                  <th className="text-left py-2 px-3 font-medium">Company</th>
-                  <th className="text-left py-2 px-3 font-medium">Shop</th>
-                  <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                  <th className="text-right py-2 px-3 font-medium">Total Claim</th>
-                  <th className="text-right py-2 px-3 font-medium">Cleared</th>
-                  <th className="text-right py-2 px-3 font-medium">Remaining</th>
-                  <th className="text-center py-2 px-3 font-medium">Status</th>
-                </tr></thead>
-                <tbody>
-                  {filtered.map((c, i) => (
-                    <tr key={c.id} className="border-b">
-                      <td className="py-2 px-3">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-indigo-700">{c.claimNumber}</td>
-                      <td className="py-2 px-3">{new Date(c.date).toLocaleDateString()}</td>
-                      <td className="py-2 px-3">{c.company.name}</td>
-                      <td className="py-2 px-3">{c.shop.name}</td>
-                      <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
-                      <td className="py-2 px-3 text-right font-medium">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right font-medium text-blue-700">{normalizeStatus(c.status) === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
-                      <td className="py-2 px-3 text-right font-medium">
-                        {normalizeStatus(c.status) === 'rejected' ? '-' : normalizeStatus(c.status) === 'approved' ? (
-                          <span className="text-indigo-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
-                        ) : (
-                          <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
-                            {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 px-3 text-center"><Badge className={`${statusColors[normalizeStatus(c.status)]} border text-xs`}>{statusLabels[normalizeStatus(c.status)]}</Badge></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="card tbl-wrap">
+          <div className="card-h"><div className="card-t"><FileText className="ic sm" /> All Claims ({filtered.length})</div></div>
+          <table className="tbl print-table">
+            <thead>
+              <tr className="print-bg-gray">
+                <th>#</th><th>Claim #</th><th>Date</th><th>Company</th><th>Shop</th><th>Order Booker</th><th className="num">Total Claim</th><th className="num">Cleared</th><th className="num">Remaining</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((c, i) => (
+                <tr key={c.id}>
+                  <td className="muted">{i + 1}</td>
+                  <td className="strong claim-no">{c.claimNumber}</td>
+                  <td>{new Date(c.date).toLocaleDateString()}</td>
+                  <td>{c.company.name}</td>
+                  <td>{c.shop.name}</td>
+                  <td>{c.orderBooker?.name || '—'}</td>
+                  <td className="num strong">{formatAmount(c.totalAmount)}</td>
+                  <td className="num">
+                    {normalizeStatus(c.status) === 'approved' ? <span className="muted">Pending</span> : c.approvedAmount ? formatAmount(c.approvedAmount) : '—'}
+                  </td>
+                  <td className="num">
+                    {normalizeStatus(c.status) === 'rejected' ? '—' : normalizeStatus(c.status) === 'approved' ? (
+                      <span style={{ color: 'var(--af-primary)', fontWeight: 600 }}>{formatAmount(c.netAmount || c.totalAmount)}</span>
+                    ) : (
+                      <span style={{ color: c.totalAmount - (c.approvedAmount || 0) > 0 ? 'var(--af-bad)' : 'var(--af-ok)' }}>
+                        {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
+                      </span>
+                    )}
+                  </td>
+                  <td><span className={`bdg ${statusBdg[c.status] || 'neutral'}`}>{statusLabels[c.status] || c.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
+
+      <div className="note no-print">
+        <Lightbulb className="ic" />
+        <div><b>Exports same rahenge:</b> PDF (landscape, full-width table) aur Excel dono — jo filters aapne lagaye hain wahi export honge. Layout improvements ke ilawa reporting logic mein koi change nahi.</div>
+      </div>
     </div>
   );
 }
@@ -837,64 +860,49 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
   const getDays = (dateStr: string) => Math.floor((now.getTime() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
 
   const agingGroups = [
-    { label: '0-7 Days', color: 'bg-green-50 border-green-200', textColor: 'text-green-700', filter: (d: number) => d <= 7 },
-    { label: '8-15 Days', color: 'bg-yellow-50 border-yellow-200', textColor: 'text-yellow-700', filter: (d: number) => d >= 8 && d <= 15 },
-    { label: '16-30 Days', color: 'bg-orange-50 border-orange-200', textColor: 'text-orange-700', filter: (d: number) => d >= 16 && d <= 30 },
-    { label: '30+ Days', color: 'bg-red-50 border-red-200', textColor: 'text-red-700', filter: (d: number) => d > 30 },
+    { label: '0-7 Days', style: { '--kb': 'var(--af-ok-soft)', '--kc2': 'var(--af-ok)', '--kc': 'linear-gradient(90deg,#10b981,#059669)' } as React.CSSProperties, filter: (d: number) => d <= 7 },
+    { label: '8-15 Days', style: { '--kb': 'var(--af-warn-soft)', '--kc2': 'var(--af-warn)', '--kc': 'linear-gradient(90deg,#f59e0b,#f97316)' } as React.CSSProperties, filter: (d: number) => d >= 8 && d <= 15 },
+    { label: '16-30 Days', style: { '--kb': 'var(--af-violet-soft)', '--kc2': 'var(--af-violet)', '--kc': 'linear-gradient(90deg,#7c3aed,#8b5cf6)' } as React.CSSProperties, filter: (d: number) => d >= 16 && d <= 30 },
+    { label: '30+ Days', style: { '--kb': 'var(--af-bad-soft)', '--kc2': 'var(--af-bad)', '--kc': 'linear-gradient(90deg,#f43f5e,#e11d48)' } as React.CSSProperties, filter: (d: number) => d > 30 },
   ];
 
   return (
-    <div className="space-y-4">
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {isOB ? (
-              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
-                {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
-              </div>
-            ) : (
-              <Select value={filterOB} onValueChange={setFilterOB}>
-                <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-                <SelectContent><SelectItem value="all">All Order Bookers</SelectItem>{orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}</SelectContent>
-              </Select>
-            )}
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All Companies</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <ReportActionButtons
-              reportType="aging"
-              onPrint={onPrint}
-              filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
-            />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <FilterBar actions={
+        <ReportActionButtons
+          reportType="aging"
+          onPrint={onPrint}
+          filters={{ orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
+        />
+      }>
+        {isOB ? (
+          <div className="sel" style={{ display: 'flex', alignItems: 'center', background: 'var(--af-surface2)', fontWeight: 600, color: 'var(--af-primary)', minWidth: 150 }}>
+            {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
           </div>
-        </CardContent>
-      </Card>
+        ) : (
+          <select className="sel" value={filterOB} onChange={(e) => setFilterOB(e.target.value)}>
+            <option value="all">All Order Bookers</option>
+            {orderBookers.map(ob => <option key={ob.id} value={ob.id}>{ob.name}</option>)}
+          </select>
+        )}
+        <select className="sel" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </FilterBar>
 
-      <div className="hidden print-block print-header">
-        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Claims Aging Report</h2>
-        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-        <hr className="my-3 border-gray-400" />
-      </div>
+      <PrintHeader title="Claims Aging Report" />
 
-      {/* Aging Summary Cards - hidden in print */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 print-hide-decor">
+      {/* Aging summary KPIs */}
+      <div className="kpis print-hide-decor" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
         {agingGroups.map(g => {
           const groupClaims = pending.filter(c => g.filter(getDays(c.createdAt || c.date)));
           const total = groupClaims.reduce((s, c) => s + c.totalAmount, 0);
           return (
-            <Card key={g.label} className={`shadow-sm border ${g.color}`}>
-              <CardContent className="p-4 text-center">
-                <p className={`text-sm font-semibold ${g.textColor}`}>{g.label}</p>
-                <p className="text-2xl font-bold">{groupClaims.length}</p>
-                <p className="text-sm font-medium">{formatAmount(total)}</p>
-              </CardContent>
-            </Card>
+            <StatKpi key={g.label} label={g.label} value={groupClaims.length} icon={Clock} style={g.style} />
           );
         })}
       </div>
-      {/* Print-only compact aging summary */}
       <div className="hidden print-block print-summary">
         {agingGroups.map(g => {
           const groupClaims = pending.filter(c => g.filter(getDays(c.createdAt || c.date)));
@@ -910,37 +918,29 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
         const groupClaims = pending.filter(c => g.filter(getDays(c.createdAt || c.date)));
         if (groupClaims.length === 0) return null;
         return (
-          <Card key={g.label} className="shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className={`text-sm ${g.textColor}`}>{g.label} ({groupClaims.length} claims)</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm print-table">
-                  <thead><tr className="border-b bg-gray-50 print-bg-gray">
-                    <th className="text-left py-2 px-3 font-medium">Claim #</th>
-                    <th className="text-left py-2 px-3 font-medium">Date</th>
-                    <th className="text-left py-2 px-3 font-medium">Company</th>
-                    <th className="text-left py-2 px-3 font-medium">Shop</th>
-                    <th className="text-left py-2 px-3 font-medium">Days</th>
-                    <th className="text-right py-2 px-3 font-medium">Amount</th>
-                    <th className="text-center py-2 px-3 font-medium">Status</th>
-                  </tr></thead>
-                  <tbody>
-                    {groupClaims.map(c => (
-                      <tr key={c.id} className="border-b">
-                        <td className="py-2 px-3 font-medium text-indigo-700">{c.claimNumber}</td>
-                        <td className="py-2 px-3">{new Date(c.date).toLocaleDateString()}</td>
-                        <td className="py-2 px-3">{c.company.name}</td>
-                        <td className="py-2 px-3">{c.shop.name}</td>
-                        <td className="py-2 px-3"><Badge variant="outline" className="text-xs">{getDays(c.createdAt || c.date)}d</Badge></td>
-                        <td className="py-2 px-3 text-right font-medium">{formatAmount(c.totalAmount)}</td>
-                        <td className="py-2 px-3 text-center"><Badge className={`${statusColors[c.status]} border text-xs`}>{statusLabels[c.status]}</Badge></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="card tbl-wrap" key={g.label}>
+            <div className="card-h"><div className="card-t">{g.label} ({groupClaims.length} claims)</div></div>
+            <table className="tbl print-table">
+              <thead>
+                <tr className="print-bg-gray">
+                  <th>Claim #</th><th>Date</th><th>Company</th><th>Shop</th><th>Days</th><th className="num">Amount</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupClaims.map(c => (
+                  <tr key={c.id}>
+                    <td className="strong claim-no">{c.claimNumber}</td>
+                    <td>{new Date(c.date).toLocaleDateString()}</td>
+                    <td>{c.company.name}</td>
+                    <td>{c.shop.name}</td>
+                    <td><span className="chip">{getDays(c.createdAt || c.date)}d</span></td>
+                    <td className="num strong">{formatAmount(c.totalAmount)}</td>
+                    <td><span className={`bdg ${statusBdg[c.status] || 'neutral'}`}>{statusLabels[c.status] || c.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         );
       })}
     </div>
@@ -985,71 +985,61 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
   const grandTotal = obStats.reduce((s, o) => s + o.totalAmount, 0);
 
   return (
-    <div className="space-y-4">
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
-            <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-            <ReportActionButtons
-              reportType="order-booker"
-              onPrint={onPrint}
-              filters={{ dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <FilterBar actions={
+        <ReportActionButtons
+          reportType="order-booker"
+          onPrint={onPrint}
+          filters={{ dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
+        />
+      }>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span className="label" style={{ margin: 0 }}>From</span>
+          <input className="input" type="date" style={{ width: 'auto' }} value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
+        </div>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span className="label" style={{ margin: 0 }}>To</span>
+          <input className="input" type="date" style={{ width: 'auto' }} value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
+        </div>
+      </FilterBar>
 
-      <div className="hidden print-block print-header">
-        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Order Booker Performance Report</h2>
-        {(filterDateFrom || filterDateTo) && <p className="text-sm text-center mt-1">{filterDateFrom || 'Start'} to {filterDateTo || 'Now'}</p>}
-        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-        <hr className="my-3 border-gray-400" />
+      <PrintHeader title="Order Booker Performance Report" sub={filterDateFrom || filterDateTo ? `${filterDateFrom || 'Start'} to ${filterDateTo || 'Now'}` : undefined} />
+
+      <div className="card tbl-wrap">
+        <table className="tbl print-table">
+          <thead>
+            <tr className="print-bg-gray">
+              <th>Order Booker</th><th className="num">Total</th><th className="num">Total Claim</th><th className="num">Cleared</th><th className="num">Remaining</th><th className="num">Clear %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {obStats.map(ob => (
+              <tr key={ob.id}>
+                <td className="strong">{ob.name}</td>
+                <td className="num">{ob.totalClaims}</td>
+                <td className="num strong">{formatAmount(ob.totalAmount)}</td>
+                <td className="num" style={{ color: 'var(--af-info)' }}>{formatAmount(ob.clearedAmount)}</td>
+                <td className="num">
+                  <span style={{ color: ob.remainingAmount > 0 ? 'var(--af-bad)' : 'var(--af-ok)' }}>{formatAmount(ob.remainingAmount)}</span>
+                </td>
+                <td className="num">
+                  <span style={{ fontWeight: 700, color: ob.clearanceRate >= 50 ? 'var(--af-ok)' : ob.clearanceRate >= 25 ? 'var(--af-warn)' : 'var(--af-bad)' }}>{ob.clearanceRate}%</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="print-bg-light" style={{ fontWeight: 700 }}>
+              <td>Grand Total</td>
+              <td className="num">{obStats.reduce((s, o) => s + o.totalClaims, 0)}</td>
+              <td className="num">{formatAmount(grandTotal)}</td>
+              <td className="num">{formatAmount(obStats.reduce((s, o) => s + o.clearedAmount, 0))}</td>
+              <td className="num">{formatAmount(obStats.reduce((s, o) => s + o.remainingAmount, 0))}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
-
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm print-table">
-              <thead><tr className="border-b bg-gray-50 print-bg-gray">
-                <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                <th className="text-center py-2 px-3 font-medium">Total</th>
-                <th className="text-right py-2 px-3 font-medium">Total Claim</th>
-                <th className="text-right py-2 px-3 font-medium">Cleared</th>
-                <th className="text-right py-2 px-3 font-medium">Remaining</th>
-                <th className="text-center py-2 px-3 font-medium">Clear %</th>
-              </tr></thead>
-              <tbody>
-                {obStats.map(ob => (
-                  <tr key={ob.id} className="border-b">
-                    <td className="py-2 px-3 font-medium">{ob.name}</td>
-                    <td className="py-2 px-3 text-center">{ob.totalClaims}</td>
-                    <td className="py-2 px-3 text-right font-bold">{formatAmount(ob.totalAmount)}</td>
-                    <td className="py-2 px-3 text-right text-blue-700">{formatAmount(ob.clearedAmount)}</td>
-                    <td className="py-2 px-3 text-right font-medium">
-                      <span className={ob.remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}>{formatAmount(ob.remainingAmount)}</span>
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <span className={`font-medium ${ob.clearanceRate >= 50 ? 'text-green-700' : ob.clearanceRate >= 25 ? 'text-yellow-700' : 'text-red-700'}`}>{ob.clearanceRate}%</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
-                  <td className="py-2 px-3 font-bold">Grand Total</td>
-                  <td className="py-2 px-3 text-center font-bold">{obStats.reduce((s, o) => s + o.totalClaims, 0)}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(grandTotal)}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(obStats.reduce((s, o) => s + o.clearedAmount, 0))}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(obStats.reduce((s, o) => s + o.remainingAmount, 0))}</td>
-                  <td className="py-2 px-3"></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -1089,114 +1079,97 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
   }).filter(g => g.claims.length > 0).sort((a, b) => b.total - a.total);
 
   return (
-    <div className="space-y-4">
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All Companies</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
-            <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-            <ReportActionButtons
-              reportType="company"
-              onPrint={onPrint}
-              filters={{ companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <FilterBar actions={
+        <ReportActionButtons
+          reportType="company"
+          onPrint={onPrint}
+          filters={{ companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
+        />
+      }>
+        <select className="sel" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span className="label" style={{ margin: 0 }}>From</span>
+          <input className="input" type="date" style={{ width: 'auto' }} value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
+        </div>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span className="label" style={{ margin: 0 }}>To</span>
+          <input className="input" type="date" style={{ width: 'auto' }} value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
+        </div>
+      </FilterBar>
 
-      <div className="hidden print-block print-header">
-        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Company-wise Claims Report</h2>
-        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-        <hr className="my-3 border-gray-400" />
-      </div>
+      <PrintHeader title="Company-wise Claims Report" />
 
       {/* Company Summary */}
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm print-table">
-              <thead><tr className="border-b bg-gray-50 print-bg-gray">
-                <th className="text-left py-2 px-3 font-medium">Company</th>
-                <th className="text-center py-2 px-3 font-medium">Claims</th>
-                <th className="text-right py-2 px-3 font-medium">Total Claim</th>
-                <th className="text-right py-2 px-3 font-medium">Cleared</th>
-                <th className="text-right py-2 px-3 font-medium">Remaining</th>
-              </tr></thead>
-              <tbody>
-                {companyGroups.map(g => (
-                  <tr key={g.id} className="border-b">
-                    <td className="py-2 px-3 font-medium">{g.name}</td>
-                    <td className="py-2 px-3 text-center">{g.claims.length}</td>
-                    <td className="py-2 px-3 text-right font-bold">{formatAmount(g.total)}</td>
-                    <td className="py-2 px-3 text-right text-blue-700">{formatAmount(g.cleared)}</td>
-                    <td className="py-2 px-3 text-right font-medium">
-                      <span className={g.remaining > 0 ? 'text-red-600' : 'text-green-600'}>{formatAmount(g.remaining)}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
-                  <td className="py-2 px-3 font-bold">Total</td>
-                  <td className="py-2 px-3 text-center font-bold">{filtered.length}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.total, 0))}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.cleared, 0))}</td>
-                  <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.remaining, 0))}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="card tbl-wrap">
+        <table className="tbl print-table">
+          <thead>
+            <tr className="print-bg-gray">
+              <th>Company</th><th className="num">Claims</th><th className="num">Total Claim</th><th className="num">Cleared</th><th className="num">Remaining</th>
+            </tr>
+          </thead>
+          <tbody>
+            {companyGroups.map(g => (
+              <tr key={g.id}>
+                <td className="strong">{g.name}</td>
+                <td className="num">{g.claims.length}</td>
+                <td className="num strong">{formatAmount(g.total)}</td>
+                <td className="num" style={{ color: 'var(--af-info)' }}>{formatAmount(g.cleared)}</td>
+                <td className="num">
+                  <span style={{ color: g.remaining > 0 ? 'var(--af-bad)' : 'var(--af-ok)' }}>{formatAmount(g.remaining)}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="print-bg-light" style={{ fontWeight: 700 }}>
+              <td>Total</td>
+              <td className="num">{filtered.length}</td>
+              <td className="num">{formatAmount(companyGroups.reduce((s, g) => s + g.total, 0))}</td>
+              <td className="num">{formatAmount(companyGroups.reduce((s, g) => s + g.cleared, 0))}</td>
+              <td className="num">{formatAmount(companyGroups.reduce((s, g) => s + g.remaining, 0))}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
 
       {/* Detailed Claims per Company */}
       {filterCompany !== 'all' && companyGroups.map(g => (
-        <Card key={g.id} className="shadow-sm">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-bold text-indigo-800">{g.name} - Claims Detail</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm print-table">
-                <thead><tr className="border-b bg-gray-50 print-bg-gray">
-                  <th className="text-left py-2 px-3 font-medium">Claim #</th>
-                  <th className="text-left py-2 px-3 font-medium">Date</th>
-                  <th className="text-left py-2 px-3 font-medium">Shop</th>
-                  <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                  <th className="text-right py-2 px-3 font-medium">Total Claim</th>
-                  <th className="text-right py-2 px-3 font-medium">Cleared</th>
-                  <th className="text-right py-2 px-3 font-medium">Remaining</th>
-                  <th className="text-center py-2 px-3 font-medium">Status</th>
-                </tr></thead>
-                <tbody>
-                  {g.claims.map(c => (
-                    <tr key={c.id} className="border-b">
-                      <td className="py-2 px-3 font-medium text-indigo-700">{c.claimNumber}</td>
-                      <td className="py-2 px-3">{new Date(c.date).toLocaleDateString()}</td>
-                      <td className="py-2 px-3">{c.shop.name}</td>
-                      <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
-                      <td className="py-2 px-3 text-right">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right text-blue-700">{normalizeStatus(c.status) === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
-                      <td className="py-2 px-3 text-right font-medium">
-                        {normalizeStatus(c.status) === 'rejected' ? '-' : normalizeStatus(c.status) === 'approved' ? (
-                          <span className="text-indigo-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
-                        ) : (
-                          <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
-                            {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 px-3 text-center"><Badge className={`${statusColors[normalizeStatus(c.status)]} border text-xs`}>{statusLabels[normalizeStatus(c.status)]}</Badge></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="card tbl-wrap" key={g.id}>
+          <div className="card-h"><div className="card-t">{g.name} — Claims Detail</div></div>
+          <table className="tbl print-table">
+            <thead>
+              <tr className="print-bg-gray">
+                <th>Claim #</th><th>Date</th><th>Shop</th><th>Order Booker</th><th className="num">Total Claim</th><th className="num">Cleared</th><th className="num">Remaining</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {g.claims.map(c => (
+                <tr key={c.id}>
+                  <td className="strong claim-no">{c.claimNumber}</td>
+                  <td>{new Date(c.date).toLocaleDateString()}</td>
+                  <td>{c.shop.name}</td>
+                  <td>{c.orderBooker?.name || '—'}</td>
+                  <td className="num">{formatAmount(c.totalAmount)}</td>
+                  <td className="num">{normalizeStatus(c.status) === 'approved' ? <span className="muted">Pending</span> : c.approvedAmount ? formatAmount(c.approvedAmount) : '—'}</td>
+                  <td className="num">
+                    {normalizeStatus(c.status) === 'rejected' ? '—' : normalizeStatus(c.status) === 'approved' ? (
+                      <span style={{ color: 'var(--af-primary)', fontWeight: 600 }}>{formatAmount(c.netAmount || c.totalAmount)}</span>
+                    ) : (
+                      <span style={{ color: c.totalAmount - (c.approvedAmount || 0) > 0 ? 'var(--af-bad)' : 'var(--af-ok)' }}>
+                        {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
+                      </span>
+                    )}
+                  </td>
+                  <td><span className={`bdg ${statusBdg[normalizeStatus(c.status)] || 'neutral'}`}>{statusLabels[normalizeStatus(c.status)]}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ))}
     </div>
   );
@@ -1227,100 +1200,196 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
   const grandRemaining = grandTotalClaim - grandTotal;
 
   return (
-    <div className="space-y-4">
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            <Select value={filterOB} onValueChange={setFilterOB}>
-              <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All Order Bookers</SelectItem>{orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All Companies</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} placeholder="Cleared From" />
-            <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} placeholder="Cleared To" />
-            <ReportActionButtons
-              reportType="cleared"
-              onPrint={onPrint}
-              filters={{ status: 'cleared', orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <FilterBar actions={
+        <ReportActionButtons
+          reportType="cleared"
+          onPrint={onPrint}
+          filters={{ status: 'cleared', orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }}
+        />
+      }>
+        <select className="sel" value={filterOB} onChange={(e) => setFilterOB(e.target.value)}>
+          <option value="all">All Order Bookers</option>
+          {orderBookers.map(ob => <option key={ob.id} value={ob.id}>{ob.name}</option>)}
+        </select>
+        <select className="sel" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span className="label" style={{ margin: 0 }}>Cleared From</span>
+          <input className="input" type="date" style={{ width: 'auto' }} value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
+        </div>
+        <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span className="label" style={{ margin: 0 }}>To</span>
+          <input className="input" type="date" style={{ width: 'auto' }} value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
+        </div>
+      </FilterBar>
 
-      <div className="hidden print-block print-header">
-        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Payment/Cleared Report</h2>
-        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-        <hr className="my-3 border-gray-400" />
+      <PrintHeader title="Payment/Cleared Report" />
+
+      {/* Summary */}
+      <div className="card print-hide-cards">
+        <div className="card-b" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12 }}>
+          <div className="info-tile"><div className="k">Total Claim</div><div className="v">{formatAmount(grandTotalClaim)}</div></div>
+          <div className="info-tile"><div className="k">Cleared Amount</div><div className="v" style={{ color: 'var(--af-ok)' }}>{formatAmount(grandTotal)}</div></div>
+          <div className="info-tile"><div className="k">Remaining</div><div className="v" style={{ color: 'var(--af-warn)' }}>{formatAmount(grandRemaining)}</div></div>
+        </div>
       </div>
 
-      <Card className="shadow-sm">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-indigo-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Claim</p><p className="text-2xl font-bold text-indigo-700">{formatAmount(grandTotalClaim)}</p></div>
-            <div className="bg-blue-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Cleared Amount</p><p className="text-2xl font-bold text-blue-700">{formatAmount(grandTotal)}</p></div>
-            <div className="bg-orange-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Remaining Pending</p><p className="text-2xl font-bold text-orange-700">{formatAmount(grandRemaining)}</p></div>
-          </div>
-        </CardContent>
-      </Card>
-
       {cleared.length > 0 ? (
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm print-table">
-                <thead><tr className="border-b bg-gray-50 print-bg-gray">
-                  <th className="text-left py-2 px-3 font-medium">#</th>
-                  <th className="text-left py-2 px-3 font-medium">Claim #</th>
-                  <th className="text-left py-2 px-3 font-medium">Date</th>
-                  <th className="text-left py-2 px-3 font-medium">Company</th>
-                  <th className="text-left py-2 px-3 font-medium">Shop</th>
-                  <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                  <th className="text-right py-2 px-3 font-medium">Total Claim</th>
-                  <th className="text-right py-2 px-3 font-medium">Cleared</th>
-                  <th className="text-right py-2 px-3 font-medium">Remaining</th>
-                  <th className="text-left py-2 px-3 font-medium">Cleared By</th>
-                  <th className="text-left py-2 px-3 font-medium">Cleared Date</th>
-                </tr></thead>
-                <tbody>
-                  {cleared.map((c, i) => (
-                    <tr key={c.id} className="border-b">
-                      <td className="py-2 px-3">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-indigo-700">{c.claimNumber}</td>
-                      <td className="py-2 px-3">{new Date(c.date).toLocaleDateString()}</td>
-                      <td className="py-2 px-3">{c.company.name}</td>
-                      <td className="py-2 px-3">{c.shop.name}</td>
-                      <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
-                      <td className="py-2 px-3 text-right font-medium">{formatAmount(c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right font-medium text-blue-700">{formatAmount(c.approvedAmount || c.totalAmount)}</td>
-                      <td className="py-2 px-3 text-right font-medium">
-                        <span className={c.totalAmount - (c.approvedAmount || c.totalAmount) > 0 ? 'text-red-600' : 'text-green-600'}>
-                          {formatAmount(c.totalAmount - (c.approvedAmount || c.totalAmount))}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3">{c.clearedBy || '-'}</td>
-                      <td className="py-2 px-3">{c.clearedDate ? new Date(c.clearedDate).toLocaleDateString() : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
-                    <td colSpan={6} className="py-2 px-3 font-bold text-indigo-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(grandTotalClaim)}</td>
-                    <td className="py-2 px-3 text-right font-bold text-blue-800">{formatAmount(grandTotal)}</td>
-                    <td className="py-2 px-3 text-right font-bold text-orange-700">{formatAmount(grandRemaining)}</td>
-                    <td colSpan={2}></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="card tbl-wrap">
+          <table className="tbl print-table">
+            <thead>
+              <tr className="print-bg-gray">
+                <th>#</th><th>Claim #</th><th>Date</th><th>Company</th><th>Shop</th><th>Order Booker</th><th className="num">Total Claim</th><th className="num">Cleared</th><th className="num">Remaining</th><th>Cleared By</th><th>Cleared Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cleared.map((c, i) => (
+                <tr key={c.id}>
+                  <td className="muted">{i + 1}</td>
+                  <td className="strong claim-no">{c.claimNumber}</td>
+                  <td>{new Date(c.date).toLocaleDateString()}</td>
+                  <td>{c.company.name}</td>
+                  <td>{c.shop.name}</td>
+                  <td>{c.orderBooker?.name || '—'}</td>
+                  <td className="num strong">{formatAmount(c.totalAmount)}</td>
+                  <td className="num" style={{ color: 'var(--af-info)' }}>{formatAmount(c.approvedAmount || c.totalAmount)}</td>
+                  <td className="num">
+                    <span style={{ color: c.totalAmount - (c.approvedAmount || c.totalAmount) > 0 ? 'var(--af-bad)' : 'var(--af-ok)' }}>
+                      {formatAmount(c.totalAmount - (c.approvedAmount || c.totalAmount))}
+                    </span>
+                  </td>
+                  <td>{c.clearedBy || '—'}</td>
+                  <td>{c.clearedDate ? new Date(c.clearedDate).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="print-bg-light" style={{ fontWeight: 700 }}>
+                <td colSpan={6} style={{ textAlign: 'right' }}>Grand Total:</td>
+                <td className="num">{formatAmount(grandTotalClaim)}</td>
+                <td className="num" style={{ color: 'var(--af-info)' }}>{formatAmount(grandTotal)}</td>
+                <td className="num" style={{ color: 'var(--af-warn)' }}>{formatAmount(grandRemaining)}</td>
+                <td colSpan={2}></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       ) : (
-        <Card className="shadow-sm"><CardContent className="py-12 text-center"><Banknote className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-muted-foreground">No cleared claims found</p></CardContent></Card>
+        <div className="card"><div className="empty-state" style={{ minHeight: 200 }}>
+          <Banknote className="ic" />
+          <p className="small">No cleared claims found</p>
+        </div></div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   REPORT: Approved Claims (Stock Arrived, Payment Pending)
+   ───────────────────────────────────────────── */
+function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
+  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
+}) {
+  const [filterOB, setFilterOB] = useState('all');
+  const [filterCompany, setFilterCompany] = useState('all');
+
+  // Approved + Partial Claims = Stock has ARRIVED on floor, payment still pending.
+  const filtered = allClaims.filter(c => {
+    const normalized = normalizeStatus(c.status);
+    if (normalized !== 'approved' && normalized !== 'partial') return false;
+    if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
+    if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
+    return true;
+  });
+
+  const grandTotal = filtered.reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
+  const selectedOB = orderBookers.find(o => o.id === filterOB);
+  const selectedComp = companies.find(c => c.id === filterCompany);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <FilterBar actions={
+        <ReportActionButtons
+          reportType="approved"
+          onPrint={onPrint}
+          filters={{
+            status: 'approved,partial',
+            orderBookerId: filterOB !== 'all' ? filterOB : undefined,
+            companyId: filterCompany !== 'all' ? filterCompany : undefined,
+          }}
+        />
+      }>
+        <select className="sel" value={filterOB} onChange={(e) => setFilterOB(e.target.value)}>
+          <option value="all">All Order Bookers</option>
+          {orderBookers.map(ob => <option key={ob.id} value={ob.id}>{ob.name}</option>)}
+        </select>
+        <select className="sel" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </FilterBar>
+
+      <PrintHeader
+        title="Approved Claims Report (Stock Arrived)"
+        sub={selectedOB || selectedComp
+          ? `${selectedOB ? `Order Booker: ${selectedOB.name}` : ''}${selectedOB && selectedComp ? ' | ' : ''}${selectedComp ? `Company: ${selectedComp.name}` : ''}`
+          : undefined}
+      />
+
+      {/* Summary */}
+      <div className="kpis print-hide-cards" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
+        <StatKpi label="Total Pending" value={filtered.length} icon={Clock} style={{ '--kb': 'var(--af-teal-soft)', '--kc2': 'var(--af-teal)', '--kc': 'linear-gradient(90deg,#14b8a6,#0d9488)' } as React.CSSProperties} />
+        <StatKpi label="Stock Not Received" value={filtered.filter(c => normalizeStatus(c.status) === 'pending').length} icon={Clock} style={{ '--kb': 'var(--af-warn-soft)', '--kc2': 'var(--af-warn)', '--kc': 'linear-gradient(90deg,#f59e0b,#f97316)' } as React.CSSProperties} />
+        <StatKpi label="Approved (Arrived)" value={filtered.filter(c => normalizeStatus(c.status) === 'approved').length} icon={Banknote} style={{ '--kb': 'var(--af-ok-soft)', '--kc2': 'var(--af-ok)', '--kc': 'linear-gradient(90deg,#10b981,#059669)' } as React.CSSProperties} />
+        <StatKpi label="Total Amount" value={formatAmount(grandTotal)} icon={Banknote} />
+      </div>
+      <div className="hidden print-block print-summary">
+        <span className="print-summary-item"><span className="print-summary-label">Total Pending:</span> <span className="print-summary-value">{filtered.length}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Stock Not Received:</span> <span className="print-summary-value">{filtered.filter(c => normalizeStatus(c.status) === 'pending').length}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Approved (Arrived):</span> <span className="print-summary-value">{filtered.filter(c => normalizeStatus(c.status) === 'approved').length}</span></span>
+        <span className="print-summary-item"><span className="print-summary-label">Total Amount:</span> <span className="print-summary-value">{formatAmount(grandTotal)}</span></span>
+      </div>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="card"><div className="empty-state" style={{ minHeight: 200 }}>
+          <FileText className="ic" />
+          <p className="small">No pending claims (all claims are cleared)</p>
+        </div></div>
+      ) : (
+        <div className="card tbl-wrap">
+          <table className="tbl print-table">
+            <thead>
+              <tr className="print-bg-gray">
+                <th>#</th><th>Claim #</th><th>Date</th><th>Status</th><th>Company</th><th>Shop</th><th>Supplier</th><th>Order Booker</th><th className="num">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((claim, i) => (
+                <tr key={claim.id}>
+                  <td className="muted">{i + 1}</td>
+                  <td className="strong claim-no">{claim.claimNumber}</td>
+                  <td>{new Date(claim.date).toLocaleDateString()}</td>
+                  <td><span className={`bdg ${statusBdg[normalizeStatus(claim.status)] || 'neutral'}`}>{statusLabels[normalizeStatus(claim.status)] || claim.status}</span></td>
+                  <td>{claim.company.name}</td>
+                  <td>{claim.shop.name}</td>
+                  <td>{claim.supplier.name}</td>
+                  <td>{claim.orderBooker?.name || '—'}</td>
+                  <td className="num strong" style={{ color: 'var(--af-teal)' }}>{formatAmount(claim.approvedAmount || claim.netAmount || claim.totalAmount)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="print-bg-light" style={{ fontWeight: 700 }}>
+                <td colSpan={8} style={{ textAlign: 'right' }}>Grand Total:</td>
+                <td className="num">{formatAmount(grandTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       )}
     </div>
   );
@@ -1343,101 +1412,79 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
   const claim = selectedClaim;
 
   return (
-    <div className="space-y-4">
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="flex gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Enter Claim # (e.g. CLM-1)"
-                value={searchClaim}
-                onChange={e => setSearchClaim(e.target.value)}
-                className="pl-10"
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <Button onClick={handleSearch} className="bg-indigo-600 hover:bg-indigo-700 text-white">Search</Button>
-            {claim && <ReportActionButtons
-              reportType="detail"
-              onPrint={onPrint}
-              filters={{}}
-            />}
-          </div>
-        </CardContent>
-      </Card>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="filters card no-print">
+        <div className="f-search" style={{ flex: 1, width: 'auto', maxWidth: 340 }}>
+          <Search className="ic sm" />
+          <input
+            placeholder="Enter Claim # (e.g. CLM-1)"
+            value={searchClaim}
+            onChange={(e) => setSearchClaim(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          />
+        </div>
+        <button className="btn btn-p btn-sm" onClick={handleSearch}>Search</button>
+        <div className="spacer" />
+        {claim && (
+          <ReportActionButtons reportType="detail" onPrint={onPrint} filters={{}} />
+        )}
+      </div>
 
       {!claim ? (
-        <Card className="shadow-sm"><CardContent className="py-16 text-center"><ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-muted-foreground text-lg font-medium">Enter a Claim # to view details</p></CardContent></Card>
+        <div className="card"><div className="empty-state" style={{ minHeight: 240 }}>
+          <ClipboardList className="ic" />
+          <p style={{ color: 'var(--af-text)', fontWeight: 600 }}>Enter a Claim # to view details</p>
+        </div></div>
       ) : (
-        <div className="space-y-4">
-          {/* Print Header */}
-          <div className="hidden print-block print-header">
-            <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-            <h2 className="text-lg font-semibold text-center mt-1">Claim Detail - {claim.claimNumber}</h2>
-            <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-            <hr className="my-3 border-gray-400" />
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <PrintHeader title={`Claim Detail - ${claim.claimNumber}`} />
 
           {/* Claim Info */}
-          <Card className="shadow-sm">
-            <CardHeader><CardTitle className="text-base font-bold text-indigo-800">Claim Information</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-6 text-sm">
-                <div><span className="text-muted-foreground text-xs">Claim #</span><p className="font-bold text-indigo-700">{claim.claimNumber}</p></div>
-                <div><span className="text-muted-foreground text-xs">Date</span><p className="font-medium">{new Date(claim.date).toLocaleDateString()}</p></div>
-                <div><span className="text-muted-foreground text-xs">Status</span><p><Badge className={`${statusColors[claim.status]} border text-xs`}>{statusLabels[claim.status]}</Badge></p></div>
-                <div><span className="text-muted-foreground text-xs">Company</span><p className="font-medium">{claim.company.name}</p></div>
-                <div><span className="text-muted-foreground text-xs">Shop</span><p className="font-medium">{claim.shop.name}</p></div>
-                <div><span className="text-muted-foreground text-xs">Shop Address</span><p className="font-medium">{claim.shop.address || '-'}</p></div>
-                <div><span className="text-muted-foreground text-xs">Supplier</span><p className="font-medium">{claim.supplier.name}</p></div>
-                <div><span className="text-muted-foreground text-xs">Order Booker</span><p className="font-medium">{claim.orderBooker?.name || '-'}</p></div>
-                <div><span className="text-muted-foreground text-xs">Total Amount</span><p className="font-bold text-indigo-700 text-lg">{formatAmount(claim.totalAmount)}</p></div>
-                {claim.approvedAmount && <div><span className="text-muted-foreground text-xs">Cleared Amount</span><p className="font-bold text-blue-700">{formatAmount(claim.approvedAmount)}</p></div>}
-                {claim.approvedAmount && <div><span className="text-muted-foreground text-xs">Remaining Pending</span><p className={`font-bold ${claim.totalAmount - claim.approvedAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatAmount(claim.totalAmount - claim.approvedAmount)}</p></div>}
-                {claim.clearedBy && <div><span className="text-muted-foreground text-xs">Cleared By</span><p className="font-medium">{claim.clearedBy}</p></div>}
-                {claim.clearedDate && <div><span className="text-muted-foreground text-xs">Cleared Date</span><p className="font-medium">{new Date(claim.clearedDate).toLocaleDateString()}</p></div>}
-                {claim.rejectReason && <div className="col-span-2 sm:col-span-3"><span className="text-muted-foreground text-xs">Reject Reason</span><p className="font-medium text-red-700">{claim.rejectReason}</p></div>}
+          <div className="card">
+            <div className="card-h"><div className="card-t"><FileText className="ic sm" /> Claim Information</div></div>
+            <div className="card-b">
+              <div className="grid4" style={{ gap: 12 }}>
+                <div className="info-tile"><div className="k">Claim #</div><div className="v" style={{ color: 'var(--af-primary)' }}>{claim.claimNumber}</div></div>
+                <div className="info-tile"><div className="k">Date</div><div className="v">{new Date(claim.date).toLocaleDateString()}</div></div>
+                <div className="info-tile"><div className="k">Status</div><div className="v"><span className={`bdg ${statusBdg[claim.status] || 'neutral'}`}>{statusLabels[claim.status] || claim.status}</span></div></div>
+                <div className="info-tile"><div className="k">Total Amount</div><div className="v" style={{ color: 'var(--af-primary)' }}>{formatAmount(claim.totalAmount)}</div></div>
+                <div className="info-tile"><div className="k">Company</div><div className="v">{claim.company.name}</div></div>
+                <div className="info-tile"><div className="k">Shop</div><div className="v">{claim.shop.name}</div></div>
+                <div className="info-tile"><div className="k">Supplier</div><div className="v">{claim.supplier.name}</div></div>
+                <div className="info-tile"><div className="k">Order Booker</div><div className="v">{claim.orderBooker?.name || '—'}</div></div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Claim Items */}
-          <Card className="shadow-sm">
-            <CardHeader><CardTitle className="text-base font-bold text-indigo-800">Claim Items</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm print-table">
-                  <thead><tr className="border-b bg-gray-50 print-bg-gray">
-                    <th className="text-left py-2 px-3 font-medium">#</th>
-                    <th className="text-left py-2 px-3 font-medium">Product</th>
-                    <th className="text-right py-2 px-3 font-medium">Price</th>
-                    <th className="text-right py-2 px-3 font-medium">Claim Price</th>
-                    <th className="text-right py-2 px-3 font-medium">Qty</th>
-                    <th className="text-right py-2 px-3 font-medium">Amount</th>
-                  </tr></thead>
-                  <tbody>
-                    {claim.claimItems.map((item, i) => (
-                      <tr key={item.id} className="border-b">
-                        <td className="py-2 px-3">{i + 1}</td>
-                        <td className="py-2 px-3 font-medium">{item.product.name}</td>
-                        <td className="py-2 px-3 text-right">{formatAmount(item.product.price)}</td>
-                        <td className="py-2 px-3 text-right">{formatAmount(item.product.claimPrice || item.product.price)}</td>
-                        <td className="py-2 px-3 text-right">{item.quantity}</td>
-                        <td className="py-2 px-3 text-right font-medium">{formatAmount(item.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
-                      <td colSpan={5} className="py-2 px-3 font-bold text-indigo-800 text-right">Total:</td>
-                      <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(claim.totalAmount)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="card tbl-wrap">
+            <div className="card-h"><div className="card-t"><ClipboardList className="ic sm" /> Claim Items</div></div>
+            <table className="tbl print-table">
+              <thead>
+                <tr className="print-bg-gray">
+                  <th>#</th><th>Product</th><th className="num">Price</th><th className="num">Claim Price</th><th className="num">Qty</th><th className="num">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {claim.claimItems.map((item, i) => (
+                  <tr key={item.id}>
+                    <td className="muted">{i + 1}</td>
+                    <td className="strong">{item.product.name}</td>
+                    <td className="num">{formatAmount(item.product.price)}</td>
+                    <td className="num">{formatAmount(item.product.claimPrice || item.product.price)}</td>
+                    <td className="num">{item.quantity}</td>
+                    <td className="num strong">{formatAmount(item.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="print-bg-light" style={{ fontWeight: 700 }}>
+                  <td colSpan={5} style={{ textAlign: 'right' }}>Total:</td>
+                  <td className="num">{formatAmount(claim.totalAmount)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -1445,175 +1492,7 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
 }
 
 /* ─────────────────────────────────────────────
-   REPORT: Approved Claims (Stock Arrived, Payment Pending)
-   Claims where stock has arrived but payment not yet deducted from shopkeeper.
-   ───────────────────────────────────────────── */
-function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
-  companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
-}) {
-  const [filterOB, setFilterOB] = useState('all');
-  const [filterCompany, setFilterCompany] = useState('all');
-
-  // Approved + Partial Claims = Stock has ARRIVED on floor, payment still pending.
-  // (Pending claims — stock NOT received — are shown in the 'Pending Claims' tab,
-  // NOT here. This tab is for claims where stock has arrived.)
-  // Also handles legacy statuses (arrived_approved → approved, partially_approved/partially_cleared → partial)
-  const filtered = allClaims.filter(c => {
-    const normalized = normalizeStatus(c.status);
-    if (normalized !== 'approved' && normalized !== 'partial') return false;
-    if (filterOB !== 'all' && c.orderBookerId !== filterOB) return false;
-    if (filterCompany !== 'all' && c.companyId !== filterCompany) return false;
-    return true;
-  });
-
-  const grandTotal = filtered.reduce((s, c) => s + (c.approvedAmount || c.netAmount || c.totalAmount), 0);
-  const selectedOB = orderBookers.find(o => o.id === filterOB);
-  const selectedComp = companies.find(c => c.id === filterCompany);
-
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Clock className="h-5 w-5 text-teal-600" />
-        <h3 className="text-lg font-semibold text-teal-800">Pending Claims</h3>
-      </div>
-      <p className="text-sm text-muted-foreground">Claims jo abhi tak clear nahi hui — stock pending, approved ya partial status mein. Admin ko ye claims clear karni hain.</p>
-
-      {/* Filters */}
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Select value={filterOB} onValueChange={setFilterOB}>
-              <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Order Bookers</SelectItem>
-                {orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Companies</SelectItem>
-                {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <ReportActionButtons
-              reportType="approved"
-              onPrint={onPrint}
-              filters={{
-                status: 'approved,partial',
-                orderBookerId: filterOB !== 'all' ? filterOB : undefined,
-                companyId: filterCompany !== 'all' ? filterCompany : undefined,
-              }}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Print Header */}
-      <div className="hidden print-block print-header">
-        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Approved Claims Report (Stock Arrived)</h2>
-        {(selectedOB || selectedComp) && (
-          <p className="text-sm text-center mt-1">
-            {selectedOB ? `Order Booker: ${selectedOB.name}` : ''}
-            {selectedOB && selectedComp ? ' | ' : ''}
-            {selectedComp ? `Company: ${selectedComp.name}` : ''}
-          </p>
-        )}
-        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-        <hr className="my-3 border-gray-400" />
-      </div>
-
-      {/* Summary */}
-      <Card className="shadow-sm print-hide-cards">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-4 gap-4 text-center">
-            <div className="bg-teal-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Total Pending</p>
-              <p className="text-2xl font-bold text-teal-700">{filtered.length}</p>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Stock Not Received</p>
-              <p className="text-2xl font-bold text-yellow-700">{filtered.filter(c => normalizeStatus(c.status) === 'pending').length}</p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Approved (Arrived)</p>
-              <p className="text-2xl font-bold text-green-700">{filtered.filter(c => normalizeStatus(c.status) === 'approved').length}</p>
-            </div>
-            <div className="bg-indigo-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Total Amount</p>
-              <p className="text-2xl font-bold text-indigo-700">{formatAmount(grandTotal)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      {/* Print-only compact summary */}
-      <div className="hidden print-block print-summary">
-        <span className="print-summary-item"><span className="print-summary-label">Total Pending:</span> <span className="print-summary-value">{filtered.length}</span></span>
-        <span className="print-summary-item"><span className="print-summary-label">Stock Not Received:</span> <span className="print-summary-value">{filtered.filter(c => normalizeStatus(c.status) === 'pending').length}</span></span>
-        <span className="print-summary-item"><span className="print-summary-label">Approved (Arrived):</span> <span className="print-summary-value">{filtered.filter(c => normalizeStatus(c.status) === 'approved').length}</span></span>
-        <span className="print-summary-item"><span className="print-summary-label">Total Amount:</span> <span className="print-summary-value">{formatAmount(grandTotal)}</span></span>
-      </div>
-
-      {/* Table */}
-      {filtered.length === 0 ? (
-        <Card className="shadow-sm"><CardContent className="py-12 text-center"><FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-muted-foreground">No pending claims (all claims are cleared)</p></CardContent></Card>
-      ) : (
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm print-table">
-                <thead>
-                  <tr className="border-b bg-gray-50 print-bg-gray">
-                    <th className="text-left py-2 px-3 font-medium">#</th>
-                    <th className="text-left py-2 px-3 font-medium">Claim #</th>
-                    <th className="text-left py-2 px-3 font-medium">Date</th>
-                    <th className="text-left py-2 px-3 font-medium">Status</th>
-                    <th className="text-left py-2 px-3 font-medium">Company</th>
-                    <th className="text-left py-2 px-3 font-medium">Shop</th>
-                    <th className="text-left py-2 px-3 font-medium">Supplier</th>
-                    <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                    <th className="text-right py-2 px-3 font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((claim, i) => (
-                    <tr key={claim.id} className="border-b">
-                      <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-indigo-700">{claim.claimNumber}</td>
-                      <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
-                      <td className="py-2 px-3">
-                        <Badge className={`${statusColors[normalizeStatus(claim.status)] || ''} text-xs`}>
-                          {statusLabels[normalizeStatus(claim.status)] || claim.status}
-                        </Badge>
-                      </td>
-                      <td className="py-2 px-3">{claim.company.name}</td>
-                      <td className="py-2 px-3">{claim.shop.name}</td>
-                      <td className="py-2 px-3">{claim.supplier.name}</td>
-                      <td className="py-2 px-3">{claim.orderBooker?.name || '-'}</td>
-                      <td className="py-2 px-3 text-right font-medium text-teal-700">{formatAmount(claim.approvedAmount || claim.netAmount || claim.totalAmount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
-                    <td colSpan={8} className="py-2 px-3 font-bold text-indigo-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(grandTotal)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   REPORT: Cleared Claims Report
-   Claims that admin has cleared/paid.
+   REPORT 8: Cleared Claims Report
    ───────────────────────────────────────────── */
 function ClearedClaimsReport({ companies, orderBookers, allClaims, formatAmount, onPrint, user }: {
   companies: Company[]; orderBookers: OrderBooker[]; allClaims: Claim[]; formatAmount: (a: number) => string; onPrint: () => void; user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
@@ -1633,121 +1512,76 @@ function ClearedClaimsReport({ companies, orderBookers, allClaims, formatAmount,
   const selectedComp = companies.find(c => c.id === filterCompany);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Banknote className="h-5 w-5 text-blue-600" />
-        <h3 className="text-lg font-semibold text-blue-800">Cleared Claims</h3>
-      </div>
-      <p className="text-sm text-muted-foreground">Claims jo admin ne clear kar di hain. Payment ho chuki hai.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <FilterBar actions={
+        <ReportActionButtons
+          reportType="cleared"
+          onPrint={onPrint}
+          filters={{ status: 'cleared', orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
+        />
+      }>
+        <select className="sel" value={filterOB} onChange={(e) => setFilterOB(e.target.value)}>
+          <option value="all">All Order Bookers</option>
+          {orderBookers.map(ob => <option key={ob.id} value={ob.id}>{ob.name}</option>)}
+        </select>
+        <select className="sel" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </FilterBar>
 
-      {/* Filters */}
-      <Card className="shadow-sm no-print">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Select value={filterOB} onValueChange={setFilterOB}>
-              <SelectTrigger><SelectValue placeholder="Order Booker" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Order Bookers</SelectItem>
-                {orderBookers.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger><SelectValue placeholder="Company" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Companies</SelectItem>
-                {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <ReportActionButtons
-              reportType="cleared"
-              onPrint={onPrint}
-              filters={{ status: 'cleared', orderBookerId: filterOB !== 'all' ? filterOB : undefined, companyId: filterCompany !== 'all' ? filterCompany : undefined }}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Print Header */}
-      <div className="hidden print-block print-header">
-        <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-        <h2 className="text-lg font-semibold text-center mt-1">Cleared Claims Report</h2>
-        {(selectedOB || selectedComp) && (
-          <p className="text-sm text-center mt-1">
-            {selectedOB ? `Order Booker: ${selectedOB.name}` : ''}
-            {selectedOB && selectedComp ? ' | ' : ''}
-            {selectedComp ? `Company: ${selectedComp.name}` : ''}
-          </p>
-        )}
-        <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-        <hr className="my-3 border-gray-400" />
-      </div>
+      <PrintHeader
+        title="Cleared Claims Report"
+        sub={selectedOB || selectedComp
+          ? `${selectedOB ? `Order Booker: ${selectedOB.name}` : ''}${selectedOB && selectedComp ? ' | ' : ''}${selectedComp ? `Company: ${selectedComp.name}` : ''}`
+          : undefined}
+      />
 
       {/* Summary */}
-      <Card className="shadow-sm print-hide-cards">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="bg-blue-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Cleared Claims</p>
-              <p className="text-2xl font-bold text-blue-700">{filtered.length}</p>
-            </div>
-            <div className="bg-indigo-50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Total Cleared Amount</p>
-              <p className="text-2xl font-bold text-indigo-700">{formatAmount(grandTotal)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="kpis print-hide-cards" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
+        <StatKpi label="Cleared Claims" value={filtered.length} icon={Banknote} style={{ '--kb': 'var(--af-ok-soft)', '--kc2': 'var(--af-ok)', '--kc': 'linear-gradient(90deg,#10b981,#059669)' } as React.CSSProperties} />
+        <StatKpi label="Total Cleared Amount" value={formatAmount(grandTotal)} icon={Banknote} />
+      </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <Card className="shadow-sm"><CardContent className="py-12 text-center"><FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-muted-foreground">No cleared claims found</p></CardContent></Card>
+        <div className="card"><div className="empty-state" style={{ minHeight: 200 }}>
+          <FileText className="ic" />
+          <p className="small">No cleared claims found</p>
+        </div></div>
       ) : (
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm print-table">
-                <thead>
-                  <tr className="border-b bg-gray-50 print-bg-gray">
-                    <th className="text-left py-2 px-3 font-medium">#</th>
-                    <th className="text-left py-2 px-3 font-medium">Claim #</th>
-                    <th className="text-left py-2 px-3 font-medium">Date</th>
-                    <th className="text-left py-2 px-3 font-medium">Company</th>
-                    <th className="text-left py-2 px-3 font-medium">Shop</th>
-                    <th className="text-left py-2 px-3 font-medium">Supplier</th>
-                    <th className="text-left py-2 px-3 font-medium">Order Booker</th>
-                    <th className="text-right py-2 px-3 font-medium">Cleared Amount</th>
-                    <th className="text-left py-2 px-3 font-medium">Cleared By</th>
-                    <th className="text-left py-2 px-3 font-medium">Cleared Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((claim, i) => (
-                    <tr key={claim.id} className="border-b">
-                      <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-indigo-700">{claim.claimNumber}</td>
-                      <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
-                      <td className="py-2 px-3">{claim.company.name}</td>
-                      <td className="py-2 px-3">{claim.shop.name}</td>
-                      <td className="py-2 px-3">{claim.supplier.name}</td>
-                      <td className="py-2 px-3">{claim.orderBooker?.name || '-'}</td>
-                      <td className="py-2 px-3 text-right font-medium text-blue-700">{formatAmount(claim.approvedAmount || claim.netAmount || claim.totalAmount)}</td>
-                      <td className="py-2 px-3">{claim.clearedBy || '-'}</td>
-                      <td className="py-2 px-3">{claim.clearedDate ? new Date(claim.clearedDate).toLocaleDateString() : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
-                    <td colSpan={7} className="py-2 px-3 font-bold text-indigo-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(grandTotal)}</td>
-                    <td colSpan={2}></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="card tbl-wrap">
+          <table className="tbl print-table">
+            <thead>
+              <tr className="print-bg-gray">
+                <th>#</th><th>Claim #</th><th>Date</th><th>Company</th><th>Shop</th><th>Supplier</th><th>Order Booker</th><th className="num">Cleared Amount</th><th>Cleared By</th><th>Cleared Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((claim, i) => (
+                <tr key={claim.id}>
+                  <td className="muted">{i + 1}</td>
+                  <td className="strong claim-no">{claim.claimNumber}</td>
+                  <td>{new Date(claim.date).toLocaleDateString()}</td>
+                  <td>{claim.company.name}</td>
+                  <td>{claim.shop.name}</td>
+                  <td>{claim.supplier.name}</td>
+                  <td>{claim.orderBooker?.name || '—'}</td>
+                  <td className="num strong" style={{ color: 'var(--af-info)' }}>{formatAmount(claim.approvedAmount || claim.netAmount || claim.totalAmount)}</td>
+                  <td>{claim.clearedBy || '—'}</td>
+                  <td>{claim.clearedDate ? new Date(claim.clearedDate).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="print-bg-light" style={{ fontWeight: 700 }}>
+                <td colSpan={7} style={{ textAlign: 'right' }}>Grand Total:</td>
+                <td className="num">{formatAmount(grandTotal)}</td>
+                <td colSpan={2}></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       )}
     </div>
   );

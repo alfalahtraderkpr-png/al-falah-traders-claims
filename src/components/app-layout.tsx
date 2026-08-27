@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from 'next-themes';
 import {
   LayoutDashboard,
@@ -19,16 +19,16 @@ import {
   Moon,
   AlertTriangle,
   Plus,
+  Search,
+  Bell,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-type Section = 'dashboard' | 'claims' | 'companies' | 'products' | 'suppliers' | 'shops' | 'order-bookers' | 'users' | 'reports' | 'stock-not-received';
 
 interface AppLayoutProps {
   user: { id: string; name: string; email: string; role: string; orderBookerId: string | null };
   activeSection: string;
   onSectionChange: (section: string) => void;
   onLogout: () => void;
+  onNewClaim?: () => void;
   children: React.ReactNode;
 }
 
@@ -36,10 +36,9 @@ const adminNavGroups = [
   {
     label: 'Main',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { id: 'claims', label: 'Claims', icon: FileText },
-      { id: 'stock-not-received', label: 'Stock Not Received', icon: AlertTriangle },
-      { id: 'reports', label: 'Reports', icon: BarChart3 },
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, cnt: 'total' as const },
+      { id: 'claims', label: 'Claims', icon: FileText, cnt: 'total' as const },
+      { id: 'stock-not-received', label: 'Stock Not Received', icon: AlertTriangle, cnt: 'pending' as const },
     ],
   },
   {
@@ -53,8 +52,11 @@ const adminNavGroups = [
     ],
   },
   {
-    label: 'Administration',
-    items: [{ id: 'users', label: 'Users', icon: Shield }],
+    label: 'System',
+    items: [
+      { id: 'users', label: 'Users', icon: Shield },
+      { id: 'reports', label: 'Reports', icon: BarChart3 },
+    ],
   },
 ];
 
@@ -65,94 +67,109 @@ const orderBookerNavGroups = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'claims', label: 'My Claims', icon: FileText },
       { id: 'stock-not-received', label: 'Stock Not Received', icon: AlertTriangle },
-      { id: 'reports', label: 'Reports', icon: BarChart3 },
     ],
+  },
+  {
+    label: 'System',
+    items: [{ id: 'reports', label: 'Reports', icon: BarChart3 }],
   },
 ];
 
-const sectionTitles: Record<string, string> = {
-  dashboard: 'Dashboard',
-  claims: 'Claims',
-  'stock-not-received': 'Stock Not Received',
-  companies: 'Companies',
-  products: 'Products',
-  suppliers: 'Suppliers',
-  shops: 'Shops',
-  'order-bookers': 'Order Bookers',
-  users: 'Users',
-  reports: 'Reports',
-};
-
-export function AppLayout({ user, activeSection, onSectionChange, onLogout, children }: AppLayoutProps) {
+export function AppLayout({ user, activeSection, onSectionChange, onLogout, onNewClaim, children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [counts, setCounts] = useState<{ total: number; pending: number }>({ total: 0, pending: 0 });
+
   const isAdmin = user.role === 'admin';
   const navGroups = isAdmin ? adminNavGroups : orderBookerNavGroups;
 
-  const handleSection = (id: string) => {
+  useEffect(() => setMounted(true), []);
+
+  // Sidebar badge counts (total claims + pending stock)
+  useEffect(() => {
+    let cancelled = false;
+    const loadCounts = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (!isAdmin && user.orderBookerId) params.set('orderBookerId', user.orderBookerId);
+        const res = await fetch(`/api/dashboard?${params}`);
+        if (res.ok && !cancelled) {
+          const d = await res.json();
+          if (d && typeof d === 'object' && d.totalClaims !== undefined) {
+            setCounts({ total: d.totalClaims || 0, pending: d.pendingClaims?.count || 0 });
+          }
+        }
+      } catch { /* silent */ }
+    };
+    loadCounts();
+    return () => { cancelled = true; };
+  }, [activeSection, isAdmin, user.orderBookerId]);
+
+  const handleSection = useCallback((id: string) => {
     onSectionChange(id);
     setSidebarOpen(false);
-  };
+  }, [onSectionChange]);
+
+  const handleNewClaim = useCallback(() => {
+    if (onNewClaim) onNewClaim();
+    else onSectionChange('claims');
+    setSidebarOpen(false);
+  }, [onNewClaim, onSectionChange]);
+
+  const currentTheme = mounted ? (theme === 'system' ? resolvedTheme : theme) : 'light';
+  const initials = user.name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Mobile overlay */}
+    <div className="af-app">
+      {/* Mobile drawer backdrop */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-[#12102c]/60 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="af-drawer-bg lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar — deep indigo */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-[#1e1b4b] via-[#26235c] to-[#312e81] text-white flex flex-col transform transition-all duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
-      >
-        {/* Brand */}
-        <div className="flex items-center justify-between px-4 py-[18px] border-b border-white/[0.09] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center shadow-[0_6px_18px_rgba(99,102,241,0.45)]">
-              <span className="font-extrabold text-sm tracking-wide">AF</span>
-            </div>
-            <div>
-              <h1 className="font-extrabold text-sm leading-tight tracking-wide">AL FALAH</h1>
-              <p className="text-[#a5a3e8] text-[10.5px] tracking-[1.2px] font-semibold">TRADERS</p>
-            </div>
+      {/* Sidebar — deep indigo (mockup .side) */}
+      <aside className={`side ${sidebarOpen ? 'open' : ''}`}>
+        <div className="side-brand">
+          <div className="brand-tile">AF</div>
+          <div>
+            <div className="brand-name">AL FALAH</div>
+            <div className="brand-sub">TRADERS · CMS</div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden text-white hover:bg-white/10 transition-colors"
+          <button
+            className="out"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close menu"
           >
-            <X className="h-5 w-5" />
-          </Button>
+            <X className="ic sm" />
+          </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 py-2 px-2.5 overflow-y-auto">
+        <nav className="side-nav">
           {navGroups.map((group) => (
-            <div key={group.label} className="mb-1">
-              <p className="text-[10px] font-bold tracking-[1.4px] text-[#7b7ac0] px-3 pt-3 pb-1.5 uppercase">
-                {group.label}
-              </p>
+            <div key={group.label}>
+              <div className="side-lbl">{group.label}</div>
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
                 return (
                   <button
                     key={item.id}
+                    className={`snav ${isActive ? 'active' : ''}`}
                     onClick={() => handleSection(item.id)}
-                    className={`nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] transition-all duration-200 mb-0.5 ${
-                      isActive
-                        ? 'active bg-indigo-500/30 text-white font-semibold shadow-[inset_0_0_0_1px_rgba(139,92,246,0.35)]'
-                        : 'text-[#c3c1f0] hover:text-white hover:bg-white/[0.07]'
-                    }`}
                   >
-                    <Icon className={`h-[17px] w-[17px] transition-transform duration-200 ${isActive ? 'scale-110 text-violet-300' : 'opacity-85'}`} />
-                    <span className="flex-1 text-left">{item.label}</span>
+                    <Icon className="ic" />
+                    {item.label}
+                    {'cnt' in item && item.cnt === 'total' && counts.total > 0 && (
+                      <span className="cnt">{counts.total}</span>
+                    )}
+                    {'cnt' in item && item.cnt === 'pending' && counts.pending > 0 && (
+                      <span className="cnt">{counts.pending}</span>
+                    )}
                   </button>
                 );
               })}
@@ -160,125 +177,97 @@ export function AppLayout({ user, activeSection, onSectionChange, onLogout, chil
           ))}
         </nav>
 
-        {/* User info & Logout */}
-        <div className="p-3.5 border-t border-white/[0.09] shrink-0">
-          <div className="flex items-center gap-3 mb-3 px-2 py-2 rounded-[10px] bg-white/[0.06]">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-xs font-bold shadow-sm">
-              {user.name.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-white truncate">{user.name}</p>
-              <p className="text-[10.5px] text-[#a5a3e8]">{user.role === 'admin' ? 'Administrator' : 'Order Booker'}</p>
-            </div>
-            <button
-              onClick={onLogout}
-              title="Logout"
-              className="text-[#a5a3e8] hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+        <div className="side-foot">
+          <div className="av">{initials}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="nm">{user.name}</div>
+            <div className="rl">{isAdmin ? 'Administrator' : 'Order Booker'}</div>
           </div>
+          <button className="out" title="Logout" onClick={onLogout}>
+            <LogOut className="ic sm" />
+          </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-30 shrink-0">
-          <div className="flex items-center justify-between px-4 md:px-6 py-3">
-            <div className="flex items-center gap-2.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden hover:bg-secondary transition-colors"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-              <div className="hidden sm:block w-1 h-6 rounded-full bg-gradient-to-b from-indigo-500 to-violet-500" />
-              <h2 className="text-lg font-bold text-foreground tracking-tight animate-fade-in">
-                {sectionTitles[activeSection] || activeSection}
-              </h2>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-[10px] hover:border-primary hover:text-primary transition-colors"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-              </Button>
-              <div className="hidden sm:flex items-center gap-2.5 pl-1.5 pr-3.5 py-1 rounded-full border border-border bg-card">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-full flex items-center justify-center ring-2 ring-indigo-500/20">
-                  <span className="text-white font-semibold text-xs">{user.name.charAt(0)}</span>
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[12.5px] font-semibold text-foreground">{user.name}</p>
-                  <p className="text-[10.5px] text-muted-foreground">{isAdmin ? 'Administrator' : 'Order Booker'}</p>
-                </div>
-              </div>
-              {/* Mobile avatar */}
-              <div className="sm:hidden w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold text-xs">{user.name.charAt(0)}</span>
+      {/* Main column */}
+      <div className="main">
+        {/* Topbar (mockup .topbar) */}
+        <div className="topbar">
+          <button className="icon-btn tb-burger" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+            <Menu className="ic" />
+          </button>
+          <div className="tb-search">
+            <Search className="ic sm" />
+            <input
+              placeholder="Search claims, shops, products…"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSection('claims');
+              }}
+            />
+            <kbd>/</kbd>
+          </div>
+          <div className="tb-right">
+            <button
+              className="icon-btn"
+              title={currentTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setTheme(currentTheme === 'dark' ? 'light' : 'dark')}
+            >
+              {mounted && currentTheme === 'dark' ? <Sun className="ic" /> : <Moon className="ic" />}
+            </button>
+            <button className="icon-btn" title="Notifications">
+              <Bell className="ic" />
+              <span className="dot" />
+            </button>
+            <button className="btn btn-p btn-sm" onClick={handleNewClaim}>
+              <Plus className="ic sm" />
+              New Claim
+            </button>
+            <div className="av chip">
+              <div className="av">{initials}</div>
+              <div>
+                <div className="nm">{user.name}</div>
+                <div className="rl">{isAdmin ? 'Administrator' : 'Order Booker'}</div>
               </div>
             </div>
           </div>
-        </header>
+        </div>
 
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 md:p-6 page-enter pb-24 lg:pb-6">
-            {children}
-          </div>
-        </main>
+        {/* Page content (mockup .content) */}
+        <main className="content">{children}</main>
 
-        {/* Mobile bottom nav with FAB */}
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-card/90 backdrop-blur-xl border-t border-border px-2.5 pt-2 pb-[calc(10px+env(safe-area-inset-bottom))]">
-          <div className="flex items-center">
-            <button
-              onClick={() => handleSection('dashboard')}
-              className={`flex-1 flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 rounded-[10px] transition-colors ${
-                activeSection === 'dashboard' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <LayoutDashboard className="h-[19px] w-[19px]" />
-              Home
-            </button>
-            <button
-              onClick={() => handleSection('claims')}
-              className={`flex-1 flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 rounded-[10px] transition-colors ${
-                activeSection === 'claims' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <FileText className="h-[19px] w-[19px]" />
-              Claims
-            </button>
-            <button
-              onClick={() => handleSection('claims')}
-              title="New Claim"
-              className="flex-none w-[52px] h-[52px] -mt-6 mx-1.5 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-[0_10px_24px_rgba(79,70,229,0.45)] active:scale-95 transition-transform"
-            >
-              <Plus className="h-6 w-6" />
-            </button>
-            <button
-              onClick={() => handleSection('stock-not-received')}
-              className={`flex-1 flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 rounded-[10px] transition-colors ${
-                activeSection === 'stock-not-received' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <AlertTriangle className="h-[19px] w-[19px]" />
-              Stock
-            </button>
-            <button
-              onClick={() => handleSection('reports')}
-              className={`flex-1 flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 rounded-[10px] transition-colors ${
-                activeSection === 'reports' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <BarChart3 className="h-[19px] w-[19px]" />
-              Reports
-            </button>
-          </div>
+        {/* Mobile bottom nav (mockup .bottomnav) */}
+        <nav className="bottomnav">
+          <button
+            className={`bn ${activeSection === 'dashboard' ? 'active' : ''}`}
+            onClick={() => handleSection('dashboard')}
+          >
+            <LayoutDashboard className="ic" />
+            Home
+          </button>
+          <button
+            className={`bn ${activeSection === 'claims' ? 'active' : ''}`}
+            onClick={() => handleSection('claims')}
+          >
+            <FileText className="ic" />
+            Claims
+          </button>
+          <button className="bn-fab" onClick={handleNewClaim} title="New Claim">
+            <Plus className="ic lg" />
+          </button>
+          <button
+            className={`bn ${activeSection === 'stock-not-received' ? 'active' : ''}`}
+            onClick={() => handleSection('stock-not-received')}
+          >
+            <AlertTriangle className="ic" />
+            Stock
+          </button>
+          <button
+            className={`bn ${activeSection === 'reports' ? 'active' : ''}`}
+            onClick={() => handleSection('reports')}
+          >
+            <BarChart3 className="ic" />
+            Reports
+          </button>
         </nav>
       </div>
     </div>

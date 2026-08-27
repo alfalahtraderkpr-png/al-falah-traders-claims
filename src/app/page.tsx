@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ComponentType } from 'react';
+import { useState, useEffect } from 'react';
 import { LoginForm } from '@/components/login-form';
 import { AppLayout } from '@/components/app-layout';
 import { Dashboard } from '@/components/dashboard';
@@ -20,16 +20,13 @@ interface User {
   assignedCompanyIds?: string[];
 }
 
-// Error boundary wrapper for safe component rendering
-function SafeComponent({ children, name }: { children: React.ReactNode; name: string }) {
-  return <>{children}</>;
-}
-
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // When true, ClaimList opens the New Claim form immediately on mount
+  const [autoOpenNewClaim, setAutoOpenNewClaim] = useState(false);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -96,21 +93,29 @@ export default function Home() {
     setActiveSection('dashboard');
   };
 
+  // FAB / topbar "New Claim" → jump to claims section and open the form
+  const handleNewClaim = () => {
+    setActiveSection('claims');
+    setAutoOpenNewClaim(true);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-indigo-100">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg">
-            <span className="text-white font-bold text-lg">AF</span>
+      <div className="login" style={{ background: 'var(--af-bg)' }}>
+        <div className="login-panel" style={{ flex: 1 }}>
+          <div className="login-card" style={{ alignItems: 'center', textAlign: 'center' }}>
+            <div className="brand-tile" style={{ width: 64, height: 64, fontSize: 20 }}>AF</div>
+            <div>
+              <div className="lc-h">AL FALAH TRADERS</div>
+              <div className="lc-sub">Connecting to server…</div>
+            </div>
+            <button
+              className="btn btn-o btn-sm"
+              onClick={() => { setLoading(false); }}
+            >
+              Skip to login
+            </button>
           </div>
-          <p className="text-indigo-700 font-medium mb-1">Loading...</p>
-          <p className="text-indigo-600/60 text-xs">Connecting to server</p>
-          <button
-            className="mt-4 text-xs text-indigo-700 underline hover:text-indigo-900"
-            onClick={() => { setLoading(false); }}
-          >
-            Skip to login
-          </button>
         </div>
       </div>
     );
@@ -118,19 +123,21 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-red-600 text-2xl">!</span>
+      <div className="login" style={{ background: 'var(--af-bg)' }}>
+        <div className="login-panel" style={{ flex: 1 }}>
+          <div className="login-card" style={{ alignItems: 'center', textAlign: 'center' }}>
+            <div className="brand-tile" style={{ width: 64, height: 64, fontSize: 20, background: 'linear-gradient(135deg,#e11d48,#f43f5e)' }}>!</div>
+            <div>
+              <div className="lc-h">Something went wrong</div>
+              <div className="lc-sub">{error}</div>
+            </div>
+            <button
+              className="btn btn-p btn-block"
+              onClick={() => { setError(null); window.location.reload(); }}
+            >
+              Refresh Page
+            </button>
           </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Something went wrong</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-            onClick={() => { setError(null); window.location.reload(); }}
-          >
-            Refresh Page
-          </button>
         </div>
       </div>
     );
@@ -144,15 +151,21 @@ export default function Home() {
     try {
       switch (activeSection) {
         case 'dashboard':
-          return <Dashboard user={user} />;
+          return <Dashboard user={user} onNavigate={setActiveSection} onNewClaim={handleNewClaim} />;
         case 'claims':
-          return <ClaimList user={user} />;
+          return (
+            <ClaimList
+              user={user}
+              autoOpenForm={autoOpenNewClaim}
+              onAutoOpenHandled={() => setAutoOpenNewClaim(false)}
+            />
+          );
         case 'companies':
         case 'products':
         case 'suppliers':
         case 'shops':
         case 'order-bookers':
-          return <MasterData initialTab={activeSection} />;
+          return <MasterData initialTab={activeSection} onNavigate={setActiveSection} />;
         case 'users':
           return <UsersManager />;
         case 'stock-not-received':
@@ -165,14 +178,13 @@ export default function Home() {
     } catch (err) {
       console.error('Section render error:', err);
       return (
-        <div className="text-center py-12">
-          <p className="text-red-600 font-medium">Failed to load this section</p>
-          <button
-            className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-            onClick={() => setActiveSection('dashboard')}
-          >
-            Go to Dashboard
-          </button>
+        <div className="card">
+          <div className="card-b empty-state">
+            <p style={{ color: 'var(--af-bad)', fontWeight: 600 }}>Failed to load this section</p>
+            <button className="btn btn-p" onClick={() => setActiveSection('dashboard')}>
+              Go to Dashboard
+            </button>
+          </div>
         </div>
       );
     }
@@ -185,6 +197,7 @@ export default function Home() {
         activeSection={activeSection}
         onSectionChange={setActiveSection}
         onLogout={handleLogout}
+        onNewClaim={handleNewClaim}
       >
         {renderSection()}
       </AppLayout>

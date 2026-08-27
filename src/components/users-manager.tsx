@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Plus, Trash2, Key, Shield, UserCheck, Search, Copy, Check, Lock, Mail, Calendar, User, Eye, Building2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import {
+  Loader2, Plus, Trash2, Key, ShieldCheck, UserCheck, Search, Copy, Check,
+  Mail, Calendar, Building2, User, Lightbulb,
+} from 'lucide-react';
 
 interface OrderBooker {
   id: string;
@@ -31,38 +29,13 @@ interface UserItem {
   createdAt: string;
 }
 
-// Action Button Component - Icon top, text bottom
-function ActionButton({
-  icon: Icon,
-  label,
-  onClick,
-  variant = 'green',
-  disabled = false,
-}: {
-  icon: React.ElementType;
-  label: string;
-  onClick: () => void;
-  variant?: 'blue' | 'red' | 'green' | 'amber';
-  disabled?: boolean;
-}) {
-  const colorMap: Record<'blue' | 'red' | 'green' | 'amber', string> = {
-    blue: 'border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300',
-    red: 'border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300',
-    green: 'border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300',
-    amber: 'border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300',
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex flex-col items-center justify-center gap-0.5 px-3 py-2 rounded-xl border-2 bg-white transition-all duration-200 active:scale-95 ${colorMap[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-    >
-      <Icon className="h-4 w-4" />
-      <span className="text-[10px] font-semibold leading-tight">{label}</span>
-    </button>
-  );
-}
+const AV_GRADIENTS = [
+  'linear-gradient(135deg,#4f46e5,#7c3aed)',
+  'linear-gradient(135deg,#4f46e5,#6366f1)',
+  'linear-gradient(135deg,#7c3aed,#8b5cf6)',
+  'linear-gradient(135deg,#0d9488,#14b8a6)',
+  'linear-gradient(135deg,#0369a1,#0ea5e9)',
+];
 
 export function UsersManager() {
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -294,264 +267,204 @@ export function UsersManager() {
   const adminUsers = filteredUsers.filter((u) => u.role === 'admin');
   const obUsers = filteredUsers.filter((u) => u.role === 'orderbooker');
 
+  const initials = (name: string) =>
+    name.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in-up">
+    <>
+      <div className="page-head">
         <div>
-          <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
-            <Shield className="h-6 w-6" />
-            Users Management
-          </h2>
-          <p className="text-muted-foreground">Login accounts manage karein - Admin & Order Booker</p>
+          <div className="h1">Users &amp; Access</div>
+          <div className="sub">System logins aur permissions manage karein</div>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="ph-actions">
           {obUsers.length > 0 && (
-            <ActionButton
-              icon={Trash2}
-              label="Delete All OB"
-              variant="red"
-              onClick={handleBulkDeleteOB}
-              disabled={bulkDeleting}
-            />
+            <button className="btn btn-do" onClick={handleBulkDeleteOB} disabled={bulkDeleting}>
+              {bulkDeleting ? <Loader2 className="ic sm animate-spin" /> : <Trash2 className="ic sm" />} Reset All OB Logins
+            </button>
           )}
-          <ActionButton
-            icon={Plus}
-            label="Create Login"
-            variant="green"
+          <button
+            className="btn btn-p"
             onClick={() => {
               setForm({ name: '', email: '', password: '', role: 'orderbooker', orderBookerId: '', assignedCompanyIds: [] });
               setDialogOpen(true);
             }}
-          />
+          >
+            <Plus className="ic sm" /> Add User
+          </button>
         </div>
+      </div>
+
+      {/* Mini stats */}
+      <div className="mini-stats">
+        <div className="mstat"><ShieldCheck className="ic sm" /><b>{adminUsers.length}</b> admin</div>
+        <div className="mstat"><UserCheck className="ic sm" /><b>{obUsers.length}</b> order booker logins</div>
+        <div className="mstat"><User className="ic sm" /><b>{filteredUsers.length}</b> total users</div>
       </div>
 
       {/* Search */}
-      <div className="relative animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by name, email, or order booker..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      <div className="filters card">
+        <div className="f-search">
+          <Search className="ic sm" />
+          <input placeholder="Search by name, email, or order booker…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <div className="spacer" />
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-        </div>
+        <div className="card"><div className="empty-state" style={{ minHeight: 220 }}>
+          <Loader2 className="ic animate-spin" />
+          <p className="small">Loading users…</p>
+        </div></div>
       ) : (
-        <>
-          {/* Admin Users */}
-          <Card className="shadow-sm animate-fade-in-up border-indigo-200" style={{ animationDelay: '100ms' }}>
-            <CardHeader className="pb-3 bg-gradient-to-r from-indigo-50 to-indigo-100/50 rounded-t-lg">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <div className="bg-indigo-600 text-white rounded-lg p-1.5">
-                  <Shield className="h-4 w-4" />
-                </div>
-                Admin Accounts ({adminUsers.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {adminUsers.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">Koi admin account nahi mila</p>
-              ) : (
-                <div className="space-y-3">
-                  {adminUsers.map((user) => (
-                    <div key={user.id} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-indigo-50/80 to-white rounded-xl border border-indigo-100 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0">
-                          {user.name.charAt(0).toUpperCase()}
+        <div className="card tbl-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>User</th><th>Role</th><th>Linked Order Booker</th><th>Assigned Companies</th><th>Created</th><th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.length === 0 ? (
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '30px 0', color: 'var(--af-text3)' }} className="small">No users found</td></tr>
+              ) : filteredUsers.map((user, index) => (
+                <tr key={user.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                      <div className="av" style={{ background: AV_GRADIENTS[index % AV_GRADIENTS.length] }}>{initials(user.name)}</div>
+                      <div>
+                        <div className="strong">{user.name}</div>
+                        <div className="small muted" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Mail className="ic" style={{ width: 11, height: 11 }} />{user.email}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-indigo-800 truncate">{user.name}</p>
-                            <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px] px-1.5 py-0">
-                              <Lock className="h-2.5 w-2.5 mr-0.5" /> Permanent
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
-                            <span className="flex items-center gap-1 min-w-0 truncate"><Mail className="h-3 w-3 shrink-0" /><span className="truncate">{user.email}</span></span>
-                            <span className="flex items-center gap-1 shrink-0"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <ActionButton
-                          icon={Key}
-                          label="Password"
-                          variant="blue"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setNewPassword('');
-                            setPasswordDialogOpen(true);
-                          }}
-                        />
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Order Booker Users */}
-          <Card className="shadow-sm animate-fade-in-up border-blue-200" style={{ animationDelay: '150ms' }}>
-            <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-t-lg">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <div className="bg-blue-600 text-white rounded-lg p-1.5">
-                  <UserCheck className="h-4 w-4" />
-                </div>
-                Order Booker Accounts ({obUsers.length})
-              </CardTitle>
-              {obUsers.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">Default password: <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">password123</span> (seed accounts)</p>
-              )}
-            </CardHeader>
-            <CardContent className="pt-4">
-              {obUsers.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">Koi order booker login nahi mila</p>
-              ) : (
-                <div className="space-y-3">
-                  {obUsers.map((user) => (
-                    <div key={user.id} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-blue-50/80 to-white rounded-xl border border-blue-100 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0">
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-blue-800 truncate">{user.name}</p>
-                            {user.orderBooker?.name && (
-                              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0">
-                                {user.orderBooker.name}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
-                            <span
-                              className="flex items-center gap-1 cursor-pointer hover:text-blue-600 transition-colors min-w-0 truncate"
-                              onClick={() => copyToClipboard(user.email, `email-${user.id}`)}
-                              title="Click to copy email"
-                            >
-                              {copied === `email-${user.id}` ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
-                              <span className="truncate">{user.email}</span>
-                            </span>
-                            <span className="flex items-center gap-1 shrink-0"><Calendar className="h-3 w-3" />{new Date(user.createdAt).toLocaleDateString()}</span>
-                          </div>
-                          {/* Assigned companies */}
-                          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                            <Building2 className="h-3 w-3 text-indigo-600 shrink-0" />
-                            {user.assignedCompanies && user.assignedCompanies.length > 0 ? (
-                              user.assignedCompanies.map((c) => (
-                                <Badge key={c.id} className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px] px-1.5 py-0">
-                                  {c.name}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-[10px] text-amber-600 italic">No company assigned — user will see nothing</span>
-                            )}
-                          </div>
-                        </div>
+                  </td>
+                  <td>
+                    <span className={`bdg ${user.role === 'admin' ? 'admin' : 'ob'}`}>
+                      {user.role === 'admin' ? 'Admin' : 'Order Booker'}
+                    </span>
+                  </td>
+                  <td>{user.orderBooker?.name || <span className="muted">—</span>}</td>
+                  <td>
+                    {user.role === 'admin' ? (
+                      <span className="chip">All companies</span>
+                    ) : user.assignedCompanies && user.assignedCompanies.length > 0 ? (
+                      <div className="chips">
+                        {user.assignedCompanies.map((c, i) => (
+                          <span className={`chip ${i % 3 === 0 ? 'c1' : i % 3 === 1 ? 'c2' : 'c3'}`} key={c.id}>{c.name}</span>
+                        ))}
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <ActionButton
-                          icon={Building2}
-                          label="Companies"
-                          variant="amber"
-                          onClick={() => openCompaniesDialog(user)}
-                        />
-                        <ActionButton
-                          icon={Key}
-                          label="Password"
-                          variant="blue"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setNewPassword('');
-                            setPasswordDialogOpen(true);
-                          }}
-                        />
-                        <ActionButton
-                          icon={Trash2}
-                          label="Delete"
-                          variant="red"
-                          onClick={() => handleDelete(user)}
-                        />
-                      </div>
+                    ) : (
+                      <span className="small" style={{ color: 'var(--af-warn)' }}>No company assigned</span>
+                    )}
+                  </td>
+                  <td className="small">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <Calendar className="ic" style={{ width: 12, height: 12 }} />
+                      {new Date(user.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      {user.role === 'orderbooker' && (
+                        <button className="ra" title="Assign companies" onClick={() => openCompaniesDialog(user)}>
+                          <Building2 className="ic sm" />
+                        </button>
+                      )}
+                      <button
+                        className="ra"
+                        title="Change password"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setNewPassword('');
+                          setPasswordDialogOpen(true);
+                        }}
+                      >
+                        <Key className="ic sm" />
+                      </button>
+                      {user.role !== 'admin' && (
+                        <button className="ra danger" title="Delete login" onClick={() => handleDelete(user)}>
+                          <Trash2 className="ic sm" />
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Order Bookers without login */}
-          {availableOrderBookers.length > 0 && (
-            <Card className="shadow-sm border-dashed border-amber-300 bg-gradient-to-br from-amber-50/50 to-orange-50/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2 text-amber-700">
-                  <div className="bg-amber-500 text-white rounded-lg p-1.5">
-                    <User className="h-4 w-4" />
-                  </div>
-                  Order Bookers without Login ({availableOrderBookers.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-3">
-                  In order bookers ka login account nahi hai. &quot;+&quot; button se unka account banayein.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                  {availableOrderBookers.map((ob) => (
-                    <button
-                      key={ob.id}
-                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-amber-300 bg-white hover:bg-amber-50 hover:border-amber-400 transition-all active:scale-95 group"
-                      onClick={() => {
-                        setForm({
-                          name: ob.name,
-                          email: `${ob.name.toLowerCase().replace(/\s+/g, '')}@alfalah.com`,
-                          password: `${ob.name.toLowerCase().replace(/\s+/g, '')}@123`,
-                          role: 'orderbooker',
-                          orderBookerId: ob.id,
-                        });
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <div className="h-9 w-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm group-hover:bg-amber-200 transition-colors">
-                        {ob.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-xs font-medium text-amber-800">{ob.name}</span>
-                      <span className="flex items-center gap-0.5 text-[10px] text-amber-600">
-                        <Plus className="h-3 w-3" /> Create
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
+
+      {/* Order Bookers without login */}
+      {availableOrderBookers.length > 0 && (
+        <div className="card" style={{ borderStyle: 'dashed', borderColor: 'color-mix(in srgb, var(--af-warn) 40%, var(--af-border))' }}>
+          <div className="card-h">
+            <div>
+              <div className="card-t"><User className="ic sm" /> Order Bookers without Login ({availableOrderBookers.length})</div>
+              <div className="card-sub">In order bookers ka login account nahi hai — card click karke account banayein</div>
+            </div>
+          </div>
+          <div className="card-b">
+            <div className="ob-grid">
+              {availableOrderBookers.map((ob, index) => (
+                <button
+                  key={ob.id}
+                  className="ob-card"
+                  style={{ cursor: 'pointer', borderStyle: 'dashed', borderColor: 'color-mix(in srgb, var(--af-warn) 40%, var(--af-border))', textAlign: 'left', fontFamily: 'inherit' }}
+                  onClick={() => {
+                    setForm({
+                      name: ob.name,
+                      email: `${ob.name.toLowerCase().replace(/\s+/g, '')}@alfalah.com`,
+                      password: `${ob.name.toLowerCase().replace(/\s+/g, '')}@123`,
+                      role: 'orderbooker',
+                      orderBookerId: ob.id,
+                      assignedCompanyIds: [],
+                    });
+                    setDialogOpen(true);
+                  }}
+                >
+                  <div className="ob-top">
+                    <div className="av" style={{ width: 46, height: 46, fontSize: 15, background: AV_GRADIENTS[(index + 3) % AV_GRADIENTS.length] }}>
+                      {ob.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--af-text)' }}>{ob.name}</div>
+                      <span className="bdg rejected" style={{ marginTop: 4 }}>No login</span>
+                    </div>
+                  </div>
+                  <span className="btn btn-o btn-sm btn-block">
+                    <Plus className="ic sm" /> Create Login
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="note">
+        <Lightbulb className="ic" />
+        <div><b>Permissions:</b> Order booker sirf apni assigned companies aur apni hi claims dekh sakta hai (server-side enforce hota hai). Admin sab kuch dekh sakta hai.</div>
+      </div>
 
       {/* Create User Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-indigo-600" />
-              Create Login Account
+        <DialogContent className="af-dialog sm:max-w-[460px] max-h-[90vh] overflow-y-auto">
+          <div className="dlg-h">
+            <DialogTitle className="dlg-t" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ShieldCheck className="ic sm" style={{ color: 'var(--af-primary)' }} /> Create Login Account
             </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>Role</Label>
+          </div>
+          <div className="dlg-b">
+            <div className="field">
+              <label className="label">Role</label>
               <Select
                 value={form.role}
                 onValueChange={(v) => setForm({ ...form, role: v, orderBookerId: v === 'admin' ? '' : form.orderBookerId })}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="af-sel"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="orderbooker">Order Booker</SelectItem>
@@ -560,8 +473,8 @@ export function UsersManager() {
             </div>
 
             {form.role === 'orderbooker' && (
-              <div>
-                <Label>Order Booker</Label>
+              <div className="field">
+                <label className="label">Order Booker</label>
                 <Select
                   value={form.orderBookerId}
                   onValueChange={(v) => {
@@ -576,9 +489,7 @@ export function UsersManager() {
                     }
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Order Booker" />
-                  </SelectTrigger>
+                  <SelectTrigger className="af-sel"><SelectValue placeholder="Select Order Booker" /></SelectTrigger>
                   <SelectContent>
                     {availableOrderBookers.map((ob) => (
                       <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
@@ -588,78 +499,50 @@ export function UsersManager() {
               </div>
             )}
 
-            <div>
-              <Label>Full Name</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Enter full name"
-              />
+            <div className="field">
+              <label className="label">Full Name</label>
+              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Enter full name" />
             </div>
 
-            <div>
-              <Label>Email (Login ID)</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="email@example.com"
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={() => copyToClipboard(form.email, 'form-email')}
-                  title="Copy email"
-                >
-                  {copied === 'form-email' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                </Button>
+            <div className="field">
+              <label className="label">Email (Login ID)</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input className="input" style={{ flex: 1 }} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" />
+                <button className="ra" type="button" style={{ width: 40, height: 40 }} title="Copy email" onClick={() => copyToClipboard(form.email, 'form-email')}>
+                  {copied === 'form-email' ? <Check className="ic sm" style={{ color: 'var(--af-ok)' }} /> : <Copy className="ic sm" />}
+                </button>
               </div>
             </div>
 
-            <div>
-              <Label>Password</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="Enter password"
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={() => copyToClipboard(form.password, 'form-password')}
-                  title="Copy password"
-                >
-                  {copied === 'form-password' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                </Button>
+            <div className="field">
+              <label className="label">Password</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input className="input" style={{ flex: 1 }} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Enter password" />
+                <button className="ra" type="button" style={{ width: 40, height: 40 }} title="Copy password" onClick={() => copyToClipboard(form.password, 'form-password')}>
+                  {copied === 'form-password' ? <Check className="ic sm" style={{ color: 'var(--af-ok)' }} /> : <Copy className="ic sm" />}
+                </button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Yeh credentials order booker ko deinge jahan se wo login karega
-              </p>
+              <p className="small muted">Yeh credentials order booker ko deinge jahan se wo login karega</p>
             </div>
 
             {form.role === 'orderbooker' && (
-              <div className="border-t pt-3">
-                <Label className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-indigo-600" />
-                  Assigned Companies
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1 mb-2">
-                  Order booker ko sirf inhi companies ke products aur shops dikhenge. Multi-select — at least ek company zaroor assign karein.
+              <div style={{ borderTop: '1px solid var(--af-border)', paddingTop: 15 }}>
+                <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Building2 className="ic sm" style={{ color: 'var(--af-primary)' }} /> Assigned Companies
+                </label>
+                <p className="small muted" style={{ marginTop: 4, marginBottom: 10 }}>
+                  Order booker ko sirf inhi companies ke products aur shops dikhenge. At least ek company zaroor assign karein.
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))', gap: 8 }}>
                   {companies.length === 0 ? (
-                    <p className="text-xs text-amber-600 col-span-full">Koi company define nahi hai. Pehle Master Data mein companies add karein.</p>
+                    <p className="small" style={{ color: 'var(--af-warn)' }}>Koi company define nahi hai. Pehle Master Data mein companies add karein.</p>
                   ) : companies.map((c) => {
                     const isAssigned = form.assignedCompanyIds.includes(c.id);
                     return (
                       <button
                         key={c.id}
                         type="button"
+                        className={`btn btn-sm ${isAssigned ? 'btn-p' : 'btn-o'}`}
                         onClick={() => {
                           setForm((prev) => ({
                             ...prev,
@@ -668,20 +551,15 @@ export function UsersManager() {
                               : [...prev.assignedCompanyIds, c.id],
                           }));
                         }}
-                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                          isAssigned
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                            : 'bg-white text-gray-600 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300'
-                        }`}
                       >
-                        {isAssigned && <Check className="h-3 w-3" />}
+                        {isAssigned && <Check className="ic sm" style={{ width: 12, height: 12 }} />}
                         {c.name}
                       </button>
                     );
                   })}
                 </div>
                 {form.assignedCompanyIds.length === 0 && (
-                  <p className="text-[10px] text-amber-600 mt-2 italic">
+                  <p className="small" style={{ color: 'var(--af-warn)', marginTop: 8 }}>
                     ⚠ No company selected — user will see nothing after login.
                   </p>
                 )}
@@ -689,49 +567,46 @@ export function UsersManager() {
             )}
 
             {form.role === 'orderbooker' && form.orderBookerId && (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-sm">
-                <p className="font-medium text-indigo-800 mb-1">Login Credentials:</p>
-                <p className="text-indigo-700">Email: <span className="font-mono font-medium">{form.email}</span></p>
-                <p className="text-indigo-700">Password: <span className="font-mono font-medium">{form.password}</span></p>
+              <div className="info-tile">
+                <div className="k">Login Credentials</div>
+                <div className="v" style={{ fontSize: 12.5, fontWeight: 600 }}>
+                  {form.email} · {form.password}
+                </div>
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button
-              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced shadow-md"
-              onClick={handleCreate}
-              disabled={saving}
-            >
-              {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</> : 'Create Login'}
-            </Button>
-          </DialogFooter>
+          <div className="dlg-f">
+            <button className="btn btn-g" onClick={() => setDialogOpen(false)}>Cancel</button>
+            <button className="btn btn-p" onClick={handleCreate} disabled={saving}>
+              {saving ? (<><Loader2 className="ic sm animate-spin" /> Creating…</>) : (<><Check className="ic sm" /> Create Login</>)}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Assign Companies Dialog */}
       <Dialog open={companiesDialogOpen} onOpenChange={setCompaniesDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-indigo-600" />
-              Assign Companies
+        <DialogContent className="af-dialog sm:max-w-[440px] max-h-[90vh] overflow-y-auto">
+          <div className="dlg-h">
+            <DialogTitle className="dlg-t" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Building2 className="ic sm" style={{ color: 'var(--af-primary)' }} /> Assign Companies
             </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{selectedUser?.name}</span> ko kaunsi companies assign karni hain?
+          </div>
+          <div className="dlg-b">
+            <p className="small" style={{ color: 'var(--af-text2)' }}>
+              <b style={{ color: 'var(--af-text)' }}>{selectedUser?.name}</b> ko kaunsi companies assign karni hain?
               Order booker ko sirf inhi companies ke products aur shops dikhenge.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))', gap: 8 }}>
               {companies.length === 0 ? (
-                <p className="text-xs text-amber-600 col-span-full">Koi company define nahi hai. Pehle Master Data mein companies add karein.</p>
+                <p className="small" style={{ color: 'var(--af-warn)' }}>Koi company define nahi hai. Pehle Master Data mein companies add karein.</p>
               ) : companies.map((c) => {
                 const isAssigned = form.assignedCompanyIds.includes(c.id);
                 return (
                   <button
                     key={c.id}
                     type="button"
+                    className={`btn btn-sm ${isAssigned ? 'btn-p' : 'btn-o'}`}
                     onClick={() => {
                       setForm((prev) => ({
                         ...prev,
@@ -740,73 +615,54 @@ export function UsersManager() {
                           : [...prev.assignedCompanyIds, c.id],
                       }));
                     }}
-                    className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg border-2 text-xs font-medium transition-all ${
-                      isAssigned
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                        : 'bg-white text-gray-600 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300'
-                    }`}
                   >
-                    {isAssigned && <Check className="h-3 w-3" />}
+                    {isAssigned && <Check className="ic sm" style={{ width: 12, height: 12 }} />}
                     {c.name}
                   </button>
                 );
               })}
             </div>
             {form.assignedCompanyIds.length === 0 && (
-              <p className="text-xs text-amber-600 italic mt-2">
+              <p className="small" style={{ color: 'var(--af-warn)' }}>
                 ⚠ No company selected — user will see nothing after login.
               </p>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCompaniesDialogOpen(false)}>Cancel</Button>
-            <Button
-              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced shadow-md"
-              onClick={handleSaveCompanies}
-              disabled={saving}
-            >
-              {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : 'Save Companies'}
-            </Button>
-          </DialogFooter>
+          <div className="dlg-f">
+            <button className="btn btn-g" onClick={() => setCompaniesDialogOpen(false)}>Cancel</button>
+            <button className="btn btn-p" onClick={handleSaveCompanies} disabled={saving}>
+              {saving ? (<><Loader2 className="ic sm animate-spin" /> Saving…</>) : (<><Check className="ic sm" /> Save Companies</>)}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Change Password Dialog */}
       <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Key className="h-5 w-5 text-blue-600" />
-              Change Password
+        <DialogContent className="af-dialog sm:max-w-[380px]">
+          <div className="dlg-h">
+            <DialogTitle className="dlg-t" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Key className="ic sm" style={{ color: 'var(--af-info)' }} /> Change Password
             </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{selectedUser?.name}</span> ka password change karein
+          </div>
+          <div className="dlg-b">
+            <p className="small" style={{ color: 'var(--af-text2)' }}>
+              <b style={{ color: 'var(--af-text)' }}>{selectedUser?.name}</b> ka password change karein
             </p>
-            <div>
-              <Label>New Password</Label>
-              <Input
-                type="text"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Minimum 4 characters</p>
+            <div className="field">
+              <label className="label">New Password</label>
+              <input className="input" type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" autoFocus />
+              <p className="small muted">Minimum 4 characters</p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>Cancel</Button>
-            <Button
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md"
-              onClick={handleChangePassword}
-              disabled={saving}
-            >
-              {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Updating...</> : 'Update Password'}
-            </Button>
-          </DialogFooter>
+          <div className="dlg-f">
+            <button className="btn btn-g" onClick={() => setPasswordDialogOpen(false)}>Cancel</button>
+            <button className="btn btn-p" onClick={handleChangePassword} disabled={saving}>
+              {saving ? (<><Loader2 className="ic sm animate-spin" /> Updating…</>) : (<><Check className="ic sm" /> Update Password</>)}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

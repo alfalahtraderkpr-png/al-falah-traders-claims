@@ -1,12 +1,10 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, CheckCircle, XCircle, Edit3, ChevronDown, ChevronUp, Package, AlertTriangle, RefreshCw } from 'lucide-react';
+import {
+  Loader2, Search, CheckCircle, XCircle, Edit3, ChevronDown, ChevronUp,
+  Package, RefreshCw, AlertTriangle, Clock, Store, Truck, Banknote, Minus, Plus, Trash2,
+} from 'lucide-react';
 import { logAction } from '@/lib/audit';
 
 interface StockNotReceivedProps {
@@ -14,7 +12,6 @@ interface StockNotReceivedProps {
 }
 
 interface Company { id: string; name: string; claimDeductionPercent?: number }
-interface Supplier { id: string; name: string }
 interface OrderBooker { id: string; name: string }
 
 interface ClaimItem {
@@ -29,6 +26,7 @@ interface Claim {
   id: string;
   claimNumber: string;
   date: string;
+  createdAt: string;
   totalAmount: number;
   deductionAmount: number;
   netAmount: number;
@@ -44,7 +42,6 @@ interface Claim {
   orderBooker: { name: string } | null;
   claimItems: ClaimItem[];
   createdBy: string | null;
-  createdAt: string;
 }
 
 interface Product {
@@ -59,7 +56,9 @@ interface Product {
   company: { multiTierPricing: boolean };
 }
 
-// Editable item for the verify & approve dialog
+interface CreditLimit { id: string; shopId: string; companyId: string; creditLimit: number }
+
+// Editable item for the inline verify & approve panel
 interface EditableItem {
   productId: string;
   productName: string;
@@ -73,9 +72,10 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
   const isAdmin = user.role === 'admin';
   const [claims, setClaims] = useState<Claim[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [creditLimits, setCreditLimits] = useState<CreditLimit[]>([]);
+  const [allClaims, setAllClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -86,27 +86,29 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
   // Expand/collapse claim details
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
 
+  // Inline verify & edit state (mockup pattern)
+  const [editingClaimId, setEditingClaimId] = useState<string | null>(null);
+  const [editItems, setEditItems] = useState<EditableItem[]>([]);
+  const [addProductSearch, setAddProductSearch] = useState('');
+
   // Reject dialog
   const [rejectDialog, setRejectDialog] = useState<Claim | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  // Approve & Edit dialog
-  const [approveDialog, setApproveDialog] = useState<Claim | null>(null);
-  const [editItems, setEditItems] = useState<EditableItem[]>([]);
-  const [addProductSearch, setAddProductSearch] = useState('');
-
   const loadFilters = useCallback(async () => {
     try {
-      const [compRes, supRes, obRes, prodRes] = await Promise.all([
+      const [compRes, obRes, prodRes, limitsRes, claimsRes] = await Promise.all([
         fetch('/api/companies'),
-        fetch('/api/suppliers'),
         fetch('/api/order-bookers'),
         fetch('/api/products'),
+        fetch('/api/credit-limits'),
+        fetch('/api/claims'),
       ]);
       if (compRes.ok) { const data = await compRes.json(); if (Array.isArray(data)) setCompanies(data); }
-      if (supRes.ok) { const data = await supRes.json(); if (Array.isArray(data)) setSuppliers(data); }
       if (obRes.ok) { const data = await obRes.json(); if (Array.isArray(data)) setOrderBookers(data); }
       if (prodRes.ok) { const data = await prodRes.json(); if (Array.isArray(data)) setProducts(data); }
+      if (limitsRes.ok) { const data = await limitsRes.json(); if (Array.isArray(data)) setCreditLimits(data); }
+      if (claimsRes.ok) { const data = await claimsRes.json(); if (Array.isArray(data)) setAllClaims(data); }
     } catch (error) {
       console.error('Failed to load filters:', error);
     }
@@ -119,13 +121,10 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
       params.set('status', 'pending'); // Only show pending (Stock Not Received) claims
       if (filterCompany !== 'all') params.set('companyId', filterCompany);
       // SECURITY: Order bookers can ONLY see their own claims.
-      // The API enforces this server-side too, but we also pass the OB ID
-      // explicitly so the URL is unambiguous.
       if (!isAdmin) {
         if (user.orderBookerId) {
           params.set('orderBookerId', user.orderBookerId);
         }
-        // (OBs without orderBookerId will see nothing — see API)
       } else if (filterOrderBooker !== 'all') {
         params.set('orderBookerId', filterOrderBooker);
       }
@@ -184,7 +183,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
     }
   };
 
-  const openApproveDialog = (claim: Claim) => {
+  const openInlineEditor = (claim: Claim) => {
     const items: EditableItem[] = claim.claimItems.map(item => ({
       productId: item.productId,
       productName: item.product.name,
@@ -193,11 +192,14 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
       claimPrice: item.product.claimPrice || item.product.price,
       unit: item.product.unit,
     }));
-    setApproveDialog(claim);
+    setEditingClaimId(claim.id);
     setEditItems(items);
+    setAddProductSearch('');
+    setExpandedClaim(claim.id);
   };
 
   const updateEditItemQuantity = (index: number, newQty: number) => {
+    if (newQty < 1) return;
     setEditItems(prev => prev.map((item, i) => {
       if (i !== index) return item;
       const newAmount = item.claimPrice * newQty;
@@ -224,7 +226,8 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
   };
 
   const handleApproveWithEdits = async () => {
-    if (!approveDialog || editItems.length === 0) return;
+    const claim = claims.find(c => c.id === editingClaimId);
+    if (!claim || editItems.length === 0) return;
     try {
       // Admin uses 'arrive_and_approve' (verifies stock + approves in one go)
       // Order booker uses 'update' (just edits items, keeps status=pending)
@@ -238,11 +241,11 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
         }));
       } else {
         // 'update' action expects full claim fields
-        payload.date = approveDialog.date;
-        payload.companyId = approveDialog.companyId;
-        payload.shopId = approveDialog.shopId;
-        payload.supplierId = approveDialog.supplierId;
-        payload.orderBookerId = approveDialog.orderBookerId;
+        payload.date = claim.date;
+        payload.companyId = claim.companyId;
+        payload.shopId = claim.shopId;
+        payload.supplierId = claim.supplierId;
+        payload.orderBookerId = claim.orderBookerId;
         payload.items = editItems.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -250,7 +253,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
         }));
       }
 
-      const res = await fetch(`/api/claims/${approveDialog.id}`, {
+      const res = await fetch(`/api/claims/${claim.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -260,10 +263,10 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
           userName: user.name,
           action: isAdmin ? 'arrive_and_approve' : 'update',
           entity: 'claim',
-          entityId: approveDialog.id,
+          entityId: claim.id,
           details: isAdmin ? 'Verified and approved with edits' : 'Order booker edited pending claim items',
         });
-        setApproveDialog(null);
+        setEditingClaimId(null);
         setEditItems([]);
         loadClaims();
       } else {
@@ -276,11 +279,12 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
     }
   };
 
-  const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
+  const formatAmount = (amount: number) => `Rs ${amount.toLocaleString()}`;
 
+  const editingClaim = claims.find(c => c.id === editingClaimId) || null;
   const filteredProducts = products.filter(p => {
-    if (!approveDialog) return [];
-    const matchesCompany = p.companyId === approveDialog.companyId;
+    if (!editingClaim) return [];
+    const matchesCompany = p.companyId === editingClaim.companyId;
     const matchesSearch = !addProductSearch || p.name.toLowerCase().includes(addProductSearch.toLowerCase());
     const notAlreadyAdded = !editItems.find(item => item.productId === p.id);
     return matchesCompany && matchesSearch && notAlreadyAdded;
@@ -288,391 +292,307 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
 
   const editTotalAmount = editItems.reduce((sum, item) => sum + item.amount, 0);
 
+  // Credit usage for a shop+company (pending + approved + partial claims)
+  const creditFor = (claim: Claim): { limit: number; used: number; pct: number } | null => {
+    const limit = creditLimits.find(l => l.shopId === claim.shopId && l.companyId === claim.companyId)?.creditLimit;
+    if (!limit || limit <= 0) return null;
+    const used = allClaims
+      .filter(c => c.shopId === claim.shopId && c.companyId === claim.companyId &&
+        ['pending', 'approved', 'partial', 'arrived_approved', 'partially_approved', 'partially_cleared'].includes(c.status))
+      .reduce((s, c) => s + c.totalAmount, 0);
+    return { limit, used, pct: Math.min(100, Math.round((used / limit) * 100)) };
+  };
+
+  const waitingDays = (claim: Claim) => {
+    const created = new Date(claim.createdAt || claim.date).getTime();
+    return Math.max(0, Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24)));
+  };
+
+  const totalValue = claims.reduce((s, c) => s + c.totalAmount, 0);
+  const oldestWaiting = claims.length > 0 ? Math.max(...claims.map(waitingDays)) : 0;
+
   if (loading && claims.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading claims...</p>
-        </div>
+      <div className="empty-state" style={{ minHeight: 320 }}>
+        <Loader2 className="ic animate-spin" />
+        <p className="small">Loading claims…</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="animate-fade-in-up">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
-              <AlertTriangle className="h-6 w-6 text-amber-500" />
-              Expiry Stock Not Received
-            </h2>
-            <p className="text-muted-foreground mt-1">
-              Claims created by order bookers — expiry stock still at shop. Verify when stock arrives at distribution.
-            </p>
+    <>
+      <div className="page-head">
+        <div>
+          <div className="h1">Stock Not Received</div>
+          <div className="sub">
+            {claims.length} claims awaiting stock verification · {formatAmount(totalValue)} total value at distribution
           </div>
-          <Button
-            variant="outline"
-            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
-            onClick={loadClaims}
-            disabled={loading}
-          >
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            Refresh
-          </Button>
+        </div>
+        <div className="ph-actions">
+          <button className="btn btn-o" onClick={loadClaims} disabled={loading}>
+            {loading ? <Loader2 className="ic sm animate-spin" /> : <RefreshCw className="ic sm" />} Refresh
+          </button>
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-amber-50 border-0 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-amber-800">Stock Not Received</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-900">{claims.length}</div>
-            <p className="text-xs text-amber-600 mt-1">{formatAmount(claims.reduce((s, c) => s + c.totalAmount, 0))} total</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-blue-50 border-0 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800">Unique Shops</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-900">{new Set(claims.map(c => c.shopId)).size}</div>
-            <p className="text-xs text-blue-600 mt-1">Shops with pending stock</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-indigo-50 border-0 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-indigo-800">Order Bookers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-900">{new Set(claims.filter(c => c.orderBookerId).map(c => c.orderBookerId)).size}</div>
-            <p className="text-xs text-indigo-600 mt-1">Active bookers</p>
-          </CardContent>
-        </Card>
+      {/* Mini stats */}
+      <div className="mini-stats">
+        <div className="mstat"><AlertTriangle className="ic sm" /><b>{claims.length}</b> pending claims</div>
+        <div className="mstat"><Clock className="ic sm" />Oldest waiting <b>{oldestWaiting} days</b></div>
+        <div className="mstat"><Store className="ic sm" /><b>{new Set(claims.map(c => c.shopId)).size}</b> unique shops</div>
+        <div className="mstat"><Banknote className="ic sm" /><b>{formatAmount(totalValue)}</b> total value</div>
       </div>
 
       {/* Filters */}
-      <Card className="shadow-sm">
-        <CardContent className="pt-4">
-          {!isAdmin && (
-            <p className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md px-3 py-2 mb-3">
-              ✓ Showing only claims created by you ({user.name}). Other order bookers' claims are hidden.
-            </p>
-          )}
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <Input
-                placeholder="Search by claim # or shop name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border-indigo-200 focus:border-indigo-400"
-              />
-            </div>
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger className="w-full sm:w-[180px] border-indigo-200">
-                <SelectValue placeholder="All Companies" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Companies</SelectItem>
-                {companies.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {isAdmin && (
-              <Select value={filterOrderBooker} onValueChange={setFilterOrderBooker}>
-                <SelectTrigger className="w-full sm:w-[180px] border-indigo-200">
-                  <SelectValue placeholder="All Bookers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Order Bookers</SelectItem>
-                  {orderBookers.map(ob => (
-                    <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="filters card">
+        <div className="f-search">
+          <Search className="ic sm" />
+          <input
+            placeholder="Search by claim # or shop name…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <select className="sel" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        {isAdmin && (
+          <select className="sel" value={filterOrderBooker} onChange={(e) => setFilterOrderBooker(e.target.value)}>
+            <option value="all">All Order Bookers</option>
+            {orderBookers.map(ob => <option key={ob.id} value={ob.id}>{ob.name}</option>)}
+          </select>
+        )}
+        <div className="spacer" />
+      </div>
 
-      {/* Claims List */}
+      {!isAdmin && (
+        <div className="note">
+          <CheckCircle className="ic" />
+          <div>Showing only claims created by you (<b>{user.name}</b>). Other order bookers&apos; claims are hidden.</div>
+        </div>
+      )}
+
+      {/* Claim cards */}
       {claims.length === 0 ? (
-        <Card className="shadow-sm">
-          <CardContent className="py-12">
-            <div className="text-center">
-              <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-muted-foreground font-medium">No pending claims</p>
-              <p className="text-sm text-muted-foreground mt-1">All expiry stock has been received at distribution</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {claims.map((claim, index) => (
-            <Card
-              key={claim.id}
-              className="shadow-sm border-l-4 border-l-amber-400 animate-fade-in-up"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <CardContent className="p-4">
-                {/* Claim Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-indigo-700 text-lg">{claim.claimNumber}</span>
-                      <Badge className="bg-amber-100 text-amber-800 border-amber-300 border text-xs">
-                        Stock Not Received
-                      </Badge>
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground space-y-0.5">
-                      <p><span className="font-medium text-foreground">Shop:</span> {claim.shop.name} {claim.shop.address ? `— ${claim.shop.address}` : ''}</p>
-                      <p><span className="font-medium text-foreground">Company:</span> {claim.company.name} | <span className="font-medium text-foreground">Supplier:</span> {claim.supplier.name}</p>
-                      {claim.orderBooker && <p><span className="font-medium text-foreground">Order Booker:</span> {claim.orderBooker.name}</p>}
-                      <p><span className="font-medium text-foreground">Date:</span> {new Date(claim.date).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-xl font-bold text-amber-800">{formatAmount(claim.totalAmount)}</div>
-                    {claim.deductionAmount > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Deduction: -{formatAmount(claim.deductionAmount)} | Net: {formatAmount(claim.netAmount)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Expand/Collapse Items */}
-                <div className="mt-3">
-                  <button
-                    onClick={() => setExpandedClaim(expandedClaim === claim.id ? null : claim.id)}
-                    className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
-                  >
-                    {expandedClaim === claim.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    {claim.claimItems.length} items — Click to {expandedClaim === claim.id ? 'hide' : 'view'} details
-                  </button>
-
-                  {expandedClaim === claim.id && (
-                    <div className="mt-3 overflow-x-auto border rounded-lg">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-gray-50 dark:bg-gray-800">
-                            <th className="text-left py-2 px-3 font-medium">#</th>
-                            <th className="text-left py-2 px-3 font-medium">Product</th>
-                            <th className="text-center py-2 px-3 font-medium">Qty</th>
-                            <th className="text-right py-2 px-3 font-medium">Rate</th>
-                            <th className="text-right py-2 px-3 font-medium">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {claim.claimItems.map((item, idx) => (
-                            <tr key={item.id} className="border-t">
-                              <td className="py-2 px-3 text-muted-foreground">{idx + 1}</td>
-                              <td className="py-2 px-3 font-medium">{item.product.name}</td>
-                              <td className="py-2 px-3 text-center">{item.quantity} {item.product.unit}</td>
-                              <td className="py-2 px-3 text-right">{formatAmount(item.product.claimPrice || item.product.price)}</td>
-                              <td className="py-2 px-3 text-right font-medium">{formatAmount(item.amount)}</td>
-                            </tr>
-                          ))}
-                          <tr className="border-t bg-gray-50 dark:bg-gray-800 font-bold">
-                            <td colSpan={4} className="py-2 px-3 text-right">Total:</td>
-                            <td className="py-2 px-3 text-right">{formatAmount(claim.totalAmount)}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t">
-                  {isAdmin && (
-                    <>
-                      <Button
-                        className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
-                        onClick={() => handleQuickApprove(claim)}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Approve As-Is
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
-                        onClick={() => openApproveDialog(claim)}
-                      >
-                        <Edit3 className="h-4 w-4 mr-2" />
-                        Verify & Edit Before Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-red-300 text-red-700 hover:bg-red-50"
-                        onClick={() => { setRejectDialog(claim); setRejectReason(''); }}
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Reject
-                      </Button>
-                    </>
-                  )}
-                  {!isAdmin && (
-                    <Button
-                      variant="outline"
-                      className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
-                      onClick={() => openApproveDialog(claim)}
-                    >
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Edit Claim
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Reject Dialog */}
-      {rejectDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setRejectDialog(null)}>
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-red-700 mb-2">Reject Claim {rejectDialog.claimNumber}</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Shop: {rejectDialog.shop.name} | Amount: {formatAmount(rejectDialog.totalAmount)}
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium">Reject Reason *</label>
-                <textarea
-                  className="w-full mt-1 p-2 border rounded-lg text-sm resize-none h-20 focus:ring-2 focus:ring-red-300 focus:border-red-400"
-                  placeholder="Enter reason for rejection..."
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setRejectDialog(null)}>Cancel</Button>
-                <Button
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  onClick={handleReject}
-                  disabled={!rejectReason.trim()}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Reject Claim
-                </Button>
-              </div>
-            </div>
+        <div className="card">
+          <div className="empty-state" style={{ minHeight: 240 }}>
+            <Package className="ic" />
+            <p style={{ color: 'var(--af-text)', fontWeight: 600 }}>No pending claims</p>
+            <p className="small">All expiry stock has been received at distribution</p>
           </div>
         </div>
-      )}
+      ) : (
+        claims.map((claim) => {
+          const credit = creditFor(claim);
+          const days = waitingDays(claim);
+          const isEditing = editingClaimId === claim.id;
+          const itemsPreview = claim.claimItems
+            .slice(0, 3)
+            .map(i => `${i.product.name} ×${i.quantity}`)
+            .join(', ');
 
-      {/* Verify & Edit Before Approve Dialog (admin) OR Edit Claim Dialog (OB) */}
-      {approveDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setApproveDialog(null)}>
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-indigo-700 mb-1">
-                {isAdmin ? `Verify & Approve — ${approveDialog.claimNumber}` : `Edit Claim — ${approveDialog.claimNumber}`}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-1">
-                Shop: {approveDialog.shop.name} | Company: {approveDialog.company.name}
-              </p>
-              <p className="text-xs text-amber-600 mb-4">
-                {isAdmin
-                  ? 'Compare physical stock with items below. Edit quantities if needed, then approve.'
-                  : 'Edit quantities or add/remove items. The claim will remain pending — admin will approve when stock arrives.'}
-              </p>
-
-              {/* Editable Items */}
-              <div className="space-y-2 mb-4">
-                {editItems.map((item, index) => (
-                  <div key={item.productId} className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{item.productName}</p>
-                      <p className="text-xs text-muted-foreground">Rate: {formatAmount(item.claimPrice)}/{item.unit}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-muted-foreground">Qty:</label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={item.quantity}
-                        onChange={(e) => updateEditItemQuantity(index, parseInt(e.target.value) || 1)}
-                        className="w-20 text-center text-sm"
-                      />
-                      <span className="text-sm font-medium w-24 text-right">{formatAmount(item.amount)}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:bg-red-50"
-                        onClick={() => removeEditItem(index)}
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+          return (
+            <div className="claim-card" key={claim.id} style={isEditing ? { borderColor: 'var(--af-primary)' } : undefined}>
+              <div className="cc-h">
+                <span style={{ fontWeight: 800, color: 'var(--af-primary)', fontSize: 14.5 }}>{claim.claimNumber}</span>
+                <span className="bdg pending">{isAdmin ? 'Pending' : 'Stock Not Received'}</span>
+                <span className="chip" style={{ marginLeft: 'auto' }}>
+                  <Clock className="ic" /> waiting {days} day{days === 1 ? '' : 's'}
+                </span>
               </div>
 
-              {/* Add Product */}
-              <div className="mb-4">
-                <Input
-                  placeholder="Search products to add..."
-                  value={addProductSearch}
-                  onChange={(e) => setAddProductSearch(e.target.value)}
-                  className="mb-2 text-sm"
-                />
-                {addProductSearch && filteredProducts.length > 0 && (
-                  <div className="border rounded-lg max-h-32 overflow-y-auto">
-                    {filteredProducts.slice(0, 5).map(product => (
-                      <button
-                        key={product.id}
-                        className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-sm flex justify-between items-center border-b last:border-b-0"
-                        onClick={() => {
-                          addEditItem(product);
-                          setAddProductSearch('');
-                        }}
-                      >
-                        <span>{product.name}</span>
-                        <span className="text-xs text-muted-foreground">{formatAmount(product.claimPrice || product.price)}/{product.unit}</span>
-                      </button>
-                    ))}
+              <div className="cc-b">
+                <div className="cc-grid">
+                  <div className="cc-cell"><div className="k">Shop</div><div className="v">{claim.shop.name}</div></div>
+                  <div className="cc-cell"><div className="k">Company</div><div className="v">{claim.company.name}</div></div>
+                  <div className="cc-cell"><div className="k">Order Booker</div><div className="v">{claim.orderBooker?.name || '—'}</div></div>
+                  <div className="cc-cell"><div className="k">Claim Value</div><div className="v" style={{ color: 'var(--af-primary)' }}>{formatAmount(claim.totalAmount)}</div></div>
+                </div>
+
+                <div className="small muted" style={{ background: 'var(--af-surface2)', borderRadius: 9, padding: '9px 12px' }}>
+                  📦 {claim.claimItems.length} items · {itemsPreview}{claim.claimItems.length > 3 ? `, +${claim.claimItems.length - 3} more` : ''}
+                </div>
+
+                {credit && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <div className={`prog ${credit.pct >= 80 ? 'bad' : credit.pct >= 50 ? 'warn' : ''}`} style={{ maxWidth: 220 }}>
+                      <i style={{ width: `${credit.pct}%` }} />
+                    </div>
+                    <span className="small muted">
+                      Shop credit {credit.pct}% used — {credit.pct >= 80 ? 'verify carefully' : 'within limit'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Expandable items detail */}
+                <button
+                  onClick={() => setExpandedClaim(expandedClaim === claim.id ? null : claim.id)}
+                  style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--af-primary)', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}
+                >
+                  {expandedClaim === claim.id ? <ChevronUp className="ic sm" /> : <ChevronDown className="ic sm" />}
+                  {claim.claimItems.length} items — Click to {expandedClaim === claim.id ? 'hide' : 'view'} details
+                </button>
+
+                {expandedClaim === claim.id && !isEditing && (
+                  <div className="tbl-wrap" style={{ border: '1px solid var(--af-border)', borderRadius: 10 }}>
+                    <table className="tbl" style={{ minWidth: 520 }}>
+                      <thead>
+                        <tr>
+                          <th>#</th><th>Product</th><th className="num">Qty</th><th className="num">Rate</th><th className="num">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {claim.claimItems.map((item, idx) => (
+                          <tr key={item.id}>
+                            <td className="muted">{idx + 1}</td>
+                            <td className="strong">{item.product.name}</td>
+                            <td className="num">{item.quantity} {item.product.unit}</td>
+                            <td className="num">{formatAmount(item.product.claimPrice || item.product.price)}</td>
+                            <td className="num strong">{formatAmount(item.amount)}</td>
+                          </tr>
+                        ))}
+                        <tr>
+                          <td colSpan={4} className="num strong" style={{ background: 'var(--af-surface2)' }}>Total</td>
+                          <td className="num strong" style={{ background: 'var(--af-surface2)' }}>{formatAmount(claim.totalAmount)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Inline Verify & Edit panel (mockup pattern) */}
+                {isEditing && (
+                  <div style={{ border: '1.5px solid var(--af-primary-soft)', borderRadius: 12, padding: 13, background: 'var(--af-primary-soft)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.8px', textTransform: 'uppercase', color: 'var(--af-primary)', marginBottom: 10 }}>
+                      Physical stock verify karein — quantity edit kar sakte hain
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {editItems.map((item, index) => (
+                        <div className="item-row" key={item.productId} style={{ background: 'var(--af-surface)', padding: '9px 12px' }}>
+                          <div className="nm">
+                            <div style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--af-text)' }}>{item.productName}</div>
+                            <div className="small muted">Claim rate Rs {item.claimPrice}</div>
+                          </div>
+                          <div className="stepper">
+                            <button className="stp" type="button" onClick={() => updateEditItemQuantity(index, item.quantity - 1)}><Minus className="ic sm" /></button>
+                            <span className="stp-val">{item.quantity}</span>
+                            <button className="stp" type="button" onClick={() => updateEditItemQuantity(index, item.quantity + 1)}><Plus className="ic sm" /></button>
+                          </div>
+                          <div style={{ width: 90, textAlign: 'right', fontWeight: 700, color: 'var(--af-text)', fontSize: 13 }}>Rs {item.amount.toLocaleString()}</div>
+                          <button className="ra danger" type="button" title="Remove item" onClick={() => removeEditItem(index)}>
+                            <Trash2 className="ic sm" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Add product */}
+                      <div>
+                        <div className="f-search" style={{ width: '100%', background: 'var(--af-surface)' }}>
+                          <Search className="ic sm" />
+                          <input
+                            placeholder="Search products to add…"
+                            value={addProductSearch}
+                            onChange={(e) => setAddProductSearch(e.target.value)}
+                          />
+                        </div>
+                        {addProductSearch && filteredProducts.length > 0 && (
+                          <div style={{ border: '1px solid var(--af-border)', borderRadius: 10, marginTop: 8, maxHeight: 150, overflowY: 'auto', background: 'var(--af-surface)' }}>
+                            {filteredProducts.slice(0, 5).map(product => (
+                              <button
+                                key={product.id}
+                                type="button"
+                                style={{ width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 0, borderBottom: '1px solid var(--af-border)', cursor: 'pointer', fontSize: 13, display: 'flex', justifyContent: 'space-between', fontFamily: 'inherit', color: 'var(--af-text)' }}
+                                onClick={() => { addEditItem(product); setAddProductSearch(''); }}
+                              >
+                                <span>{product.name}</span>
+                                <span className="small muted">Rs {product.claimPrice || product.price}/{product.unit}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 18, fontSize: 12.5, padding: '4px 12px 0' }}>
+                        <span className="muted">Revised total</span>
+                        <b style={{ color: 'var(--af-primary)' }}>
+                          Rs {editingClaim ? editingClaim.totalAmount.toLocaleString() : 0} → Rs {editTotalAmount.toLocaleString()}
+                        </b>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Total */}
-              <div className="border-t pt-3 mb-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total Amount:</span>
-                  <span className="text-xl font-bold text-indigo-800">{formatAmount(editTotalAmount)}</span>
-                </div>
+              <div className="cc-f">
+                <button className="btn btn-do" onClick={() => { setRejectDialog(claim); setRejectReason(''); }}>
+                  <XCircle className="ic sm" /> Reject
+                </button>
+                {!isEditing && (
+                  <button className="btn btn-o" onClick={() => openInlineEditor(claim)}>
+                    <Edit3 className="ic sm" /> {isAdmin ? 'Verify & Edit' : 'Edit Claim'}
+                  </button>
+                )}
+                {isEditing ? (
+                  <>
+                    <button className="btn btn-o" onClick={() => { setEditingClaimId(null); setEditItems([]); }}>
+                      Cancel Edit
+                    </button>
+                    <button className="btn btn-p" style={{ marginLeft: 'auto' }} onClick={handleApproveWithEdits} disabled={editItems.length === 0}>
+                      <CheckCircle className="ic sm" /> {isAdmin ? 'Approve with Edited Quantities' : 'Save Changes'}
+                    </button>
+                  </>
+                ) : (
+                  isAdmin && (
+                    <button className="btn btn-p" style={{ marginLeft: 'auto' }} onClick={() => handleQuickApprove(claim)}>
+                      <CheckCircle className="ic sm" /> Approve — Stock Received
+                    </button>
+                  )
+                )}
               </div>
+            </div>
+          );
+        })
+      )}
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => { setApproveDialog(null); setEditItems([]); }}>
-                  Cancel
-                </Button>
-                <Button
-                  className={isAdmin ? "bg-green-600 hover:bg-green-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"}
-                  onClick={handleApproveWithEdits}
-                  disabled={editItems.length === 0}
-                >
-                  {isAdmin ? (
-                    <><CheckCircle className="h-4 w-4 mr-2" />Approve (Arrived & Verified)</>
-                  ) : (
-                    <><Edit3 className="h-4 w-4 mr-2" />Save Changes</>
-                  )}
-                </Button>
+      <div className="note">
+        <Truck className="ic" />
+        <div><b>Same workflow, better UI:</b> Approve = stock received on floor (payment baad mein clear hoga). Verify &amp; Edit mein quantity correct kar ke approve — total automatic recalculate. Ye bilkul aapke current system ke rules follow karta hai, koi naya process nahi.</div>
+      </div>
+
+      {/* Reject Dialog */}
+      {rejectDialog && (
+        <div className="af-ovl" onClick={() => setRejectDialog(null)}>
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="dlg-h">
+              <div className="dlg-t" style={{ color: 'var(--af-bad)' }}>Reject Claim {rejectDialog.claimNumber}</div>
+            </div>
+            <div className="dlg-b">
+              <p className="small" style={{ color: 'var(--af-text2)' }}>
+                Shop: {rejectDialog.shop.name} | Amount: {formatAmount(rejectDialog.totalAmount)}
+              </p>
+              <div className="field">
+                <label className="label">Reject Reason <span className="req">*</span></label>
+                <textarea
+                  className="af-ta"
+                  rows={3}
+                  placeholder="Enter reason for rejection…"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  autoFocus
+                />
               </div>
+            </div>
+            <div className="dlg-f">
+              <button className="btn btn-g" onClick={() => setRejectDialog(null)}>Cancel</button>
+              <button className="btn btn-d" onClick={handleReject} disabled={!rejectReason.trim()}>
+                <XCircle className="ic sm" /> Reject Claim
+              </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

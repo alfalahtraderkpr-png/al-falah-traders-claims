@@ -410,6 +410,26 @@
 
 /* ===== Print Styles ===== */
 @media print {
+  /* Force LIGHT theme colors in print — dark-mode text (near-white) would be
+     invisible on white paper because browsers strip backgrounds by default */
+  :root,
+  .dark {
+    --af-bg: #ffffff;
+    --af-surface: #ffffff;
+    --af-surface2: #f2f3fa;
+    --af-border: #d8dbeb;
+    --af-border2: #c9cde0;
+    --af-text: #191a3e;
+    --af-text2: #5c5f7a;
+    --af-text3: #9093ad;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #191a3e !important;
+  }
+
   /* Hide everything first */
   body * {
     visibility: hidden;
@@ -423,7 +443,9 @@
     visibility: visible;
   }
 
-  /* Position print areas to fill the page */
+  /* Take print areas out of flow so hidden (visibility) siblings above them
+     (claim-detail header etc.) don't push the report down to page 2.
+     NOTE: absolute (not fixed) still paginates across pages in Chromium. */
   .print-area,
   [role="tabpanel"][data-state="active"] {
     position: absolute;
@@ -437,6 +459,13 @@
   /* Always show print headers */
   .print-block {
     display: block !important;
+  }
+
+  /* Kill trailing blank pages: collapse every content block that is NOT the
+     print area (and does not contain it). visibility:hidden elements still
+     occupy height, which would otherwise emit empty pages after the report. */
+  .content > *:not(.print-area):not(:has(.print-area)) {
+    display: none !important;
   }
 
   /* Hide non-print elements */
@@ -480,6 +509,21 @@
     border-collapse: collapse !important;
     font-size: 8px !important;
     line-height: 1.1 !important;
+  }
+
+  /* Dark readable text for af-ui tables in print (both themes) */
+  .print-area .tbl th {
+    color: #1f2937 !important;
+  }
+
+  .print-area .tbl td {
+    color: #111827 !important;
+  }
+
+  .print-area .strong,
+  .print-area b,
+  .print-area .num {
+    color: #000000 !important;
   }
 
   .print-table th,

@@ -418,7 +418,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
 
 /* ================= PRINT ================= */
 @media print{
-  .af-app,.side,.topbar,.bottomnav,.no-print{display:none!important}
-  .content{padding:0!important}
+  /* Hide app chrome — but NEVER the .af-app root, it contains all content */
+  .side,.topbar,.bottomnav,.no-print{display:none!important}
+  .af-app{display:block!important;min-height:0!important;background:#fff!important;position:static!important}
+  .main{display:block!important;min-height:0!important;position:static!important}
+  .content{padding:0!important;display:block!important;position:static!important}
   .card{box-shadow:none!important}
 }

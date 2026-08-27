@@ -98,15 +98,15 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-emerald-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-indigo-100">
         <div className="text-center">
-          <div className="w-16 h-16 bg-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg">
+          <div className="w-16 h-16 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg">
             <span className="text-white font-bold text-lg">AF</span>
           </div>
-          <p className="text-emerald-700 font-medium mb-1">Loading...</p>
-          <p className="text-emerald-600/60 text-xs">Connecting to server</p>
+          <p className="text-indigo-700 font-medium mb-1">Loading...</p>
+          <p className="text-indigo-600/60 text-xs">Connecting to server</p>
           <button
-            className="mt-4 text-xs text-emerald-700 underline hover:text-emerald-900"
+            className="mt-4 text-xs text-indigo-700 underline hover:text-indigo-900"
             onClick={() => { setLoading(false); }}
           >
             Skip to login
@@ -126,7 +126,7 @@ export default function Home() {
           <h2 className="text-xl font-bold text-gray-800 mb-2">Something went wrong</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
+            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
             onClick={() => { setError(null); window.location.reload(); }}
           >
             Refresh Page
@@ -168,7 +168,7 @@ export default function Home() {
         <div className="text-center py-12">
           <p className="text-red-600 font-medium">Failed to load this section</p>
           <button
-            className="mt-4 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+            className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
             onClick={() => setActiveSection('dashboard')}
           >
             Go to Dashboard

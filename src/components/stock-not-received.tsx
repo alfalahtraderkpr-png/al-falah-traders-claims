@@ -292,7 +292,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto mb-3" />
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground animate-pulse">Loading claims...</p>
         </div>
       </div>
@@ -305,7 +305,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
       <div className="animate-fade-in-up">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
               <AlertTriangle className="h-6 w-6 text-amber-500" />
               Expiry Stock Not Received
             </h2>
@@ -315,7 +315,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
           </div>
           <Button
             variant="outline"
-            className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
             onClick={loadClaims}
             disabled={loading}
           >
@@ -345,13 +345,13 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
             <p className="text-xs text-blue-600 mt-1">Shops with pending stock</p>
           </CardContent>
         </Card>
-        <Card className="bg-emerald-50 border-0 shadow-sm">
+        <Card className="bg-indigo-50 border-0 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800">Order Bookers</CardTitle>
+            <CardTitle className="text-sm font-medium text-indigo-800">Order Bookers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-900">{new Set(claims.filter(c => c.orderBookerId).map(c => c.orderBookerId)).size}</div>
-            <p className="text-xs text-emerald-600 mt-1">Active bookers</p>
+            <div className="text-2xl font-bold text-indigo-900">{new Set(claims.filter(c => c.orderBookerId).map(c => c.orderBookerId)).size}</div>
+            <p className="text-xs text-indigo-600 mt-1">Active bookers</p>
           </CardContent>
         </Card>
       </div>
@@ -360,7 +360,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
       <Card className="shadow-sm">
         <CardContent className="pt-4">
           {!isAdmin && (
-            <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2 mb-3">
+            <p className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md px-3 py-2 mb-3">
               ✓ Showing only claims created by you ({user.name}). Other order bookers' claims are hidden.
             </p>
           )}
@@ -370,11 +370,11 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                 placeholder="Search by claim # or shop name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="border-emerald-200 focus:border-emerald-400"
+                className="border-indigo-200 focus:border-indigo-400"
               />
             </div>
             <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger className="w-full sm:w-[180px] border-emerald-200">
+              <SelectTrigger className="w-full sm:w-[180px] border-indigo-200">
                 <SelectValue placeholder="All Companies" />
               </SelectTrigger>
               <SelectContent>
@@ -386,7 +386,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
             </Select>
             {isAdmin && (
               <Select value={filterOrderBooker} onValueChange={setFilterOrderBooker}>
-                <SelectTrigger className="w-full sm:w-[180px] border-emerald-200">
+                <SelectTrigger className="w-full sm:w-[180px] border-indigo-200">
                   <SelectValue placeholder="All Bookers" />
                 </SelectTrigger>
                 <SelectContent>
@@ -425,7 +425,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-emerald-700 text-lg">{claim.claimNumber}</span>
+                      <span className="font-bold text-indigo-700 text-lg">{claim.claimNumber}</span>
                       <Badge className="bg-amber-100 text-amber-800 border-amber-300 border text-xs">
                         Stock Not Received
                       </Badge>
@@ -451,7 +451,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                 <div className="mt-3">
                   <button
                     onClick={() => setExpandedClaim(expandedClaim === claim.id ? null : claim.id)}
-                    className="flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-800 transition-colors"
+                    className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
                   >
                     {expandedClaim === claim.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     {claim.claimItems.length} items — Click to {expandedClaim === claim.id ? 'hide' : 'view'} details
@@ -494,7 +494,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                   {isAdmin && (
                     <>
                       <Button
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
                         onClick={() => handleQuickApprove(claim)}
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -502,7 +502,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                       </Button>
                       <Button
                         variant="outline"
-                        className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                        className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
                         onClick={() => openApproveDialog(claim)}
                       >
                         <Edit3 className="h-4 w-4 mr-2" />
@@ -521,7 +521,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                   {!isAdmin && (
                     <Button
                       variant="outline"
-                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                      className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
                       onClick={() => openApproveDialog(claim)}
                     >
                       <Edit3 className="h-4 w-4 mr-2" />
@@ -574,7 +574,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setApproveDialog(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6">
-              <h3 className="text-lg font-bold text-emerald-700 mb-1">
+              <h3 className="text-lg font-bold text-indigo-700 mb-1">
                 {isAdmin ? `Verify & Approve — ${approveDialog.claimNumber}` : `Edit Claim — ${approveDialog.claimNumber}`}
               </h3>
               <p className="text-sm text-muted-foreground mb-1">
@@ -630,7 +630,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                     {filteredProducts.slice(0, 5).map(product => (
                       <button
                         key={product.id}
-                        className="w-full text-left px-3 py-2 hover:bg-emerald-50 text-sm flex justify-between items-center border-b last:border-b-0"
+                        className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-sm flex justify-between items-center border-b last:border-b-0"
                         onClick={() => {
                           addEditItem(product);
                           setAddProductSearch('');
@@ -648,7 +648,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
               <div className="border-t pt-3 mb-4">
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Total Amount:</span>
-                  <span className="text-xl font-bold text-emerald-800">{formatAmount(editTotalAmount)}</span>
+                  <span className="text-xl font-bold text-indigo-800">{formatAmount(editTotalAmount)}</span>
                 </div>
               </div>
 
@@ -658,7 +658,7 @@ export function StockNotReceived({ user }: StockNotReceivedProps) {
                   Cancel
                 </Button>
                 <Button
-                  className={isAdmin ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
+                  className={isAdmin ? "bg-green-600 hover:bg-green-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"}
                   onClick={handleApproveWithEdits}
                   disabled={editItems.length === 0}
                 >

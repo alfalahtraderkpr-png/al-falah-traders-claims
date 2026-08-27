@@ -93,7 +93,7 @@ function ReportActionButtons({
 
   return (
     <div className="flex flex-wrap gap-2 no-print">
-      <Button onClick={onPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white" variant="default">
+      <Button onClick={onPrint} className="bg-indigo-600 hover:bg-indigo-700 text-white" variant="default">
         <Printer className="h-4 w-4 mr-2" /> Print Report
       </Button>
       <Button
@@ -361,7 +361,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto mb-3" />
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-3" />
           <p className="text-muted-foreground">Loading reports...</p>
         </div>
       </div>
@@ -374,7 +374,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
         <div className="text-center">
           <FileText className="h-12 w-12 text-red-300 mx-auto mb-3" />
           <p className="text-red-600 font-medium mb-2">{loadError}</p>
-          <Button onClick={loadData} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={loadData} className="bg-indigo-600 hover:bg-indigo-700 text-white">
             Retry
           </Button>
         </div>
@@ -386,7 +386,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
     <div className="space-y-4">
       {/* Header - hidden on print */}
       <div className="flex justify-between items-center no-print gap-2 flex-wrap">
-        <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
           <BarChart3 className="h-6 w-6" />
           Reports
         </h2>
@@ -401,7 +401,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
                 disabled={exportingPdf || exportingExcel}
               >
                 {(exportingPdf || exportingExcel) ? (
@@ -419,7 +419,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="text-emerald-700 font-semibold">
+              <DropdownMenuLabel className="text-indigo-700 font-semibold">
                 Export {activeTab.replace('_', ' ')} report as
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -472,7 +472,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${isActive ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${isActive ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
                 <span>{tab.label}</span>
@@ -525,7 +525,7 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {isOB ? (
-              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
                 {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
               </div>
             ) : (
@@ -576,9 +576,9 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
               <p className="text-xs text-muted-foreground">Pending Claims</p>
               <p className="text-2xl font-bold text-yellow-700">{filtered.length}</p>
             </div>
-            <div className="bg-emerald-50 rounded-lg p-3">
+            <div className="bg-indigo-50 rounded-lg p-3">
               <p className="text-xs text-muted-foreground">Total Pending Amount</p>
-              <p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotal)}</p>
+              <p className="text-2xl font-bold text-indigo-700">{formatAmount(grandTotal)}</p>
             </div>
           </div>
         </CardContent>
@@ -614,7 +614,7 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
                   {filtered.map((claim, i) => (
                     <tr key={claim.id} className="border-b">
                       <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-emerald-700">{claim.claimNumber}</td>
+                      <td className="py-2 px-3 font-medium text-indigo-700">{claim.claimNumber}</td>
                       <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
                       <td className="py-2 px-3">{claim.company.name}</td>
                       <td className="py-2 px-3">{claim.shop.name}</td>
@@ -633,9 +633,9 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
-                    <td colSpan={8} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotal)}</td>
+                  <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
+                    <td colSpan={8} className="py-2 px-3 font-bold text-indigo-800 text-right">Grand Total:</td>
+                    <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(grandTotal)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -691,7 +691,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {isOB ? (
-              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
                 {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
               </div>
             ) : (
@@ -730,7 +730,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
 
       {/* Summary Cards - hidden in print */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 print-hide-decor">
-        <Card className="shadow-sm bg-emerald-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total Claims</p><p className="text-xl font-bold text-emerald-700">{filtered.length}</p></CardContent></Card>
+        <Card className="shadow-sm bg-indigo-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total Claims</p><p className="text-xl font-bold text-indigo-700">{filtered.length}</p></CardContent></Card>
         <Card className="shadow-sm bg-yellow-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Pending</p><p className="text-xl font-bold text-yellow-700">{byStatus.pending}</p></CardContent></Card>
         <Card className="shadow-sm bg-green-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Approved</p><p className="text-xl font-bold text-green-700">{byStatus.approved}</p></CardContent></Card>
         <Card className="shadow-sm bg-orange-50 border-0"><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Partial</p><p className="text-xl font-bold text-orange-700">{byStatus.partial}</p></CardContent></Card>
@@ -742,7 +742,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
       <Card className="shadow-sm print-hide-cards">
         <CardContent className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
-            <div className="bg-emerald-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Claim</p><p className="text-lg font-bold text-emerald-700">{formatAmount(totalAmount)}</p></div>
+            <div className="bg-indigo-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Claim</p><p className="text-lg font-bold text-indigo-700">{formatAmount(totalAmount)}</p></div>
             <div className="bg-blue-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Cleared Amount</p><p className="text-lg font-bold text-blue-700">{formatAmount(clearedAmount)}</p></div>
             <div className="bg-orange-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Remaining Pending</p><p className="text-lg font-bold text-orange-700">{formatAmount(remainingAmount)}</p></div>
             <div className="bg-yellow-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Pending Amount</p><p className="text-lg font-bold text-yellow-700">{formatAmount(pendingAmount)}</p></div>
@@ -785,7 +785,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
                   {filtered.map((c, i) => (
                     <tr key={c.id} className="border-b">
                       <td className="py-2 px-3">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-emerald-700">{c.claimNumber}</td>
+                      <td className="py-2 px-3 font-medium text-indigo-700">{c.claimNumber}</td>
                       <td className="py-2 px-3">{new Date(c.date).toLocaleDateString()}</td>
                       <td className="py-2 px-3">{c.company.name}</td>
                       <td className="py-2 px-3">{c.shop.name}</td>
@@ -794,7 +794,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
                       <td className="py-2 px-3 text-right font-medium text-blue-700">{normalizeStatus(c.status) === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">
                         {normalizeStatus(c.status) === 'rejected' ? '-' : normalizeStatus(c.status) === 'approved' ? (
-                          <span className="text-emerald-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
+                          <span className="text-indigo-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
                         ) : (
                           <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
                             {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
@@ -849,7 +849,7 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {isOB ? (
-              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+              <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
                 {orderBookers.find(o => o.id === user.orderBookerId)?.name || user.name}
               </div>
             ) : (
@@ -927,7 +927,7 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
                   <tbody>
                     {groupClaims.map(c => (
                       <tr key={c.id} className="border-b">
-                        <td className="py-2 px-3 font-medium text-emerald-700">{c.claimNumber}</td>
+                        <td className="py-2 px-3 font-medium text-indigo-700">{c.claimNumber}</td>
                         <td className="py-2 px-3">{new Date(c.date).toLocaleDateString()}</td>
                         <td className="py-2 px-3">{c.company.name}</td>
                         <td className="py-2 px-3">{c.shop.name}</td>
@@ -1037,7 +1037,7 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
+                <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
                   <td className="py-2 px-3 font-bold">Grand Total</td>
                   <td className="py-2 px-3 text-center font-bold">{obStats.reduce((s, o) => s + o.totalClaims, 0)}</td>
                   <td className="py-2 px-3 text-right font-bold">{formatAmount(grandTotal)}</td>
@@ -1141,7 +1141,7 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
+                <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
                   <td className="py-2 px-3 font-bold">Total</td>
                   <td className="py-2 px-3 text-center font-bold">{filtered.length}</td>
                   <td className="py-2 px-3 text-right font-bold">{formatAmount(companyGroups.reduce((s, g) => s + g.total, 0))}</td>
@@ -1157,7 +1157,7 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
       {/* Detailed Claims per Company */}
       {filterCompany !== 'all' && companyGroups.map(g => (
         <Card key={g.id} className="shadow-sm">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-bold text-emerald-800">{g.name} - Claims Detail</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-bold text-indigo-800">{g.name} - Claims Detail</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm print-table">
@@ -1174,7 +1174,7 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                 <tbody>
                   {g.claims.map(c => (
                     <tr key={c.id} className="border-b">
-                      <td className="py-2 px-3 font-medium text-emerald-700">{c.claimNumber}</td>
+                      <td className="py-2 px-3 font-medium text-indigo-700">{c.claimNumber}</td>
                       <td className="py-2 px-3">{new Date(c.date).toLocaleDateString()}</td>
                       <td className="py-2 px-3">{c.shop.name}</td>
                       <td className="py-2 px-3">{c.orderBooker?.name || '-'}</td>
@@ -1182,7 +1182,7 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
                       <td className="py-2 px-3 text-right text-blue-700">{normalizeStatus(c.status) === 'approved' ? 'Pending' : c.approvedAmount ? formatAmount(c.approvedAmount) : '-'}</td>
                       <td className="py-2 px-3 text-right font-medium">
                         {normalizeStatus(c.status) === 'rejected' ? '-' : normalizeStatus(c.status) === 'approved' ? (
-                          <span className="text-emerald-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
+                          <span className="text-indigo-700 font-semibold">{formatAmount(c.netAmount || c.totalAmount)}</span>
                         ) : (
                           <span className={c.totalAmount - (c.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
                             {formatAmount(c.totalAmount - (c.approvedAmount || 0))}
@@ -1260,7 +1260,7 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
       <Card className="shadow-sm">
         <CardContent className="p-4">
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-emerald-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Claim</p><p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotalClaim)}</p></div>
+            <div className="bg-indigo-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Total Claim</p><p className="text-2xl font-bold text-indigo-700">{formatAmount(grandTotalClaim)}</p></div>
             <div className="bg-blue-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Cleared Amount</p><p className="text-2xl font-bold text-blue-700">{formatAmount(grandTotal)}</p></div>
             <div className="bg-orange-50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Remaining Pending</p><p className="text-2xl font-bold text-orange-700">{formatAmount(grandRemaining)}</p></div>
           </div>
@@ -1289,7 +1289,7 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
                   {cleared.map((c, i) => (
                     <tr key={c.id} className="border-b">
                       <td className="py-2 px-3">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-emerald-700">{c.claimNumber}</td>
+                      <td className="py-2 px-3 font-medium text-indigo-700">{c.claimNumber}</td>
                       <td className="py-2 px-3">{new Date(c.date).toLocaleDateString()}</td>
                       <td className="py-2 px-3">{c.company.name}</td>
                       <td className="py-2 px-3">{c.shop.name}</td>
@@ -1307,9 +1307,9 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
-                    <td colSpan={6} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotalClaim)}</td>
+                  <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
+                    <td colSpan={6} className="py-2 px-3 font-bold text-indigo-800 text-right">Grand Total:</td>
+                    <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(grandTotalClaim)}</td>
                     <td className="py-2 px-3 text-right font-bold text-blue-800">{formatAmount(grandTotal)}</td>
                     <td className="py-2 px-3 text-right font-bold text-orange-700">{formatAmount(grandRemaining)}</td>
                     <td colSpan={2}></td>
@@ -1357,7 +1357,7 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Button onClick={handleSearch} className="bg-emerald-600 hover:bg-emerald-700 text-white">Search</Button>
+            <Button onClick={handleSearch} className="bg-indigo-600 hover:bg-indigo-700 text-white">Search</Button>
             {claim && <ReportActionButtons
               reportType="detail"
               onPrint={onPrint}
@@ -1381,10 +1381,10 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
 
           {/* Claim Info */}
           <Card className="shadow-sm">
-            <CardHeader><CardTitle className="text-base font-bold text-emerald-800">Claim Information</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base font-bold text-indigo-800">Claim Information</CardTitle></CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-6 text-sm">
-                <div><span className="text-muted-foreground text-xs">Claim #</span><p className="font-bold text-emerald-700">{claim.claimNumber}</p></div>
+                <div><span className="text-muted-foreground text-xs">Claim #</span><p className="font-bold text-indigo-700">{claim.claimNumber}</p></div>
                 <div><span className="text-muted-foreground text-xs">Date</span><p className="font-medium">{new Date(claim.date).toLocaleDateString()}</p></div>
                 <div><span className="text-muted-foreground text-xs">Status</span><p><Badge className={`${statusColors[claim.status]} border text-xs`}>{statusLabels[claim.status]}</Badge></p></div>
                 <div><span className="text-muted-foreground text-xs">Company</span><p className="font-medium">{claim.company.name}</p></div>
@@ -1392,7 +1392,7 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
                 <div><span className="text-muted-foreground text-xs">Shop Address</span><p className="font-medium">{claim.shop.address || '-'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Supplier</span><p className="font-medium">{claim.supplier.name}</p></div>
                 <div><span className="text-muted-foreground text-xs">Order Booker</span><p className="font-medium">{claim.orderBooker?.name || '-'}</p></div>
-                <div><span className="text-muted-foreground text-xs">Total Amount</span><p className="font-bold text-emerald-700 text-lg">{formatAmount(claim.totalAmount)}</p></div>
+                <div><span className="text-muted-foreground text-xs">Total Amount</span><p className="font-bold text-indigo-700 text-lg">{formatAmount(claim.totalAmount)}</p></div>
                 {claim.approvedAmount && <div><span className="text-muted-foreground text-xs">Cleared Amount</span><p className="font-bold text-blue-700">{formatAmount(claim.approvedAmount)}</p></div>}
                 {claim.approvedAmount && <div><span className="text-muted-foreground text-xs">Remaining Pending</span><p className={`font-bold ${claim.totalAmount - claim.approvedAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatAmount(claim.totalAmount - claim.approvedAmount)}</p></div>}
                 {claim.clearedBy && <div><span className="text-muted-foreground text-xs">Cleared By</span><p className="font-medium">{claim.clearedBy}</p></div>}
@@ -1404,7 +1404,7 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
 
           {/* Claim Items */}
           <Card className="shadow-sm">
-            <CardHeader><CardTitle className="text-base font-bold text-emerald-800">Claim Items</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base font-bold text-indigo-800">Claim Items</CardTitle></CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm print-table">
@@ -1429,9 +1429,9 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
-                      <td colSpan={5} className="py-2 px-3 font-bold text-emerald-800 text-right">Total:</td>
-                      <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(claim.totalAmount)}</td>
+                    <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
+                      <td colSpan={5} className="py-2 px-3 font-bold text-indigo-800 text-right">Total:</td>
+                      <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(claim.totalAmount)}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -1541,9 +1541,9 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
               <p className="text-xs text-muted-foreground">Approved (Arrived)</p>
               <p className="text-2xl font-bold text-green-700">{filtered.filter(c => normalizeStatus(c.status) === 'approved').length}</p>
             </div>
-            <div className="bg-emerald-50 rounded-lg p-3">
+            <div className="bg-indigo-50 rounded-lg p-3">
               <p className="text-xs text-muted-foreground">Total Amount</p>
-              <p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotal)}</p>
+              <p className="text-2xl font-bold text-indigo-700">{formatAmount(grandTotal)}</p>
             </div>
           </div>
         </CardContent>
@@ -1581,7 +1581,7 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
                   {filtered.map((claim, i) => (
                     <tr key={claim.id} className="border-b">
                       <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-emerald-700">{claim.claimNumber}</td>
+                      <td className="py-2 px-3 font-medium text-indigo-700">{claim.claimNumber}</td>
                       <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
                       <td className="py-2 px-3">
                         <Badge className={`${statusColors[normalizeStatus(claim.status)] || ''} text-xs`}>
@@ -1597,9 +1597,9 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
-                    <td colSpan={8} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotal)}</td>
+                  <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
+                    <td colSpan={8} className="py-2 px-3 font-bold text-indigo-800 text-right">Grand Total:</td>
+                    <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(grandTotal)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -1691,9 +1691,9 @@ function ClearedClaimsReport({ companies, orderBookers, allClaims, formatAmount,
               <p className="text-xs text-muted-foreground">Cleared Claims</p>
               <p className="text-2xl font-bold text-blue-700">{filtered.length}</p>
             </div>
-            <div className="bg-emerald-50 rounded-lg p-3">
+            <div className="bg-indigo-50 rounded-lg p-3">
               <p className="text-xs text-muted-foreground">Total Cleared Amount</p>
-              <p className="text-2xl font-bold text-emerald-700">{formatAmount(grandTotal)}</p>
+              <p className="text-2xl font-bold text-indigo-700">{formatAmount(grandTotal)}</p>
             </div>
           </div>
         </CardContent>
@@ -1725,7 +1725,7 @@ function ClearedClaimsReport({ companies, orderBookers, allClaims, formatAmount,
                   {filtered.map((claim, i) => (
                     <tr key={claim.id} className="border-b">
                       <td className="py-2 px-3 text-muted-foreground">{i + 1}</td>
-                      <td className="py-2 px-3 font-medium text-emerald-700">{claim.claimNumber}</td>
+                      <td className="py-2 px-3 font-medium text-indigo-700">{claim.claimNumber}</td>
                       <td className="py-2 px-3">{new Date(claim.date).toLocaleDateString()}</td>
                       <td className="py-2 px-3">{claim.company.name}</td>
                       <td className="py-2 px-3">{claim.shop.name}</td>
@@ -1738,9 +1738,9 @@ function ClearedClaimsReport({ companies, orderBookers, allClaims, formatAmount,
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 border-emerald-600 bg-emerald-50 print-bg-light">
-                    <td colSpan={7} className="py-2 px-3 font-bold text-emerald-800 text-right">Grand Total:</td>
-                    <td className="py-2 px-3 text-right font-bold text-emerald-800">{formatAmount(grandTotal)}</td>
+                  <tr className="border-t-2 border-indigo-600 bg-indigo-50 print-bg-light">
+                    <td colSpan={7} className="py-2 px-3 font-bold text-indigo-800 text-right">Grand Total:</td>
+                    <td className="py-2 px-3 text-right font-bold text-indigo-800">{formatAmount(grandTotal)}</td>
                     <td colSpan={2}></td>
                   </tr>
                 </tfoot>

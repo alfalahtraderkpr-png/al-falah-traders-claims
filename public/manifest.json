@@ -4,8 +4,8 @@
   "description": "Claims Management System for Al Falah Traders",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ecfdf5",
-  "theme_color": "#059669",
+  "background_color": "#eef0ff",
+  "theme_color": "#4f46e5",
   "orientation": "any",
   "icons": [
     {

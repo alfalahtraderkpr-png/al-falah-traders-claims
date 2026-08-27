@@ -48,7 +48,7 @@ function ActionButton({
   const colorMap: Record<'blue' | 'red' | 'green' | 'amber', string> = {
     blue: 'border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300',
     red: 'border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300',
-    green: 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300',
+    green: 'border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300',
     amber: 'border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300',
   };
 
@@ -298,7 +298,7 @@ export function UsersManager() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in-up">
         <div>
-          <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
             <Shield className="h-6 w-6" />
             Users Management
           </h2>
@@ -339,15 +339,15 @@ export function UsersManager() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
         </div>
       ) : (
         <>
           {/* Admin Users */}
-          <Card className="shadow-sm animate-fade-in-up border-emerald-200" style={{ animationDelay: '100ms' }}>
-            <CardHeader className="pb-3 bg-gradient-to-r from-emerald-50 to-emerald-100/50 rounded-t-lg">
+          <Card className="shadow-sm animate-fade-in-up border-indigo-200" style={{ animationDelay: '100ms' }}>
+            <CardHeader className="pb-3 bg-gradient-to-r from-indigo-50 to-indigo-100/50 rounded-t-lg">
               <CardTitle className="text-lg flex items-center gap-2">
-                <div className="bg-emerald-600 text-white rounded-lg p-1.5">
+                <div className="bg-indigo-600 text-white rounded-lg p-1.5">
                   <Shield className="h-4 w-4" />
                 </div>
                 Admin Accounts ({adminUsers.length})
@@ -359,15 +359,15 @@ export function UsersManager() {
               ) : (
                 <div className="space-y-3">
                   {adminUsers.map((user) => (
-                    <div key={user.id} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-emerald-50/80 to-white rounded-xl border border-emerald-100 hover:shadow-sm transition-shadow">
+                    <div key={user.id} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-indigo-50/80 to-white rounded-xl border border-indigo-100 hover:shadow-sm transition-shadow">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0">
                           {user.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-emerald-800 truncate">{user.name}</p>
-                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                            <p className="font-semibold text-indigo-800 truncate">{user.name}</p>
+                            <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px] px-1.5 py-0">
                               <Lock className="h-2.5 w-2.5 mr-0.5" /> Permanent
                             </Badge>
                           </div>
@@ -442,10 +442,10 @@ export function UsersManager() {
                           </div>
                           {/* Assigned companies */}
                           <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                            <Building2 className="h-3 w-3 text-emerald-600 shrink-0" />
+                            <Building2 className="h-3 w-3 text-indigo-600 shrink-0" />
                             {user.assignedCompanies && user.assignedCompanies.length > 0 ? (
                               user.assignedCompanies.map((c) => (
-                                <Badge key={c.id} className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0">
+                                <Badge key={c.id} className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px] px-1.5 py-0">
                                   {c.name}
                                 </Badge>
                               ))
@@ -538,7 +538,7 @@ export function UsersManager() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-emerald-600" />
+              <Shield className="h-5 w-5 text-indigo-600" />
               Create Login Account
             </DialogTitle>
           </DialogHeader>
@@ -645,7 +645,7 @@ export function UsersManager() {
             {form.role === 'orderbooker' && (
               <div className="border-t pt-3">
                 <Label className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-emerald-600" />
+                  <Building2 className="h-4 w-4 text-indigo-600" />
                   Assigned Companies
                 </Label>
                 <p className="text-xs text-muted-foreground mt-1 mb-2">
@@ -670,8 +670,8 @@ export function UsersManager() {
                         }}
                         className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all ${
                           isAssigned
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                            : 'bg-white text-gray-600 border-gray-300 hover:bg-emerald-50 hover:border-emerald-300'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                            : 'bg-white text-gray-600 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300'
                         }`}
                       >
                         {isAssigned && <Check className="h-3 w-3" />}
@@ -689,17 +689,17 @@ export function UsersManager() {
             )}
 
             {form.role === 'orderbooker' && form.orderBookerId && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm">
-                <p className="font-medium text-emerald-800 mb-1">Login Credentials:</p>
-                <p className="text-emerald-700">Email: <span className="font-mono font-medium">{form.email}</span></p>
-                <p className="text-emerald-700">Password: <span className="font-mono font-medium">{form.password}</span></p>
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-sm">
+                <p className="font-medium text-indigo-800 mb-1">Login Credentials:</p>
+                <p className="text-indigo-700">Email: <span className="font-mono font-medium">{form.email}</span></p>
+                <p className="text-indigo-700">Password: <span className="font-mono font-medium">{form.password}</span></p>
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button
-              className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced shadow-md"
               onClick={handleCreate}
               disabled={saving}
             >
@@ -714,7 +714,7 @@ export function UsersManager() {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-emerald-600" />
+              <Building2 className="h-5 w-5 text-indigo-600" />
               Assign Companies
             </DialogTitle>
           </DialogHeader>
@@ -742,8 +742,8 @@ export function UsersManager() {
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg border-2 text-xs font-medium transition-all ${
                       isAssigned
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                        : 'bg-white text-gray-600 border-gray-300 hover:bg-emerald-50 hover:border-emerald-300'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300'
                     }`}
                   >
                     {isAssigned && <Check className="h-3 w-3" />}
@@ -761,7 +761,7 @@ export function UsersManager() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setCompaniesDialogOpen(false)}>Cancel</Button>
             <Button
-              className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced shadow-md"
               onClick={handleSaveCompanies}
               disabled={saving}
             >

@@ -53,10 +53,10 @@ export function PwaInstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white border border-emerald-200 rounded-xl shadow-lg p-4 flex items-center gap-3">
+      <div className="bg-white border border-indigo-200 rounded-xl shadow-lg p-4 flex items-center gap-3">
         <button
           onClick={handleInstall}
-          className="flex items-center gap-2 flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
+          className="flex items-center gap-2 flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
         >
           <Download className="h-4 w-4" />
           Install App

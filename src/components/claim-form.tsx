@@ -488,10 +488,10 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 animate-fade-in-up">
-        <Button variant="outline" size="icon" onClick={onCancel} className="btn-enhanced border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+        <Button variant="outline" size="icon" onClick={onCancel} className="btn-enhanced border-indigo-200 text-indigo-700 hover:bg-indigo-50">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
           <ShoppingCart className="h-6 w-6" />
           {claim ? (isResubmit ? `Resubmit Claim ${claim.claimNumber}` : `Edit Claim ${claim.claimNumber}`) : quickClaim ? `Quick Claim (from ${quickClaim.claimNumber || ''})` : 'New Claim'}
         </h2>
@@ -548,7 +548,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                 </SelectContent>
               </Select>
               {user.role === 'orderbooker' && companies.length === 1 && (
-                <p className="text-[11px] text-emerald-600 mt-1">
+                <p className="text-[11px] text-indigo-600 mt-1">
                   ✓ Auto-selected: {companies[0].name} (your assigned company)
                 </p>
               )}
@@ -601,7 +601,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                         .length === 0 ? (
                         <div className="px-3 py-4 text-center">
                           <p className="text-sm text-muted-foreground mb-2">No shop found</p>
-                          <Button type="button" size="sm" className="bg-emerald-600 hover:bg-emerald-700 btn-enhanced" onClick={() => { setQuickShopName(shopSearch); setQuickShopAddress(''); setQuickShopOB(''); setShowQuickShop(true); setShopDropdownOpen(false); }}>
+                          <Button type="button" size="sm" className="bg-indigo-600 hover:bg-indigo-700 btn-enhanced" onClick={() => { setQuickShopName(shopSearch); setQuickShopAddress(''); setQuickShopOB(''); setShowQuickShop(true); setShopDropdownOpen(false); }}>
                             <Store className="h-3.5 w-3.5 mr-1" /> Create &quot;{shopSearch}&quot;
                           </Button>
                         </div>
@@ -613,12 +613,12 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                             return s.name.toLowerCase().includes(search) || (s.address && s.address.toLowerCase().includes(search));
                           })
                           .map((s) => (
-                            <button key={s.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-emerald-50 hover:text-emerald-800 transition-all duration-150 border-b last:border-b-0" onClick={() => { setShopId(s.id); setShopSearch(''); setShopDropdownOpen(false); }}>
+                            <button key={s.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-800 transition-all duration-150 border-b last:border-b-0" onClick={() => { setShopId(s.id); setShopSearch(''); setShopDropdownOpen(false); }}>
                               <span className="font-medium">{s.name}</span>
                               {s.address && <span className="text-muted-foreground ml-1">({s.address})</span>}
                               {s.shopType !== 'retail' && <span className="ml-1 text-xs text-purple-600 font-medium">[{s.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}]</span>}
                               {companyId && s.companyOrderBookers?.find((cob) => cob.companyId === companyId)?.orderBooker && (
-                                <span className="text-emerald-600 ml-1 text-xs">- {s.companyOrderBookers.find((cob) => cob.companyId === companyId)?.orderBooker?.name}</span>
+                                <span className="text-indigo-600 ml-1 text-xs">- {s.companyOrderBookers.find((cob) => cob.companyId === companyId)?.orderBooker?.name}</span>
                               )}
                             </button>
                           ))
@@ -626,7 +626,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                     </div>
                   )}
                 </div>
-                <Button type="button" variant="outline" size="icon" className="shrink-0 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 btn-enhanced border-emerald-200" title="Quick Create Shop" onClick={() => { setQuickShopName(''); setQuickShopAddress(''); setQuickShopOB(''); setQuickShopType('retail'); setShowQuickShop(true); }}>
+                <Button type="button" variant="outline" size="icon" className="shrink-0 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 btn-enhanced border-indigo-200" title="Quick Create Shop" onClick={() => { setQuickShopName(''); setQuickShopAddress(''); setQuickShopOB(''); setQuickShopType('retail'); setShowQuickShop(true); }}>
                   <Store className="h-4 w-4" />
                 </Button>
               </div>
@@ -641,7 +641,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
             <div>
               <Label className="text-sm font-medium">Order Booker</Label>
               {user.role === 'orderbooker' ? (
-                <div className="mt-1 h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+                <div className="mt-1 h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
                   {orderBookers.find((ob) => ob.id === orderBookerId)?.name || user.name}
                 </div>
               ) : (
@@ -691,10 +691,10 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
       <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '160ms' }}>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Package className="h-5 w-5 text-emerald-600" />
+            <Package className="h-5 w-5 text-indigo-600" />
             Products
             {items.length > 0 && (
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 animate-scale-in">{items.length} items</Badge>
+              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 animate-scale-in">{items.length} items</Badge>
             )}
           </CardTitle>
         </CardHeader>
@@ -748,12 +748,12 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                                     <span className="text-sm font-medium text-gray-600">{product.name}</span>
                                     <span className="text-xs text-gray-400 ml-2">{getPriceLabel(product)}/{product.unit}</span>
                                   </div>
-                                  <span className="text-xs text-emerald-600 font-medium mr-2">Qty: {item.quantity}</span>
+                                  <span className="text-xs text-indigo-600 font-medium mr-2">Qty: {item.quantity}</span>
                                 </div>
                               );
                             })}
                             {availableProducts.length > 0 && (
-                              <div className="px-3 py-2 bg-emerald-50 text-xs font-medium text-emerald-700 sticky top-0 border-b">CLICK TO ADD</div>
+                              <div className="px-3 py-2 bg-indigo-50 text-xs font-medium text-indigo-700 sticky top-0 border-b">CLICK TO ADD</div>
                             )}
                           </>
                         )}
@@ -762,17 +762,17 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                           <button
                             key={product.id}
                             type="button"
-                            className="w-full text-left px-3 py-2.5 hover:bg-emerald-50 transition-all duration-150 border-b last:border-b-0 flex items-center justify-between group"
+                            className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 transition-all duration-150 border-b last:border-b-0 flex items-center justify-between group"
                             onClick={() => addProductToClaim(product.id)}
                           >
                             <div className="flex-1">
-                              <span className="text-sm font-medium group-hover:text-emerald-800 transition-colors">{product.name}</span>
+                              <span className="text-sm font-medium group-hover:text-indigo-800 transition-colors">{product.name}</span>
                               <span className="text-xs text-muted-foreground ml-2">{getPriceLabel(product)}/{product.unit}</span>
                               {isMultiTier && product.wholesalePrice && product.lmtPrice && (
                                 <span className="text-xs text-purple-500 ml-1">(Ws:{product.wholesalePrice} / LMT:{product.lmtPrice})</span>
                               )}
                             </div>
-                            <Plus className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 group-hover:scale-125 transition-all duration-200 shrink-0 ml-2" />
+                            <Plus className="h-4 w-4 text-muted-foreground group-hover:text-indigo-600 group-hover:scale-125 transition-all duration-200 shrink-0 ml-2" />
                           </button>
                         ))}
                       </>
@@ -835,7 +835,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                             />
                             <button
                               type="button"
-                              className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-600 active:scale-90 transition-all duration-150"
+                              className="h-8 w-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 active:scale-90 transition-all duration-150"
                               onClick={() => updateQuantity(index, item.quantity + 1)}
                             >
                               <Plus className="h-3.5 w-3.5" />
@@ -844,7 +844,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
 
                           {/* Amount */}
                           <div className="text-right">
-                            <p className="font-bold text-sm text-emerald-700">Rs.{item.amount.toLocaleString()}</p>
+                            <p className="font-bold text-sm text-indigo-700">Rs.{item.amount.toLocaleString()}</p>
                             <p className="text-[11px] text-muted-foreground">Rs.{Math.round(effectivePrice)} x {item.quantity}</p>
                           </div>
                         </div>
@@ -853,9 +853,9 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
                   })}
 
                   {/* Total */}
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-lg animate-fade-in-up">
-                    <span className="font-bold text-emerald-800 text-lg">Total Claim Amount</span>
-                    <span className="font-bold text-xl text-emerald-700">Rs.{totalAmount.toLocaleString()}</span>
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-indigo-100/50 border border-indigo-200 rounded-lg animate-fade-in-up">
+                    <span className="font-bold text-indigo-800 text-lg">Total Claim Amount</span>
+                    <span className="font-bold text-xl text-indigo-700">Rs.{totalAmount.toLocaleString()}</span>
                   </div>
 
                   {/* Deduction Section */}
@@ -882,16 +882,16 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
       <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Camera className="h-5 w-5 text-emerald-600" />
+            <Camera className="h-5 w-5 text-indigo-600" />
             Claim Photos
             {photos.length > 0 && (
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 animate-scale-in">{photos.length}/3</Badge>
+              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 animate-scale-in">{photos.length}/3</Badge>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3">
-            <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed transition-all cursor-pointer ${photos.length >= 3 ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400'}`}>
+            <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed transition-all cursor-pointer ${photos.length >= 3 ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-indigo-300 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-400'}`}>
               <Camera className="h-4 w-4" />
               <span className="text-sm font-medium">{photos.length >= 3 ? 'Max Reached' : 'Add Photo'}</span>
               <input
@@ -928,7 +928,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
       <Dialog open={showQuickShop} onOpenChange={setShowQuickShop}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-emerald-800 flex items-center gap-2">
+            <DialogTitle className="text-indigo-800 flex items-center gap-2">
               <Store className="h-5 w-5" />
               Quick Create Shop
             </DialogTitle>
@@ -967,7 +967,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
             <div>
               <Label>Order Booker {companyId ? `(for ${companies.find((c) => c.id === companyId)?.name})` : ''}</Label>
               {user.role === 'orderbooker' ? (
-                <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-emerald-700">
+                <div className="h-10 px-3 flex items-center rounded-md border bg-gray-50 text-sm font-medium text-indigo-700">
                   {orderBookers.find((ob) => ob.id === user.orderBookerId)?.name || user.name}
                 </div>
               ) : (
@@ -984,7 +984,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowQuickShop(false)} className="btn-enhanced">Cancel</Button>
             <Button
-              className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced shadow-md"
               disabled={creatingShop || !quickShopName.trim()}
               onClick={async () => {
                 setCreatingShop(true);
@@ -1018,7 +1018,7 @@ export function ClaimForm({ claim, companies, user, onSave, onCancel, existingCl
       <div className="flex justify-end gap-3 pb-4 animate-slide-up">
         <Button variant="outline" onClick={onCancel} className="btn-enhanced btn-ripple px-6 h-11 rounded-xl border-gray-300 font-medium">Cancel</Button>
         <Button
-          className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced btn-ripple shadow-lg px-8 py-3 text-base font-bold rounded-xl"
+          className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced btn-ripple shadow-lg px-8 py-3 text-base font-bold rounded-xl"
           onClick={handleSave}
           disabled={saving || (claim ? isOlderThan24hr : false)}
         >

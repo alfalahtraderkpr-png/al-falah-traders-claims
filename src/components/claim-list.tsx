@@ -468,7 +468,7 @@ export function ClaimList({ user }: ClaimListProps) {
           <DropdownMenuItem key="quick" onClick={() => { setQuickClaimFrom(claim); setShowForm(true); }} className="text-teal-700 focus:bg-teal-50 focus:text-teal-800 cursor-pointer">
             📋 Quick Claim
           </DropdownMenuItem>,
-          <DropdownMenuItem key="edit" onClick={() => { setEditClaim(claim); setShowForm(true); }} className="text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800 cursor-pointer" disabled={isOlderThan24hr(claim)}>
+          <DropdownMenuItem key="edit" onClick={() => { setEditClaim(claim); setShowForm(true); }} className="text-indigo-700 focus:bg-indigo-50 focus:text-indigo-800 cursor-pointer" disabled={isOlderThan24hr(claim)}>
             ✏️ Edit Claim {isOlderThan24hr(claim) ? '(Locked)' : ''}
           </DropdownMenuItem>,
           <DropdownMenuSeparator key="sep-pending1" />,
@@ -493,7 +493,7 @@ export function ClaimList({ user }: ClaimListProps) {
           <DropdownMenuItem key="quick-ob" onClick={() => { setQuickClaimFrom(claim); setShowForm(true); }} className="text-teal-700 focus:bg-teal-50 focus:text-teal-800 cursor-pointer">
             📋 Quick Claim
           </DropdownMenuItem>,
-          <DropdownMenuItem key="edit-ob" onClick={() => { setEditClaim(claim); setShowForm(true); }} className="text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800 cursor-pointer">
+          <DropdownMenuItem key="edit-ob" onClick={() => { setEditClaim(claim); setShowForm(true); }} className="text-indigo-700 focus:bg-indigo-50 focus:text-indigo-800 cursor-pointer">
             ✏️ Edit Claim
           </DropdownMenuItem>
         );
@@ -571,7 +571,7 @@ export function ClaimList({ user }: ClaimListProps) {
     // Order booker: Resubmit rejected claims
     if (!isAdmin && user.role === 'orderbooker' && normStatus === 'rejected' && claim.orderBookerId === user.orderBookerId) {
       items.push(
-        <DropdownMenuItem key="resubmit-ob" onClick={() => { setEditClaim(claim); setShowForm(true); }} className="text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800 cursor-pointer">
+        <DropdownMenuItem key="resubmit-ob" onClick={() => { setEditClaim(claim); setShowForm(true); }} className="text-indigo-700 focus:bg-indigo-50 focus:text-indigo-800 cursor-pointer">
           ✏️ Edit & Resubmit
         </DropdownMenuItem>
       );
@@ -620,7 +620,7 @@ export function ClaimList({ user }: ClaimListProps) {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in-up">
         <div>
-          <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
             <FileText className="h-6 w-6" />
             {user.role === 'orderbooker' ? 'My Claims' : 'Claims Management'}
           </h2>
@@ -630,14 +630,14 @@ export function ClaimList({ user }: ClaimListProps) {
           {isAdmin && (
             <Button
               variant="outline"
-              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
               onClick={() => window.open('/api/export/claims', '_blank')}
             >
               <Download className="h-4 w-4 mr-2" /> Export
             </Button>
           )}
           <Button
-            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-lg btn-enhanced btn-ripple text-sm font-semibold px-6 py-3 rounded-xl"
+            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg btn-enhanced btn-ripple text-sm font-semibold px-6 py-3 rounded-xl"
             onClick={() => setShowForm(true)}
           >
             <Plus className="h-5 w-5 mr-2" />
@@ -662,7 +662,7 @@ export function ClaimList({ user }: ClaimListProps) {
             <Button
               variant={showFilters ? 'default' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
-              className={`shrink-0 btn-enhanced ${showFilters ? 'bg-emerald-600 hover:bg-emerald-700' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
+              className={`shrink-0 btn-enhanced ${showFilters ? 'bg-indigo-600 hover:bg-indigo-700' : 'border-indigo-300 text-indigo-700 hover:bg-indigo-50'}`}
             >
               <Filter className="h-4 w-4 mr-2" />
               Filters
@@ -754,7 +754,7 @@ export function ClaimList({ user }: ClaimListProps) {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-600 mx-auto mb-2" />
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-600 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">Loading claims...</p>
           </div>
         </div>
@@ -789,7 +789,7 @@ export function ClaimList({ user }: ClaimListProps) {
                       )}
                       <button
                         onClick={() => setViewClaim(claim)}
-                        className="font-bold text-emerald-700 text-base hover:text-emerald-900 hover:underline cursor-pointer transition-colors"
+                        className="font-bold text-indigo-700 text-base hover:text-indigo-900 hover:underline cursor-pointer transition-colors"
                         title="Click to view claim details"
                       >
                         {claim.claimNumber}
@@ -831,7 +831,7 @@ export function ClaimList({ user }: ClaimListProps) {
                     )}
                     <div>
                       <span className="text-muted-foreground text-xs">Total Claim</span>
-                      <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
+                      <p className="font-bold text-indigo-700">{formatAmount(claim.totalAmount)}</p>
                     </div>
                     {claim.deductionAmount > 0 && (
                       <div>
@@ -857,7 +857,7 @@ export function ClaimList({ user }: ClaimListProps) {
                       <span className="text-muted-foreground text-xs">
                         {normalizeStatus(claim.status) === 'approved' ? 'Claim Amount' : 'Remaining'}
                       </span>
-                      <p className={`font-medium ${normalizeStatus(claim.status) === 'approved' ? 'text-emerald-700' : claim.totalAmount - (claim.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <p className={`font-medium ${normalizeStatus(claim.status) === 'approved' ? 'text-indigo-700' : claim.totalAmount - (claim.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {normalizeStatus(claim.status) === 'rejected' ? '-' : normalizeStatus(claim.status) === 'approved' ? formatAmount(claim.netAmount || claim.totalAmount) : formatAmount(claim.totalAmount - (claim.approvedAmount || 0))}
                       </p>
                     </div>
@@ -963,7 +963,7 @@ export function ClaimList({ user }: ClaimListProps) {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setViewClaim(claim)}
-                              className="font-medium text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer transition-colors text-left"
+                              className="font-medium text-indigo-700 hover:text-indigo-900 hover:underline cursor-pointer transition-colors text-left"
                               title="Click to view claim details"
                             >
                               {claim.claimNumber}
@@ -997,7 +997,7 @@ export function ClaimList({ user }: ClaimListProps) {
                         </td>
                         <td className="py-3 px-4 text-right font-medium">
                           {normalizeStatus(claim.status) === 'rejected' ? '-' : normalizeStatus(claim.status) === 'approved' ? (
-                            <span className="text-emerald-700 font-semibold">{formatAmount(claim.netAmount || claim.totalAmount)}</span>
+                            <span className="text-indigo-700 font-semibold">{formatAmount(claim.netAmount || claim.totalAmount)}</span>
                           ) : (
                             <span className={claim.totalAmount - (claim.approvedAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
                               {formatAmount(claim.totalAmount - (claim.approvedAmount || 0))}
@@ -1186,7 +1186,7 @@ export function ClaimList({ user }: ClaimListProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Amount</span>
-                  <span className="font-bold text-emerald-700">{formatAmount(confirmDialog.claim.totalAmount)}</span>
+                  <span className="font-bold text-indigo-700">{formatAmount(confirmDialog.claim.totalAmount)}</span>
                 </div>
               </div>
 
@@ -1294,7 +1294,7 @@ export function ClaimList({ user }: ClaimListProps) {
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t shadow-lg animate-fade-in-up">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-sm font-bold text-emerald-800">
+              <span className="text-sm font-bold text-indigo-800">
                 {selectedClaims.size} claim{selectedClaims.size > 1 ? 's' : ''} selected
               </span>
               <Button

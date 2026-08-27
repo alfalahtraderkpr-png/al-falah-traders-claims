@@ -44,7 +44,7 @@ export function MasterData({ initialTab = 'companies' }: { initialTab?: string }
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${isActive ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`relative z-10 flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${isActive ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
                 <span>{tab.label}</span>
@@ -122,7 +122,7 @@ function CompaniesTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Companies ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setFormMultiTier(false); setFormDeductionPercent(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setFormMultiTier(false); setFormDeductionPercent(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -133,7 +133,7 @@ function CompaniesTab() {
             <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
         </div>
-        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
+        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div> : (
           <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
@@ -151,7 +151,7 @@ function CompaniesTab() {
                     <td className="py-2 px-4 text-center">{item.claimDeductionPercent && item.claimDeductionPercent > 0 ? <Badge className="bg-amber-100 text-amber-700 border-amber-200">{item.claimDeductionPercent}%</Badge> : <span className="text-xs text-muted-foreground">-</span>}</td>
                     <td className="py-2 px-4 text-center"><Badge variant="outline" className="transition-transform hover:scale-105">{item._count?.products || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setFormMultiTier(item.multiTierPricing || false); setFormDeductionPercent(item.claimDeductionPercent ? String(item.claimDeductionPercent) : ''); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-indigo-300 text-indigo-600 hover:bg-indigo-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setFormMultiTier(item.multiTierPricing || false); setFormDeductionPercent(item.claimDeductionPercent ? String(item.claimDeductionPercent) : ''); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
@@ -183,7 +183,7 @@ function CompaniesTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced shadow-md" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -352,10 +352,10 @@ function ProductsTab() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Products ({filtered.length})</CardTitle>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
+          <Button size="sm" variant="outline" className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
             <Upload className="h-4 w-4 mr-1" /> Bulk Import
           </Button>
-          <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setForm({ name: '', price: '', claimPrice: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
+          <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setForm({ name: '', price: '', claimPrice: '', unit: 'pcs', companyId: '' }); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Add
           </Button>
         </div>
@@ -374,7 +374,7 @@ function ProductsTab() {
             </SelectContent>
           </Select>
         </div>
-        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
+        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div> : (
           <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white z-10"><tr className="border-b bg-gray-50">
@@ -392,13 +392,13 @@ function ProductsTab() {
                   <tr key={item.id} className="border-b table-row-hover animate-fade-in-up" style={{ animationDelay: `${index * 20}ms` }}>
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-right">Rs.{item.price}</td>
-                    <td className="py-2 px-4 text-right font-medium text-emerald-700">Rs.{item.claimPrice || item.price}</td>
+                    <td className="py-2 px-4 text-right font-medium text-indigo-700">Rs.{item.claimPrice || item.price}</td>
                     <td className="py-2 px-4 text-right">{item.wholesalePrice ? `Rs.${item.wholesalePrice}` : <span className="text-xs text-muted-foreground">-</span>}</td>
                     <td className="py-2 px-4 text-right">{item.lmtPrice ? `Rs.${item.lmtPrice}` : <span className="text-xs text-muted-foreground">-</span>}</td>
                     <td className="py-2 px-4 text-center">{item.unit}</td>
                     <td className="py-2 px-4">{item.company?.name}</td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), claimPrice: String(item.claimPrice || item.price), wholesalePrice: item.wholesalePrice ? String(item.wholesalePrice) : '', lmtPrice: item.lmtPrice ? String(item.lmtPrice) : '', unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-indigo-300 text-indigo-600 hover:bg-indigo-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setForm({ name: item.name, price: String(item.price), claimPrice: String(item.claimPrice || item.price), wholesalePrice: item.wholesalePrice ? String(item.wholesalePrice) : '', lmtPrice: item.lmtPrice ? String(item.lmtPrice) : '', unit: item.unit, companyId: item.companyId }); setDialogOpen(true); }}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
@@ -448,7 +448,7 @@ function ProductsTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 btn-enhanced shadow-md" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 btn-enhanced shadow-md" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -458,13 +458,13 @@ function ProductsTab() {
         <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <History className="h-5 w-5 text-emerald-600" />
+              <History className="h-5 w-5 text-indigo-600" />
               Price History: {priceHistoryProduct?.name}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             {priceHistoryLoading ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div>
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div>
             ) : priceHistoryData.length === 0 ? (
               <div className="text-center py-8">
                 <History className="h-10 w-10 text-gray-300 mx-auto mb-2" />
@@ -487,14 +487,14 @@ function ProductsTab() {
                         <td className="py-2 px-3 text-xs">
                           <span className="text-red-500">Rs.{h.oldPrice}</span>
                           <span className="mx-1">→</span>
-                          <span className="text-emerald-600 font-medium">Rs.{h.newPrice}</span>
+                          <span className="text-indigo-600 font-medium">Rs.{h.newPrice}</span>
                         </td>
                         <td className="py-2 px-3 text-xs">
                           {h.oldClaimPrice !== h.newClaimPrice ? (
                             <>
                               <span className="text-red-500">Rs.{h.oldClaimPrice}</span>
                               <span className="mx-1">→</span>
-                              <span className="text-emerald-600 font-medium">Rs.{h.newClaimPrice}</span>
+                              <span className="text-indigo-600 font-medium">Rs.{h.newClaimPrice}</span>
                             </>
                           ) : <span className="text-muted-foreground">Rs.{h.newClaimPrice}</span>}
                         </td>
@@ -516,7 +516,7 @@ function ProductsTab() {
         <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+              <FileSpreadsheet className="h-5 w-5 text-indigo-600" />
               Bulk Import Products
             </DialogTitle>
           </DialogHeader>
@@ -540,9 +540,9 @@ function ProductsTab() {
               </div>
 
               {/* Step 2: Download Template (company ke hisaab se) */}
-              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                <h4 className="font-medium text-emerald-800 mb-2">Step 2: Download Template</h4>
-                <p className="text-sm text-emerald-700 mb-3">
+              <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                <h4 className="font-medium text-indigo-800 mb-2">Step 2: Download Template</h4>
+                <p className="text-sm text-indigo-700 mb-3">
                   {importCompany ? (
                     companies.find(c => c.id === importCompany)?.multiTierPricing
                       ? 'Multi-Tier company ke liye template mein WholesalePrice aur LMTPrice columns honge.'
@@ -558,7 +558,7 @@ function ProductsTab() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-100"
+                  className="border-indigo-600 text-indigo-600 hover:bg-indigo-100"
                   onClick={handleDownloadTemplate}
                   disabled={!importCompany}
                 >
@@ -576,7 +576,7 @@ function ProductsTab() {
                     ? <>File must have columns: <strong>Name, Price</strong> (WholesalePrice, LMTPrice for multi-tier, Unit optional)</>
                     : <>File must have columns: <strong>Name, Price, Unit</strong> (Unit is optional, default: pcs)</>}
                 </p>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
                   <input
                     type="file"
                     accept=".xlsx,.xls,.csv"
@@ -587,7 +587,7 @@ function ProductsTab() {
                   <label htmlFor="bulk-import-file" className="cursor-pointer">
                     {importFile ? (
                       <div className="flex items-center justify-center gap-2">
-                        <FileSpreadsheet className="h-8 w-8 text-emerald-600" />
+                        <FileSpreadsheet className="h-8 w-8 text-indigo-600" />
                         <div className="text-left">
                           <p className="font-medium text-sm">{importFile.name}</p>
                           <p className="text-xs text-muted-foreground">{(importFile.size / 1024).toFixed(1)} KB</p>
@@ -637,7 +637,7 @@ function ProductsTab() {
               <DialogFooter>
                 <Button variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
                 <Button
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced"
+                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced"
                   onClick={handleBulkImport}
                   disabled={!importFile || !importCompany || importing}
                 >
@@ -696,7 +696,7 @@ function ProductsTab() {
 
               <DialogFooter>
                 <Button
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced w-full"
+                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced w-full"
                   onClick={() => {
                     setImportOpen(false);
                     setImportResult(null);
@@ -760,7 +760,7 @@ function SuppliersTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Suppliers ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -771,7 +771,7 @@ function SuppliersTab() {
             <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
         </div>
-        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
+        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div> : (
           <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
@@ -783,7 +783,7 @@ function SuppliersTab() {
                   <tr key={item.id} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-indigo-300 text-indigo-600 hover:bg-indigo-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
                     </td>
                   </tr>
@@ -802,7 +802,7 @@ function SuppliersTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-enhanced btn-ripple rounded-lg">Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1001,7 +1001,7 @@ function ShopsTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Shops ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced" onClick={openAddDialog}>
+        <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced" onClick={openAddDialog}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -1012,7 +1012,7 @@ function ShopsTab() {
             <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
         </div>
-        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : filtered.length === 0 ? (
+        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div> : filtered.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground">
             <Store className="h-10 w-10 mx-auto mb-2 text-gray-300" />
             <p className="text-sm">Koi shop nahi mili</p>
@@ -1025,7 +1025,7 @@ function ShopsTab() {
                 const assignedCompanies = (item.companyOrderBookers || []).filter(cob => cob.orderBookerId);
                 const unassignedCompanies = companies.filter(c => !(item.companyOrderBookers || []).some(cob => cob.companyId === c.id && cob.orderBookerId));
                 return (
-                  <Card key={item.id} className="shadow-sm border-emerald-100">
+                  <Card key={item.id} className="shadow-sm border-indigo-100">
                     <CardContent className="p-3">
                       {/* Header: Name + Actions */}
                       <div className="flex items-start justify-between gap-2 mb-2">
@@ -1034,7 +1034,7 @@ function ShopsTab() {
                           {item.address && <p className="text-xs text-muted-foreground truncate">{item.address}</p>}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button variant="outline" size="icon" className="h-8 w-8 border-emerald-300 text-emerald-600 hover:bg-emerald-100 rounded-lg" onClick={() => openEditDialog(item)}>
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-indigo-300 text-indigo-600 hover:bg-indigo-100 rounded-lg" onClick={() => openEditDialog(item)}>
                             <Edit2 className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant="outline" size="icon" className="h-8 w-8 border-red-300 text-red-500 hover:bg-red-100 rounded-lg" onClick={() => handleDelete(item.id)}>
@@ -1058,16 +1058,16 @@ function ShopsTab() {
                       ) : (
                         <div className="space-y-1.5">
                           {assignedCompanies.map((cob) => (
-                            <div key={cob.id} className="flex items-center justify-between gap-2 p-2 bg-emerald-50/50 rounded-md border border-emerald-100">
+                            <div key={cob.id} className="flex items-center justify-between gap-2 p-2 bg-indigo-50/50 rounded-md border border-indigo-100">
                               <div className="min-w-0">
-                                <p className="text-xs font-medium text-emerald-800 truncate">{cob.company.name}</p>
+                                <p className="text-xs font-medium text-indigo-800 truncate">{cob.company.name}</p>
                                 {cob.shopType && cob.shopType !== 'retail' && (
                                   <Badge className={`text-[9px] px-1 py-0 mt-0.5 ${cob.shopType === 'wholesale' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>
                                     {cob.shopType === 'wholesale' ? 'Wholesale' : 'LMT'}
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-xs font-semibold text-emerald-700 truncate text-right">{cob.orderBooker?.name || '-'}</p>
+                              <p className="text-xs font-semibold text-indigo-700 truncate text-right">{cob.orderBooker?.name || '-'}</p>
                             </div>
                           ))}
                           {unassignedCompanies.length > 0 && (
@@ -1112,7 +1112,7 @@ function ShopsTab() {
                                   {compType === 'wholesale' ? 'Ws' : 'LMT'}
                                 </Badge>
                               ) : null}
-                              <span className={`text-xs ${compOB !== '-' ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}`}>
+                              <span className={`text-xs ${compOB !== '-' ? 'text-indigo-700 font-medium' : 'text-muted-foreground'}`}>
                                 {compOB}
                               </span>
                             </div>
@@ -1120,7 +1120,7 @@ function ShopsTab() {
                         );
                       })}
                       <td className="py-2 px-4 text-center whitespace-nowrap">
-                        <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => openEditDialog(item)}>
+                        <Button variant="outline" size="icon" className="h-9 w-9 border-indigo-300 text-indigo-600 hover:bg-indigo-100 btn-enhanced btn-ripple rounded-lg" onClick={() => openEditDialog(item)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}>
@@ -1166,7 +1166,7 @@ function ShopsTab() {
             </div>
 
             <div className="border-t pt-4">
-              <Label className="text-base font-semibold text-emerald-800">Company Settings</Label>
+              <Label className="text-base font-semibold text-indigo-800">Company Settings</Label>
               <p className="text-xs text-muted-foreground mt-1 mb-3">Per company: Shop Type (affects pricing for multi-tier companies) aur Order Booker assign karo.</p>
               <div className="space-y-4">
                 {companies.map((c) => (
@@ -1248,7 +1248,7 @@ function ShopsTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-enhanced btn-ripple rounded-lg">Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1303,7 +1303,7 @@ function OrderBookersTab() {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Order Bookers ({filtered.length})</CardTitle>
-        <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+        <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced btn-ripple rounded-lg px-4 py-2" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Add
         </Button>
       </CardHeader>
@@ -1314,7 +1314,7 @@ function OrderBookersTab() {
             <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
         </div>
-        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-600" /></div> : (
+        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div> : (
           <div className="overflow-auto max-h-[calc(100vh-340px)]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10"><tr className="border-b bg-gray-50">
@@ -1328,7 +1328,7 @@ function OrderBookersTab() {
                     <td className="py-2 px-4 font-medium">{item.name}</td>
                     <td className="py-2 px-4 text-center"><Badge variant="outline">{item._count?.shopCompanyOrderBookers || 0}</Badge></td>
                     <td className="py-2 px-4 text-center">
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-emerald-300 text-emerald-600 hover:bg-emerald-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-indigo-300 text-indigo-600 hover:bg-indigo-100 btn-enhanced btn-ripple rounded-lg" onClick={() => { setEditItem(item); setFormName(item.name); setDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
                       <Button variant="outline" size="icon" className="h-9 w-9 border-red-300 text-red-500 hover:bg-red-100 btn-enhanced btn-ripple rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
                     </td>
                   </tr>
@@ -1347,7 +1347,7 @@ function OrderBookersTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-enhanced btn-ripple rounded-lg">Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
+            <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md btn-enhanced btn-ripple rounded-lg" onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

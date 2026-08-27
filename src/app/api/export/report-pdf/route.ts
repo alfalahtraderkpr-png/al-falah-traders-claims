@@ -69,9 +69,9 @@ function fmtMoney(n: number | null | undefined) {
 // PDF Document Setup
 // ─────────────────────────────────────────────
 const COLORS = {
-  primary: [5, 150, 105] as [number, number, number],      // emerald-600
-  primaryDark: [4, 120, 87] as [number, number, number],   // emerald-700
-  primaryLight: [209, 250, 229] as [number, number, number], // emerald-50
+  primary: [79, 70, 229] as [number, number, number],      // indigo-600
+  primaryDark: [67, 56, 202] as [number, number, number],   // indigo-700
+  primaryLight: [238, 242, 255] as [number, number, number], // indigo-50
   gray: [107, 114, 128] as [number, number, number],       // gray-500
   grayLight: [243, 244, 246] as [number, number, number],  // gray-100
   grayDark: [55, 65, 81] as [number, number, number],      // gray-700
@@ -398,7 +398,7 @@ function reportApproved(doc: jsPDF, claims: Claim[], filters: string[]) {
       if (data.section === 'body' && data.column.index === 7) {
         const val = String(data.cell.text[0] || '');
         if (val === 'Approved') {
-          data.cell.styles.textColor = [4, 120, 87]; // emerald-700
+          data.cell.styles.textColor = [67, 56, 202]; // indigo-700
           data.cell.styles.fontStyle = 'bold';
         } else if (val === 'Partial') {
           data.cell.styles.textColor = [180, 83, 9]; // amber-700

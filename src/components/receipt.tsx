@@ -131,7 +131,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receip
         paddingBottom: '16px',
         marginBottom: '20px',
       }}>
-        <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#065f46', letterSpacing: '2px' }}>
+        <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3730a3', letterSpacing: '2px' }}>
           AL FALAH TRADERS
         </div>
         <div style={{

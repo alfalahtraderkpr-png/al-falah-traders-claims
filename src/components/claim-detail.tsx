@@ -121,7 +121,7 @@ const normalizeStatus = (status: string) => {
 function getAvailableReceiptTypes(status: string): { type: ReceiptType; label: string; icon: React.ReactNode; color: string; description: string }[] {
   const normStatus = normalizeStatus(status);
   const types = [
-    { type: 'received' as ReceiptType, label: 'Expiry Stock Received', icon: <Package className="h-5 w-5" />, color: 'from-emerald-500 to-emerald-600', description: 'Stock receive confirmation' },
+    { type: 'received' as ReceiptType, label: 'Expiry Stock Received', icon: <Package className="h-5 w-5" />, color: 'from-indigo-500 to-indigo-600', description: 'Stock receive confirmation' },
   ];
 
   if (normStatus === 'approved' || normStatus === 'partial' || normStatus === 'cleared') {
@@ -259,11 +259,11 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between animate-slide-up">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={onBack} className="btn-enhanced btn-ripple border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 h-10 w-10 rounded-xl shadow-sm">
+          <Button variant="outline" size="icon" onClick={onBack} className="btn-enhanced btn-ripple border-indigo-300 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-400 h-10 w-10 rounded-xl shadow-sm">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
               <FileText className="h-6 w-6" />
               Claim {claim.claimNumber}
             </h2>
@@ -308,9 +308,9 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
                 <p className="font-medium text-purple-700">{claim.createdBy}</p>
               </div>
             )}
-            <div className="bg-emerald-50/50 rounded-lg p-2 transition-colors hover:bg-emerald-50">
+            <div className="bg-indigo-50/50 rounded-lg p-2 transition-colors hover:bg-indigo-50">
               <p className="text-muted-foreground text-xs">Total Claim</p>
-              <p className="font-bold text-emerald-700">{formatAmount(claim.totalAmount)}</p>
+              <p className="font-bold text-indigo-700">{formatAmount(claim.totalAmount)}</p>
             </div>
             {claim.deductionAmount > 0 && (
               <div className="bg-amber-50/50 rounded-lg p-2 transition-colors hover:bg-amber-50">
@@ -333,9 +333,9 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
               </p>
             </div>
             {normalizeStatus(claim.status) === 'approved' && (
-              <div className="bg-emerald-50/50 rounded-lg p-2 transition-colors hover:bg-emerald-50">
+              <div className="bg-indigo-50/50 rounded-lg p-2 transition-colors hover:bg-indigo-50">
                 <p className="text-muted-foreground text-xs">Claim Amount</p>
-                <p className="font-bold text-emerald-700">{formatAmount(claim.netAmount || claim.totalAmount)}</p>
+                <p className="font-bold text-indigo-700">{formatAmount(claim.netAmount || claim.totalAmount)}</p>
               </div>
             )}
             {normalizeStatus(claim.status) !== 'approved' && claim.approvedAmount !== null && claim.approvedAmount !== undefined && (
@@ -397,11 +397,11 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 bg-emerald-50">
+                <tr className="border-t-2 bg-indigo-50">
                   <td colSpan={4} className="py-3 px-4 text-right font-bold text-lg">
                     Total:
                   </td>
-                  <td className="py-3 px-4 text-right font-bold text-lg text-emerald-700">
+                  <td className="py-3 px-4 text-right font-bold text-lg text-indigo-700">
                     {formatAmount(claim.totalAmount)}
                   </td>
                 </tr>
@@ -456,9 +456,9 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
         <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '180ms' }}>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Camera className="h-5 w-5 text-emerald-600" />
+              <Camera className="h-5 w-5 text-indigo-600" />
               Claim Photos
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">{claim.attachments.length}</Badge>
+              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">{claim.attachments.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>

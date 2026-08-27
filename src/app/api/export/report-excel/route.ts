@@ -77,13 +77,13 @@ function styleSheet(ws: XLSX.WorkSheet, headers: string[], dataRowCount: number,
     if (cell) {
       cell.s = {
         font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
-        fill: { patternType: 'solid', fgColor: { rgb: '059669' } }, // emerald-600
+        fill: { patternType: 'solid', fgColor: { rgb: '4F46E5' } }, // emerald-600
         alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
         border: {
-          top: { style: 'thin', color: { rgb: '047857' } },
-          bottom: { style: 'medium', color: { rgb: '047857' } },
-          left: { style: 'thin', color: { rgb: '047857' } },
-          right: { style: 'thin', color: { rgb: '047857' } },
+          top: { style: 'thin', color: { rgb: '4338CA' } },
+          bottom: { style: 'medium', color: { rgb: '4338CA' } },
+          left: { style: 'thin', color: { rgb: '4338CA' } },
+          right: { style: 'thin', color: { rgb: '4338CA' } },
         },
       };
     }
@@ -142,7 +142,7 @@ function buildCoverSheet(reportType: string, filters: string[], totalClaims: num
   // Style title cells
   if (ws['A1']) {
     ws['A1'].s = {
-      font: { name: 'Calibri', sz: 22, bold: true, color: { rgb: '047857' } },
+      font: { name: 'Calibri', sz: 22, bold: true, color: { rgb: '4338CA' } },
       alignment: { horizontal: 'left', vertical: 'center' },
     };
   }
@@ -231,13 +231,13 @@ function buildSummarySheet(claims: Claim[]) {
     if (ws[ref]) {
       ws[ref].s = {
         font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
-        fill: { patternType: 'solid', fgColor: { rgb: '047857' } },
+        fill: { patternType: 'solid', fgColor: { rgb: '4338CA' } },
         alignment: { horizontal: c === 0 ? 'left' : 'right', vertical: 'center' },
         border: {
-          top: { style: 'medium', color: { rgb: '047857' } },
-          bottom: { style: 'medium', color: { rgb: '047857' } },
-          left: { style: 'thin', color: { rgb: '047857' } },
-          right: { style: 'thin', color: { rgb: '047857' } },
+          top: { style: 'medium', color: { rgb: '4338CA' } },
+          bottom: { style: 'medium', color: { rgb: '4338CA' } },
+          left: { style: 'thin', color: { rgb: '4338CA' } },
+          right: { style: 'thin', color: { rgb: '4338CA' } },
         },
       };
     }
@@ -357,7 +357,7 @@ function buildCompanyBreakdownSheet(claims: Claim[]) {
     if (ws[ref]) {
       ws[ref].s = {
         font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
-        fill: { patternType: 'solid', fgColor: { rgb: '047857' } },
+        fill: { patternType: 'solid', fgColor: { rgb: '4338CA' } },
         alignment: { horizontal: c === 1 ? 'left' : 'right', vertical: 'center' },
       };
     }
@@ -411,7 +411,7 @@ function buildOrderBookerSheet(claims: Claim[]) {
     if (ws[ref]) {
       ws[ref].s = {
         font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
-        fill: { patternType: 'solid', fgColor: { rgb: '047857' } },
+        fill: { patternType: 'solid', fgColor: { rgb: '4338CA' } },
         alignment: { horizontal: c === 1 ? 'left' : 'right', vertical: 'center' },
       };
     }
@@ -463,7 +463,7 @@ function buildAgingSheet(claims: Claim[]) {
     if (ws[ref]) {
       ws[ref].s = {
         font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
-        fill: { patternType: 'solid', fgColor: { rgb: '047857' } },
+        fill: { patternType: 'solid', fgColor: { rgb: '4338CA' } },
         alignment: { horizontal: c === 0 ? 'left' : 'right', vertical: 'center' },
       };
     }

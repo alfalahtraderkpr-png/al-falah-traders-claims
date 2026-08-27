@@ -39,7 +39,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-emerald-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-indigo-100 p-4">
       <div className="text-center max-w-md">
         <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-4">
           <span className="text-red-600 text-2xl">!</span>
@@ -55,7 +55,7 @@ export default function Error({
         )}
         <div className="flex gap-3 justify-center">
           <button
-            className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
+            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
             onClick={() => {
               // Clear all caches before reset
               if ('caches' in window) {

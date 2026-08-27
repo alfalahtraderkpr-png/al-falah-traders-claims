@@ -115,7 +115,7 @@ export function Dashboard({ user }: DashboardProps) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto mb-3" />
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground animate-pulse">Loading dashboard...</p>
         </div>
       </div>
@@ -131,10 +131,10 @@ export function Dashboard({ user }: DashboardProps) {
       title: 'Total Claims',
       value: data.totalClaims,
       icon: FileText,
-      gradient: 'from-emerald-500 to-emerald-700',
-      bgLight: 'bg-emerald-50',
-      textColor: 'text-emerald-700',
-      iconBg: 'bg-emerald-100',
+      gradient: 'from-indigo-600 to-violet-600',
+      bgLight: 'bg-indigo-50',
+      textColor: 'text-indigo-700',
+      iconBg: 'bg-indigo-100',
     },
     {
       title: 'Pending',
@@ -197,7 +197,7 @@ export function Dashboard({ user }: DashboardProps) {
       <div className="animate-fade-in-up">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-indigo-800 flex items-center gap-2">
               <TrendingUp className="h-6 w-6" />
               Dashboard
             </h2>
@@ -207,7 +207,7 @@ export function Dashboard({ user }: DashboardProps) {
             <div className="flex flex-col items-end gap-2">
               <Button
                 variant="outline"
-                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 btn-enhanced"
+                className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 btn-enhanced"
                 onClick={handleRecalculate}
                 disabled={recalculating}
               >
@@ -218,7 +218,7 @@ export function Dashboard({ user }: DashboardProps) {
                 )}
               </Button>
               {recalcResult && (
-                <span className="text-xs text-emerald-600 font-medium animate-scale-in">{recalcResult}</span>
+                <span className="text-xs text-indigo-600 font-medium animate-scale-in">{recalcResult}</span>
               )}
             </div>
           )}
@@ -226,7 +226,7 @@ export function Dashboard({ user }: DashboardProps) {
       </div>
 
       {/* Workflow Progress Indicator */}
-      <Card className="shadow-sm animate-fade-in-up border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-blue-50">
+      <Card className="shadow-sm animate-fade-in-up border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-violet-50">
         <CardContent className="p-4">
           {/* Desktop: horizontal 4-step layout */}
           <div className="hidden sm:flex items-center justify-between gap-2 text-sm">
@@ -396,7 +396,7 @@ export function Dashboard({ user }: DashboardProps) {
         <Card className="shadow-sm animate-fade-in-up" style={{ animationDelay: '250ms' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-emerald-600" />
+              <DollarSign className="h-5 w-5 text-indigo-600" />
               Recent Claims
             </CardTitle>
           </CardHeader>
@@ -426,7 +426,7 @@ export function Dashboard({ user }: DashboardProps) {
                         className="border-b table-row-hover animate-fade-in-up"
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <td className="py-2 px-2 font-medium text-emerald-700">{claim.claimNumber}</td>
+                        <td className="py-2 px-2 font-medium text-indigo-700">{claim.claimNumber}</td>
                         <td className="py-2 px-2 truncate max-w-[120px]" title={claim.shop.name}>{claim.shop.name}</td>
                         <td className="py-2 px-2 text-right font-medium">{formatAmount(claim.totalAmount)}</td>
                         <td className="py-2 px-2 text-center">

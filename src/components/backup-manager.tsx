@@ -1,10 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
 import {
   DatabaseBackup,
   FileSpreadsheet,
@@ -14,6 +10,7 @@ import {
   ShieldAlert,
   CheckCircle2,
   Loader2,
+  RefreshCw,
   FileText,
   Building2,
   Package,
@@ -22,6 +19,7 @@ import {
   ImageIcon,
   Info,
   AlertTriangle,
+  Clock,
 } from 'lucide-react';
 
 interface BackupStats {
@@ -56,12 +54,43 @@ function formatBytes(bytes: number): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return 'never';
   try {
-    return new Date(iso).toLocaleString();
+    return new Date(iso).toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   } catch {
     return iso;
   }
+}
+
+function ProgressBar({ value }: { value: number }) {
+  return (
+    <div
+      style={{
+        height: 8,
+        borderRadius: 99,
+        background: 'var(--af-surface2)',
+        border: '1px solid var(--af-border)',
+        overflow: 'hidden',
+        marginBottom: 10,
+      }}
+    >
+      <div
+        style={{
+          height: '100%',
+          width: `${Math.min(100, Math.max(2, value))}%`,
+          borderRadius: 99,
+          background: 'linear-gradient(90deg, var(--af-primary), var(--af-violet))',
+          transition: 'width .3s ease',
+        }}
+      />
+    </div>
+  );
 }
 
 export function BackupManager() {
@@ -90,6 +119,7 @@ export function BackupManager() {
   const parsedBackupRef = useRef<{ tables: Record<string, unknown>; createdAt?: string } | null>(null);
 
   const loadStats = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/backup', { cache: 'no-store' });
       if (res.ok) setStats(await res.json());
@@ -232,12 +262,10 @@ export function BackupManager() {
         createdAt: parsed.createdAt || 'unknown date',
         counts: {
           Claims: (t.claims || []).length,
-          'Claim Items': (t.claimItems || []).length,
+          Items: (t.claimItems || []).length,
           Companies: (t.companies || []).length,
           Products: (t.products || []).length,
-          Suppliers: (t.suppliers || []).length,
           Shops: (t.shops || []).length,
-          'Order Bookers': (t.orderBookers || []).length,
           Users: (t.users || []).length,
           Photos: withUrl.length,
         },
@@ -315,259 +343,388 @@ export function BackupManager() {
   const busyDownloading = dlPhase === 'structure' || dlPhase === 'photos' || dlPhase === 'building';
   const busyRestoring = restorePhase === 'working' || restorePhase === 'photos';
 
-  const statCards = stats
+  const kpis = stats
     ? [
-        { label: 'Claims', value: stats.counts.claims, icon: FileText, color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40' },
-        { label: 'Claim Items', value: stats.counts.claimItems, icon: Package, color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/40' },
-        { label: 'Companies', value: stats.counts.companies, icon: Building2, color: 'text-violet-600 bg-violet-100 dark:bg-violet-900/40' },
-        { label: 'Products', value: stats.counts.products, icon: Package, color: 'text-amber-600 bg-amber-100 dark:bg-amber-900/40' },
-        { label: 'Shops', value: stats.counts.shops, icon: Store, color: 'text-pink-600 bg-pink-100 dark:bg-pink-900/40' },
-        { label: 'Users', value: stats.counts.users, icon: Users, color: 'text-cyan-600 bg-cyan-100 dark:bg-cyan-900/40' },
-        { label: 'Photos', value: stats.counts.attachments, icon: ImageIcon, color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/40' },
-        { label: 'Est. Backup Size', value: formatBytes(stats.estimatedTotalBytes), icon: HardDriveDownload, color: 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40' },
+        { lbl: 'Claims', val: stats.counts.claims, icon: FileText, kb: 'var(--af-primary-soft)', kc2: 'var(--af-primary)' },
+        { lbl: 'Companies', val: stats.counts.companies, icon: Building2, kb: 'var(--af-info-soft)', kc2: 'var(--af-info)' },
+        { lbl: 'Products', val: stats.counts.products, icon: Package, kb: 'var(--af-warn-soft)', kc2: 'var(--af-warn)' },
+        { lbl: 'Shops', val: stats.counts.shops, icon: Store, kb: 'var(--af-violet-soft)', kc2: 'var(--af-violet)' },
+        { lbl: 'Users', val: stats.counts.users, icon: Users, kb: 'var(--af-teal-soft)', kc2: 'var(--af-teal)' },
+        { lbl: 'Photos', val: stats.counts.attachments, icon: ImageIcon, kb: 'var(--af-bad-soft)', kc2: 'var(--af-bad)' },
       ]
     : [];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* ---------- Header ---------- */}
-      <div className="rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-800 dark:to-emerald-900 text-white p-6 shadow-lg">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
-            <DatabaseBackup className="h-6 w-6" />
+    <>
+      {/* ---------- Page head ---------- */}
+      <div className="page-head">
+        <div>
+          <div className="h1">Backup &amp; Restore</div>
+          <div className="sub">
+            Poora data aik click mein save karein — claims, companies, products, photos, sab kuch · Last backup:{' '}
+            <b style={{ color: 'var(--af-text)' }}>{formatDate(lastBackup)}</b>
           </div>
-          <div>
-            <h2 className="text-xl font-bold">Backup &amp; Restore</h2>
-            <p className="text-emerald-100/90 text-sm mt-1">
-              Download a complete copy of all your data — claims, companies, products, shops, users and photos — or restore everything from a previous backup file.
-            </p>
-            <p className="text-emerald-200/70 text-xs mt-2">
-              Last backup downloaded: <strong>{formatDate(lastBackup)}</strong>
-            </p>
-          </div>
+        </div>
+        <div className="ph-actions">
+          <button className="btn btn-o" onClick={loadStats} disabled={loading}>
+            {loading ? <Loader2 className="ic sm animate-spin" /> : <RefreshCw className="ic sm" />} Refresh
+          </button>
         </div>
       </div>
 
-      {/* ---------- Data Overview ---------- */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <HardDriveDownload className="h-4 w-4 text-emerald-600" />
-            What&apos;s in your database right now
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading…
-            </div>
-          ) : !stats ? (
-            <div className="flex items-center gap-2 text-amber-600 text-sm py-4">
-              <AlertTriangle className="h-4 w-4" /> Could not load database stats.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {statCards.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <div key={s.label} className="rounded-xl border bg-card p-3 flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${s.color}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-lg font-bold leading-tight">{s.value}</p>
-                      <p className="text-xs text-muted-foreground truncate">{s.label}</p>
+      {/* ---------- KPI overview ---------- */}
+      {loading && !stats ? (
+        <div className="card">
+          <div className="empty-state" style={{ minHeight: 180 }}>
+            <Loader2 className="ic animate-spin" />
+            <p className="small">Loading database overview…</p>
+          </div>
+        </div>
+      ) : stats ? (
+        <>
+          <div className="kpis">
+            {kpis.map((k) => {
+              const Icon = k.icon;
+              return (
+                <div
+                  className="kpi"
+                  key={k.lbl}
+                  style={{ '--kb': k.kb, '--kc2': k.kc2 } as React.CSSProperties}
+                >
+                  <div className="kpi-top">
+                    <div className="kpi-ic">
+                      <Icon className="ic" />
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ---------- Download Backup ---------- */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileJson className="h-4 w-4 text-emerald-600" />
-            Download Backup
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-3">
-            {/* JSON full backup */}
-            <div className="rounded-xl border-2 border-emerald-200 dark:border-emerald-900 p-4 bg-emerald-50/50 dark:bg-emerald-950/30">
-              <div className="flex items-center gap-2 mb-1">
-                <FileJson className="h-5 w-5 text-emerald-600" />
-                <h3 className="font-semibold text-sm">Full Backup (JSON)</h3>
+                  <div>
+                    <div className="kpi-lbl">{k.lbl}</div>
+                    <div className="kpi-val">{k.val.toLocaleString()}</div>
+                  </div>
+                </div>
+              );
+            })}
+            <div
+              className="kpi"
+              style={{ '--kb': 'var(--af-ok-soft)', '--kc2': 'var(--af-ok)' } as React.CSSProperties}
+            >
+              <div className="kpi-top">
+                <div className="kpi-ic">
+                  <HardDriveDownload className="ic" />
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                Complete copy of <strong>everything</strong> including photos. This is the file you use to restore the system later.
-                {stats && stats.counts.attachments > 0 && ` Contains ${stats.counts.attachments} photo(s).`}
+              <div>
+                <div className="kpi-lbl">Est. backup size</div>
+                <div className="kpi-val">{formatBytes(stats.estimatedTotalBytes)}</div>
+                <div className="kpi-sub">
+                  {stats.counts.claimItems.toLocaleString()} claim items · {stats.counts.auditLogs.toLocaleString()} audit entries
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="note">
+          <AlertTriangle className="ic" />
+          <span>
+            Could not load database overview. Check your connection and press <b>Refresh</b>.
+          </span>
+        </div>
+      )}
+
+      {/* ---------- Download card ---------- */}
+      <div className="card">
+        <div className="card-h">
+          <div>
+            <div className="card-t">
+              <DatabaseBackup className="ic sm" /> Download Backup
+            </div>
+            <div className="card-sub">Har hafte aik full backup zaroor lein — data loss se bachne ka best tareeqa</div>
+          </div>
+        </div>
+        <div className="card-b">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 14 }}>
+            {/* JSON full backup */}
+            <div
+              style={{
+                border: '1.5px solid color-mix(in srgb, var(--af-primary) 30%, transparent)',
+                background: 'var(--af-primary-soft)',
+                borderRadius: 'var(--af-r)',
+                padding: 18,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <FileJson className="ic lg" style={{ color: 'var(--af-primary)' }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>Full Backup (JSON)</div>
+                  <div className="small muted">Complete · Restorable · Photos included</div>
+                </div>
+              </div>
+              <p className="small" style={{ color: 'var(--af-text2)', lineHeight: 1.55, flex: 1 }}>
+                Everything in one file — all claims, items, companies, products, shops, suppliers, users, credit limits,
+                price history, audit log and photos.
+                {stats && stats.counts.attachments > 0 && ` Includes ${stats.counts.attachments} photo(s).`}
+                This is the file you use to restore the system.
               </p>
-              <Button
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                onClick={handleDownloadJson}
-                disabled={busyDownloading}
-              >
+              <button className="btn btn-p btn-block" onClick={handleDownloadJson} disabled={busyDownloading}>
                 {busyDownloading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Working…
+                    <Loader2 className="ic sm animate-spin" /> Working…
                   </>
                 ) : (
                   <>
-                    <HardDriveDownload className="h-4 w-4 mr-2" /> Download Full Backup
+                    <HardDriveDownload className="ic sm" /> Download Full Backup
                   </>
                 )}
-              </Button>
+              </button>
             </div>
 
             {/* Excel backup */}
-            <div className="rounded-xl border p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <FileSpreadsheet className="h-5 w-5 text-green-600" />
-                <h3 className="font-semibold text-sm">Excel Backup (for records)</h3>
+            <div
+              style={{
+                border: '1px solid var(--af-border)',
+                borderRadius: 'var(--af-r)',
+                padding: 18,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <FileSpreadsheet className="ic lg" style={{ color: 'var(--af-ok)' }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>Excel Backup</div>
+                  <div className="small muted">Readable · For records only</div>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                Human-readable Excel workbook with every table on a separate sheet — Claims, Products, Shops, Users, Price History, Audit Log and more. Great for record-keeping. <span className="text-muted-foreground/70">(No photos; cannot be used for restore.)</span>
+              <p className="small" style={{ color: 'var(--af-text2)', lineHeight: 1.55, flex: 1 }}>
+                Human-readable Excel workbook — every table on its own sheet (Claims, Claim Items, Companies, Products,
+                Shops, Suppliers, Order Bookers, Users, Credit Limits, Price History, Audit Log…). Great for
+                record-keeping. <span className="muted">Cannot be used for restore.</span>
               </p>
-              <Button variant="outline" className="w-full border-green-300 text-green-700 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950" onClick={handleDownloadExcel}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" /> Download Excel
-              </Button>
+              <button className="btn btn-o btn-block" onClick={handleDownloadExcel}>
+                <FileSpreadsheet className="ic sm" /> Download Excel
+              </button>
             </div>
           </div>
 
           {/* Download progress */}
           {(busyDownloading || dlPhase === 'done' || dlPhase === 'error') && (
-            <div className={`rounded-lg p-3 text-sm ${dlPhase === 'error' ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : dlPhase === 'done' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : 'bg-gray-50 dark:bg-gray-900'}`}>
-              {busyDownloading && <Progress value={dlProgress} className="h-2 mb-2" />}
-              <div className="flex items-start gap-2">
-                {dlPhase === 'done' && <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />}
-                {dlPhase === 'error' && <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />}
-                <span>{dlMessage}</span>
+            <div
+              style={{
+                marginTop: 14,
+                borderRadius: 12,
+                padding: '12px 15px',
+                fontSize: 12.5,
+                lineHeight: 1.5,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+                ...(dlPhase === 'error'
+                  ? { background: 'var(--af-bad-soft)', color: 'var(--af-bad)', border: '1px solid color-mix(in srgb, var(--af-bad) 35%, transparent)' }
+                  : dlPhase === 'done'
+                    ? { background: 'var(--af-ok-soft)', color: 'var(--af-ok)', border: '1px solid color-mix(in srgb, var(--af-ok) 35%, transparent)' }
+                    : { background: 'var(--af-surface2)', color: 'var(--af-text2)', border: '1px solid var(--af-border)' }),
+              }}
+            >
+              {dlPhase === 'done' && <CheckCircle2 className="ic sm" style={{ marginTop: 1, flexShrink: 0 }} />}
+              {dlPhase === 'error' && <AlertTriangle className="ic sm" style={{ marginTop: 1, flexShrink: 0 }} />}
+              <div style={{ flex: 1 }}>
+                {busyDownloading && <ProgressBar value={dlProgress} />}
+                {dlMessage}
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* ---------- Restore ---------- */}
-      <Card className="border-amber-200 dark:border-amber-900">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Upload className="h-4 w-4 text-amber-600" />
-            Restore from Backup
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 p-3 flex gap-2 text-sm text-amber-800 dark:text-amber-200">
-            <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
-            <p className="leading-relaxed">
-              <strong>Warning:</strong> Restoring <u>replaces ALL current data</u> (claims, companies, products, shops, users, photos — everything) with the contents of the backup file. This cannot be undone. Download a fresh backup first if you want to keep the current data.
-            </p>
+      {/* ---------- Restore card ---------- */}
+      <div className="card" style={{ borderColor: 'color-mix(in srgb, var(--af-bad) 30%, transparent)' }}>
+        <div className="card-h">
+          <div>
+            <div className="card-t" style={{ color: 'var(--af-bad)' }}>
+              <Upload className="ic sm" /> Restore from Backup
+            </div>
+            <div className="card-sub">Purane backup file se poora data wapas load karein</div>
+          </div>
+        </div>
+        <div className="card-b">
+          <div
+            style={{
+              display: 'flex',
+              gap: 11,
+              alignItems: 'flex-start',
+              padding: '12px 15px',
+              border: `1.5px dashed color-mix(in srgb, var(--af-bad) 45%, transparent)`,
+              background: 'var(--af-bad-soft)',
+              borderRadius: 12,
+              fontSize: 12.5,
+              color: 'var(--af-text2)',
+              lineHeight: 1.55,
+              marginBottom: 16,
+            }}
+          >
+            <ShieldAlert className="ic sm" style={{ color: 'var(--af-bad)', marginTop: 2, flexShrink: 0 }} />
+            <span>
+              <b style={{ color: 'var(--af-bad)' }}>Warning:</b> Restoring <u>replaces ALL current data</u> (claims,
+              companies, products, shops, users, photos — everything) with the contents of the backup file. This cannot
+              be undone. Agar current data rakhna hai, to pehle fresh backup download karein.
+            </span>
           </div>
 
           {/* Step 1: choose file */}
-          <div>
-            <label className="block text-sm font-medium mb-2">1. Choose a backup file (.json)</label>
-            <div className="flex items-center gap-3">
-              <Input
-                type="file"
-                accept="application/json,.json"
-                onChange={handleFileSelect}
-                disabled={busyRestoring}
-                className="cursor-pointer file:cursor-pointer"
-              />
-            </div>
+          <div className="field" style={{ marginBottom: 14 }}>
+            <label className="label" htmlFor="af-backup-file">
+              1. Choose a backup file (.json)
+            </label>
+            <input
+              id="af-backup-file"
+              type="file"
+              accept="application/json,.json"
+              onChange={handleFileSelect}
+              disabled={busyRestoring}
+              className="af-inp"
+              style={{ cursor: 'pointer', paddingTop: 8, paddingBottom: 8, height: 'auto' }}
+            />
             {restoreError && !busyRestoring && (
-              <p className="text-sm text-red-600 mt-2 flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4" /> {restoreError}
+              <p className="small" style={{ color: 'var(--af-bad)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle className="ic sm" /> {restoreError}
               </p>
             )}
           </div>
 
-          {/* Step 2: preview */}
+          {/* Step 2 & 3: preview + confirm */}
           {filePreview && (
-            <div className="rounded-xl border bg-card p-4 space-y-3">
-              <label className="block text-sm font-medium">2. Check what&apos;s inside this backup</label>
-              <p className="text-xs text-muted-foreground">Backup created: {formatDate(filePreview.createdAt)}</p>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            <div
+              style={{
+                border: '1px solid var(--af-border)',
+                borderRadius: 'var(--af-r)',
+                padding: 16,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <div>
+                <div className="label">2. Check what&apos;s inside this backup</div>
+                <div className="small muted" style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                  <Clock className="ic sm" /> Backup created: {formatDate(filePreview.createdAt)}
+                </div>
+              </div>
+              <div className="kpis" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8 }}>
                 {Object.entries(filePreview.counts).map(([k, v]) => (
-                  <div key={k} className="rounded-lg bg-muted/60 dark:bg-muted/30 p-2 text-center">
-                    <p className="text-base font-bold">{v}</p>
-                    <p className="text-[10px] text-muted-foreground">{k}</p>
+                  <div
+                    key={k}
+                    style={{
+                      background: 'var(--af-surface2)',
+                      border: '1px solid var(--af-border)',
+                      borderRadius: 10,
+                      padding: '9px 6px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div className="kpi-val" style={{ fontSize: 17 }}>
+                      {v.toLocaleString()}
+                    </div>
+                    <div className="kpi-sub">{k}</div>
                   </div>
                 ))}
               </div>
 
-              <label className="block text-sm font-medium pt-1">3. Type <strong>RESTORE</strong> to confirm</label>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="Type RESTORE here"
-                  disabled={busyRestoring || restorePhase === 'done'}
-                  className="sm:max-w-xs"
-                />
-                <Button
-                  variant="destructive"
-                  onClick={handleRestore}
-                  disabled={confirmText !== 'RESTORE' || busyRestoring || restorePhase === 'done'}
-                >
-                  {busyRestoring ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Restoring…
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" /> Restore Everything
-                    </>
-                  )}
-                </Button>
+              <div className="field">
+                <label className="label">
+                  3. Type <b style={{ color: 'var(--af-bad)' }}>RESTORE</b> to confirm
+                </label>
+                <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+                  <input
+                    className="af-inp"
+                    style={{ maxWidth: 230 }}
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="Type RESTORE here"
+                    disabled={busyRestoring || restorePhase === 'done'}
+                  />
+                  <button
+                    className="btn btn-d"
+                    onClick={handleRestore}
+                    disabled={confirmText !== 'RESTORE' || busyRestoring || restorePhase === 'done'}
+                  >
+                    {busyRestoring ? (
+                      <>
+                        <Loader2 className="ic sm animate-spin" /> Restoring…
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="ic sm" /> Restore Everything
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {/* Restore progress */}
           {(busyRestoring || restorePhase === 'done' || restorePhase === 'error') && (
-            <div className={`rounded-lg p-3 text-sm ${restorePhase === 'error' ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300' : restorePhase === 'done' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : 'bg-gray-50 dark:bg-gray-900'}`}>
-              {busyRestoring && <Progress value={restoreProgress} className="h-2 mb-2" />}
-              <div className="flex items-start gap-2">
-                {restorePhase === 'done' && <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />}
-                {restorePhase === 'error' && <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />}
-                <div>
-                  <p>{restoreMessage}</p>
-                  {restorePhase === 'error' && restoreError && <p className="mt-1">{restoreError}</p>}
-                  {restorePhase === 'done' && (
-                    <p className="text-xs mt-1 opacity-80">
-                      Tip: refresh the page (pull down or press F5) so every screen reloads the restored data.
-                    </p>
-                  )}
-                </div>
+            <div
+              style={{
+                marginTop: 14,
+                borderRadius: 12,
+                padding: '12px 15px',
+                fontSize: 12.5,
+                lineHeight: 1.5,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+                ...(restorePhase === 'error'
+                  ? { background: 'var(--af-bad-soft)', color: 'var(--af-bad)', border: '1px solid color-mix(in srgb, var(--af-bad) 35%, transparent)' }
+                  : restorePhase === 'done'
+                    ? { background: 'var(--af-ok-soft)', color: 'var(--af-ok)', border: '1px solid color-mix(in srgb, var(--af-ok) 35%, transparent)' }
+                    : { background: 'var(--af-surface2)', color: 'var(--af-text2)', border: '1px solid var(--af-border)' }),
+              }}
+            >
+              {restorePhase === 'done' && <CheckCircle2 className="ic sm" style={{ marginTop: 1, flexShrink: 0 }} />}
+              {restorePhase === 'error' && <AlertTriangle className="ic sm" style={{ marginTop: 1, flexShrink: 0 }} />}
+              <div style={{ flex: 1 }}>
+                {busyRestoring && <ProgressBar value={restoreProgress} />}
+                <p>{restoreMessage}</p>
+                {restorePhase === 'error' && restoreError && <p style={{ marginTop: 4 }}>{restoreError}</p>}
+                {restorePhase === 'done' && (
+                  <p className="small" style={{ marginTop: 4, opacity: 0.85 }}>
+                    Tip: refresh the page (pull down or press F5) so every screen reloads the restored data.
+                  </p>
+                )}
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* ---------- Tips ---------- */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Info className="h-4 w-4 text-emerald-600" />
-            Backup Tips
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="text-sm text-muted-foreground space-y-2 leading-relaxed">
-            <li>• Download a <strong>Full Backup (JSON)</strong> at least once a week — it is the only file that can fully restore the system, photos included.</li>
-            <li>• Keep backup files in more than one place: your phone, a laptop, WhatsApp to yourself, email, or Google Drive.</li>
-            <li>• The Excel backup is for reading and record-keeping — it cannot be restored, so always keep a JSON backup too.</li>
-            <li>• Always download a fresh backup <strong>before</strong> restoring an old one — that way nothing is ever lost.</li>
+      <div className="card">
+        <div className="card-h">
+          <div className="card-t">
+            <Info className="ic sm" /> Backup Tips
+          </div>
+        </div>
+        <div className="card-b">
+          <div className="note" style={{ marginBottom: 12 }}>
+            <DatabaseBackup className="ic" />
+            <span>
+              <b>Har hafte full backup lein.</b> Full Backup (JSON) hi woh file hai jo poora system restore karti hai —
+              photos samet. Excel backup sirf parhne ke liye hai.
+            </span>
+          </div>
+          <ul className="small" style={{ color: 'var(--af-text2)', lineHeight: 1.9, paddingLeft: 18 }}>
+            <li>Backup files ko aik se zyada jagah rakhein — phone, laptop, WhatsApp, email ya Google Drive.</li>
+            <li>Restore se pehle hamesha fresh backup download karein, taake current data kabhi lost na ho.</li>
+            <li>Backup file mein passwords hash form mein hoti hain — file ko safe rakhein, kisi ko na dein.</li>
+            <li>Agar restore ke doran koi error aaye, to data bilkul nahi badalta (safe rollback) — dobara try karein.</li>
           </ul>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </>
   );
 }

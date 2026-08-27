@@ -9,6 +9,7 @@ import { MasterData } from '@/components/master-data';
 import { UsersManager } from '@/components/users-manager';
 import { Reports } from '@/components/reports';
 import { StockNotReceived } from '@/components/stock-not-received';
+import { BackupManager } from '@/components/backup-manager';
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 interface User {
@@ -170,6 +171,8 @@ export default function Home() {
           return <UsersManager />;
         case 'stock-not-received':
           return <StockNotReceived user={user} />;
+        case 'backup':
+          return user.role === 'admin' ? <BackupManager /> : <Dashboard user={user} />;
         case 'reports':
           return <Reports user={user} />;
         default:

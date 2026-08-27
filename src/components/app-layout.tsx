@@ -21,6 +21,7 @@ import {
   Plus,
   Search,
   Bell,
+  DatabaseBackup,
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -56,6 +57,7 @@ const adminNavGroups = [
     items: [
       { id: 'users', label: 'Users', icon: Shield },
       { id: 'reports', label: 'Reports', icon: BarChart3 },
+      { id: 'backup', label: 'Backup', icon: DatabaseBackup },
     ],
   },
 ];

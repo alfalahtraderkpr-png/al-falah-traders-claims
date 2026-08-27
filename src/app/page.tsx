@@ -10,6 +10,8 @@ import { UsersManager } from '@/components/users-manager';
 import { Reports } from '@/components/reports';
 import { StockNotReceived } from '@/components/stock-not-received';
 import { BackupManager } from '@/components/backup-manager';
+import { TrashManager } from '@/components/trash-manager';
+import { SettingsManager } from '@/components/settings-manager';
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 
 interface User {
@@ -173,6 +175,10 @@ export default function Home() {
           return <StockNotReceived user={user} />;
         case 'backup':
           return user.role === 'admin' ? <BackupManager /> : <Dashboard user={user} />;
+        case 'trash':
+          return user.role === 'admin' ? <TrashManager /> : <Dashboard user={user} />;
+        case 'settings':
+          return user.role === 'admin' ? <SettingsManager onNavigate={setActiveSection} /> : <Dashboard user={user} />;
         case 'reports':
           return <Reports user={user} />;
         default:

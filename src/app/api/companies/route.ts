@@ -7,14 +7,14 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthContext(request);
 
-    // For admins, return all. For order bookers, return only their assigned companies.
-    // If an order booker has zero assignments, return nothing.
+    // For admins, return all (excluding soft-deleted). For order bookers,
+    // return only their assigned companies. Zero assignments → nothing.
     const companyWhere =
       auth && auth.role !== 'admin'
         ? (auth.assignedCompanyIds.length === 0
             ? { id: { in: ['__none__'] } } // see nothing
-            : { id: { in: auth.assignedCompanyIds } })
-        : {};
+            : { AND: [{ deletedAt: null }, { id: { in: auth.assignedCompanyIds } }] })
+        : { deletedAt: null };
 
     const companies = await db.company.findMany({
       where: companyWhere,
@@ -36,9 +36,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
     }
 
-    const existing = await db.company.findFirst({ where: { name: name.trim() } });
+    const existing = await db.company.findFirst({ where: { name: name.trim(), deletedAt: null } });
     if (existing) {
       return NextResponse.json({ error: 'Company already exists' }, { status: 409 });
+    }
+
+    // Same name in trash? Reuse that record instead of creating a duplicate
+    const trashed = await db.company.findFirst({ where: { name: name.trim(), deletedAt: { not: null } } });
+    if (trashed) {
+      const restored = await db.company.update({
+        where: { id: trashed.id },
+        data: { deletedAt: null },
+      });
+      return NextResponse.json(restored, { status: 201 });
     }
 
     const company = await db.company.create({

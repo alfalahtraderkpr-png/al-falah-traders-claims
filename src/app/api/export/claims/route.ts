@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const companyId = searchParams.get('companyId');
     
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { deletedAt: null };  // hide soft-deleted
     if (status) where.status = status;
     if (companyId) where.companyId = companyId;
     

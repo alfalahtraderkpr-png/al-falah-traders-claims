@@ -9,7 +9,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { name, address, shopType, companyOrderBookers } = await request.json();
+    const { name, address, phone, shopType, companyOrderBookers } = await request.json();
     const auth = await getAuthContext(request);
 
     // Order bookers can only edit shops they're assigned to
@@ -28,6 +28,7 @@ export async function PUT(
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name.trim();
     if (address !== undefined) data.address = address;
+    if (phone !== undefined) data.phone = phone?.trim() || null;
     if (shopType !== undefined) data.shopType = shopType;
 
     const shop = await db.shop.update({
@@ -117,10 +118,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete shop used in claims' }, { status: 400 });
     }
 
-    // Cascade handles mappings; explicit deleteMany for safety
-    await db.shopCompanyOrderBooker.deleteMany({ where: { shopId: id } });
-    await db.shop.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    // SOFT DELETE — shop moves to Trash, recoverable for 30 days
+    await db.shop.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+    return NextResponse.json({ success: true, trashed: true });
   } catch (error) {
     console.error('Delete shop error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

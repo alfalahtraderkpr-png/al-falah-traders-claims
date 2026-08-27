@@ -38,15 +38,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete order booker used in claims' }, { status: 400 });
     }
 
-    // Unlink from shop-company mappings (junction table has nullable FK, auto set to null on delete,
-    // but we do it explicitly to be safe across all DB drivers)
-    await db.shopCompanyOrderBooker.updateMany({
-      where: { orderBookerId: id },
-      data: { orderBookerId: null },
-    });
-
-    await db.orderBooker.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    // SOFT DELETE — order booker moves to Trash, recoverable for 30 days.
+    // Shop-company mappings stay linked so restore brings everything back.
+    await db.orderBooker.update({ where: { id }, data: { deletedAt: new Date() } });
+    return NextResponse.json({ success: true, trashed: true });
   } catch (error) {
     console.error('Delete order booker error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -39,8 +39,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete supplier used in claims' }, { status: 400 });
     }
 
-    await db.supplier.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    // SOFT DELETE — supplier moves to Trash, recoverable for 30 days
+    await db.supplier.update({ where: { id }, data: { deletedAt: new Date() } });
+    return NextResponse.json({ success: true, trashed: true });
   } catch (error) {
     console.error('Delete supplier error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

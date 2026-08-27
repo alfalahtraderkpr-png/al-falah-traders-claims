@@ -297,16 +297,31 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const auth = await getAuthContext(request);
 
     const claim = await db.claim.findUnique({ where: { id } });
     if (!claim) {
       return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
     }
 
-    await db.claimItem.deleteMany({ where: { claimId: id } });
-    await db.claim.delete({ where: { id } });
+    // Order bookers can only delete their OWN claims
+    if (auth && auth.role !== 'admin') {
+      if (!auth.orderBookerId || claim.orderBookerId !== auth.orderBookerId) {
+        return NextResponse.json({ error: 'You can only delete your own claims.' }, { status: 403 });
+      }
+    }
 
-    return NextResponse.json({ success: true });
+    // SOFT DELETE — claim moves to Trash with all its items intact.
+    // Recoverable for 30 days from Trash page, then auto-purged.
+    await db.claim.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: auth?.name || auth?.userId || null,
+      },
+    });
+
+    return NextResponse.json({ success: true, trashed: true });
   } catch (error) {
     console.error('Delete claim error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

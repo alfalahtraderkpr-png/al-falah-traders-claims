@@ -8,13 +8,13 @@ export async function GET(request: NextRequest) {
     const auth = await getAuthContext(request);
 
     // For order bookers, only show shops where they have an assignment in
-    // the junction table (regardless of company).
+    // the junction table (regardless of company). Soft-deleted shops are hidden.
     const where =
       auth && auth.role !== 'admin'
         ? (auth.orderBookerId
-            ? { companyOrderBookers: { some: { orderBookerId: auth.orderBookerId } } }
+            ? { AND: [{ deletedAt: null }, { companyOrderBookers: { some: { orderBookerId: auth.orderBookerId } } }] }
             : { id: '__none__' }) // no OB link → see nothing
-        : {};
+        : { deletedAt: null };
 
     const shops = await db.shop.findMany({
       where,
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, address, shopType, companyOrderBookers } = await request.json();
+    const { name, address, phone, shopType, companyOrderBookers } = await request.json();
     const auth = await getAuthContext(request);
 
     if (!name || !name.trim()) {
@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         data: {
           name: name.trim(),
           address: address || '',
+          phone: phone?.trim() || null,
           shopType: shopType || 'retail',
         },
       });

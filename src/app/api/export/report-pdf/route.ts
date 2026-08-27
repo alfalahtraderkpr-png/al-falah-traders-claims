@@ -17,7 +17,7 @@ async function fetchClaims(filters: {
   dateFrom?: string;
   dateTo?: string;
 }) {
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { deletedAt: null };  // hide soft-deleted
   if (filters.status) {
     // Support comma-separated list of statuses (e.g. 'approved,partial')
     // OR a single status string.

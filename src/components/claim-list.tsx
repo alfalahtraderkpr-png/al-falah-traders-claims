@@ -1035,8 +1035,9 @@ export function ClaimList({ user, autoOpenForm, onAutoOpenHandled }: ClaimListPr
 
               {confirmDialog.type === 'delete' && (
                 <>
-                  <p className="small" style={{ color: 'var(--af-bad)', fontWeight: 600 }}>
-                    This action cannot be undone. This will permanently delete the claim and all its items.
+                  <p className="small" style={{ color: 'var(--af-text2)', fontWeight: 500, lineHeight: 1.6 }}>
+                    Claim <b>Trash</b> mein chale jayega — 30 din tak wapis recover kiya ja sakta hai (System → Trash).
+                    Uske baad ye permanently delete ho jayega.
                   </p>
                   <div className="field">
                     <label className="label">

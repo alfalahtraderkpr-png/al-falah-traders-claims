@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     const orderBookers = await db.orderBooker.findMany({
+      where: { deletedAt: null },
       orderBy: { name: 'asc' },
       include: { _count: { select: { shopCompanyOrderBookers: true } } },
     });

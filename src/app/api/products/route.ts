@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get('companyId');
     const auth = await getAuthContext(request);
 
-    // Build base where clause
-    const where: { companyId?: string | { in: string[] }; } = {};
+    // Build base where clause (soft-deleted products are hidden everywhere)
+    const where: { companyId?: string | { in: string[] }; deletedAt?: null; } = { deletedAt: null };
 
     if (companyId) {
       where.companyId = companyId;

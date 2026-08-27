@@ -39,6 +39,7 @@ model Company {
   claimDeductionPercent Float @default(0) // e.g., 22 for Shan Masala = 22% deduction on claims
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  deletedAt       DateTime? // soft delete — record sits in Trash for 30 days
   products        Product[]
   suppliers       Supplier[]
   claims          Claim[]
@@ -59,6 +60,7 @@ model Product {
   company        Company  @relation(fields: [companyId], references: [id])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  deletedAt      DateTime? // soft delete — record sits in Trash for 30 days
   claimItems     ClaimItem[]
   priceHistory   ProductPriceHistory[]
 
@@ -72,6 +74,7 @@ model Supplier {
   company   Company? @relation(fields: [companyId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime? // soft delete
   claims    Claim[]
 }
 
@@ -79,9 +82,11 @@ model Shop {
   id                  String   @id @default(cuid())
   name                String
   address             String   @default("")
+  phone               String?  // WhatsApp / contact number for quick share
   shopType            String   @default("retail") // retail, wholesale, lmt
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  deletedAt           DateTime? // soft delete
   claims              Claim[]
   companyOrderBookers ShopCompanyOrderBooker[]
   creditLimits        ShopCreditLimit[]
@@ -92,6 +97,7 @@ model OrderBooker {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime? // soft delete
   claims    Claim[]
   shopCompanyOrderBookers ShopCompanyOrderBooker[]
   user      User?    // reverse relation - one order booker can have one login
@@ -120,6 +126,8 @@ model Claim {
   createdBy     String?    // user id or name who created/entered the claim
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?  // soft delete — claim sits in Trash for 30 days
+  deletedBy     String?    // name of user who deleted it
   claimItems    ClaimItem[]
   attachments   ClaimAttachment[]
 }
@@ -196,4 +204,14 @@ model ShopCreditLimit {
   updatedAt     DateTime @updatedAt
 
   @@unique([shopId, companyId])
+}
+
+// Single-row app settings — company profile used on receipts, exports & WhatsApp shares
+model AppSetting {
+  id          String   @id @default("main") // always "main"
+  companyName String   @default("Al-Falah Traders")
+  address     String   @default("")
+  phone       String   @default("")
+  email       String   @default("")
+  updatedAt   DateTime @updatedAt
 }

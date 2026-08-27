@@ -27,6 +27,8 @@ interface ReceiptProps {
     clearedDate: string | null;
   };
   receiptType?: ReceiptType;
+  /** Business name from Settings — falls back to 'AL FALAH TRADERS' */
+  businessName?: string;
 }
 
 const receiptTypeConfig: Record<ReceiptType, { title: string; subtitle: string; icon: string; headerBg: string; headerColor: string; borderColor: string; badgeBg: string; badgeColor: string; badgeText: string }> = {
@@ -76,7 +78,7 @@ const receiptTypeConfig: Record<ReceiptType, { title: string; subtitle: string; 
   },
 };
 
-export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receiptType = 'received' }, ref) => {
+export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receiptType = 'received', businessName }, ref) => {
   const formatAmount = (amount: number) => `Rs. ${amount.toLocaleString()}`;
   const config = receiptTypeConfig[receiptType];
 
@@ -132,7 +134,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ claim, receip
         marginBottom: '20px',
       }}>
         <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3730a3', letterSpacing: '2px' }}>
-          AL FALAH TRADERS
+          {(businessName || 'AL FALAH TRADERS').toUpperCase()}
         </div>
         <div style={{
           fontSize: '16px',

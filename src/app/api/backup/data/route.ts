@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
       userCompanies,
       auditLogs,
       attachmentMeta,
+      appSettings,
     ] = await Promise.all([
       db.user.findMany({ orderBy: { createdAt: 'asc' } }),
       db.company.findMany({ orderBy: { createdAt: 'asc' } }),
@@ -52,13 +53,15 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'asc' },
         select: { id: true, claimId: true, type: true, createdAt: true },
       }),
+      db.appSetting.findMany(),
     ]);
 
     return NextResponse.json({
-      version: 1,
+      version: 2,
       app: 'al-falah-traders-claims',
       createdAt: new Date().toISOString(),
       tables: {
+        appSettings,
         users,
         companies,
         products,

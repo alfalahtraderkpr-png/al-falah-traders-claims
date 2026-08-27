@@ -24,16 +24,17 @@ import { getAuthContext } from '@/lib/auth-context';
 // Whitelist of allowed fields per table — makes restore resilient across
 // schema versions (extra fields in old/new backups are silently dropped).
 const FIELDS: Record<string, string[]> = {
+  appSettings: ['id', 'companyName', 'address', 'phone', 'email', 'updatedAt'],
   users: ['id', 'name', 'email', 'password', 'role', 'orderBookerId', 'createdAt', 'updatedAt'],
-  companies: ['id', 'name', 'multiTierPricing', 'claimDeductionPercent', 'createdAt', 'updatedAt'],
-  products: ['id', 'name', 'price', 'claimPrice', 'wholesalePrice', 'lmtPrice', 'unit', 'companyId', 'createdAt', 'updatedAt'],
-  suppliers: ['id', 'name', 'companyId', 'createdAt', 'updatedAt'],
-  shops: ['id', 'name', 'address', 'shopType', 'createdAt', 'updatedAt'],
-  orderBookers: ['id', 'name', 'createdAt', 'updatedAt'],
+  companies: ['id', 'name', 'multiTierPricing', 'claimDeductionPercent', 'createdAt', 'updatedAt', 'deletedAt'],
+  products: ['id', 'name', 'price', 'claimPrice', 'wholesalePrice', 'lmtPrice', 'unit', 'companyId', 'createdAt', 'updatedAt', 'deletedAt'],
+  suppliers: ['id', 'name', 'companyId', 'createdAt', 'updatedAt', 'deletedAt'],
+  shops: ['id', 'name', 'address', 'phone', 'shopType', 'createdAt', 'updatedAt', 'deletedAt'],
+  orderBookers: ['id', 'name', 'createdAt', 'updatedAt', 'deletedAt'],
   userCompanies: ['id', 'userId', 'companyId', 'createdAt'],
   shopCompanyOrderBookers: ['id', 'shopId', 'companyId', 'orderBookerId', 'shopType', 'createdAt', 'updatedAt'],
   creditLimits: ['id', 'shopId', 'companyId', 'creditLimit', 'createdAt', 'updatedAt'],
-  claims: ['id', 'claimNumber', 'date', 'companyId', 'shopId', 'supplierId', 'orderBookerId', 'totalAmount', 'deductionAmount', 'netAmount', 'approvedAmount', 'status', 'clearedBy', 'clearedDate', 'rejectReason', 'createdBy', 'createdAt', 'updatedAt'],
+  claims: ['id', 'claimNumber', 'date', 'companyId', 'shopId', 'supplierId', 'orderBookerId', 'totalAmount', 'deductionAmount', 'netAmount', 'approvedAmount', 'status', 'clearedBy', 'clearedDate', 'rejectReason', 'createdBy', 'createdAt', 'updatedAt', 'deletedAt', 'deletedBy'],
   claimItems: ['id', 'claimId', 'productId', 'quantity', 'amount'],
   priceHistory: ['id', 'productId', 'oldPrice', 'newPrice', 'oldClaimPrice', 'newClaimPrice', 'oldWholesalePrice', 'newWholesalePrice', 'oldLmtPrice', 'newLmtPrice', 'changedBy', 'changedAt'],
   auditLogs: ['id', 'userId', 'userName', 'action', 'entity', 'entityId', 'details', 'createdAt'],
@@ -111,6 +112,7 @@ export async function POST(request: NextRequest) {
     const claimAttachments = payload.skipAttachments
       ? [] // photos come separately via /api/backup/restore-attachment
       : sanitize('claimAttachments', t.claimAttachments).filter((a) => a.url); // skip empty urls
+    const appSettings = sanitize('appSettings', t.appSettings);
 
     // ---- Restore inside one transaction (rollback on any failure) ----
     await db.$transaction(
@@ -130,6 +132,7 @@ export async function POST(request: NextRequest) {
         await tx.orderBooker.deleteMany({});
         await tx.shop.deleteMany({});
         await tx.company.deleteMany({});
+        await tx.appSetting.deleteMany({});
 
         // 2. Insert backup data — parents first (FK-safe order)
         if (companies.length) await tx.company.createMany({ data: companies as never[] });
@@ -146,6 +149,14 @@ export async function POST(request: NextRequest) {
         if (priceHistory.length) await tx.productPriceHistory.createMany({ data: priceHistory as never[] });
         if (claimAttachments.length) await tx.claimAttachment.createMany({ data: claimAttachments as never[] });
         if (auditLogs.length) await tx.auditLog.createMany({ data: auditLogs as never[] });
+        if (appSettings.length) {
+          await tx.appSetting.createMany({ data: appSettings as never[] });
+        } else {
+          // No settings in backup (old version) — keep defaults
+          await tx.appSetting.create({
+            data: { id: 'main', companyName: 'Al-Falah Traders', address: '', phone: '', email: '' },
+          });
+        }
 
         // 3. Record the restore action itself
         await tx.auditLog.create({

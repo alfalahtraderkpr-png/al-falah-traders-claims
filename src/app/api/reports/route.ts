@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo');
     const format = searchParams.get('format');
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { deletedAt: null };  // hide soft-deleted
 
     if (status) where.status = status;
     if (companyId) where.companyId = companyId;

@@ -14,7 +14,7 @@ interface Company { id: string; name: string; multiTierPricing?: boolean; claimD
 interface Product { id: string; name: string; price: number; claimPrice: number; wholesalePrice: number | null; lmtPrice: number | null; unit: string; companyId: string; company: { name: string; multiTierPricing?: boolean } }
 interface Supplier { id: string; name: string; companyId?: string | null; company?: { name: string } | null }
 interface ShopCompanyOB { id: string; shopId: string; companyId: string; orderBookerId: string | null; shopType?: string; company: { id: string; name: string }; orderBooker?: { id: string; name: string } | null }
-interface Shop { id: string; name: string; address: string; shopType?: string; companyOrderBookers: ShopCompanyOB[] }
+interface Shop { id: string; name: string; address: string; phone?: string | null; shopType?: string; companyOrderBookers: ShopCompanyOB[] }
 interface OrderBooker { id: string; name: string; _count?: { shopCompanyOrderBookers: number } }
 interface CreditLimit { id: string; shopId: string; companyId: string; creditLimit: number }
 interface ClaimLite { id: string; totalAmount: number; companyId: string; shopId: string; supplierId: string; orderBookerId: string | null }
@@ -179,6 +179,19 @@ function TabHeader({ title, count, sub, actions }: { title: string; count?: numb
   );
 }
 
+/* Excel export button — downloads the current list from /api/export/master */
+function ExportExcelBtn({ type }: { type: string }) {
+  return (
+    <button
+      className="btn btn-o"
+      title="Current list Excel mein download karein"
+      onClick={() => window.open(`/api/export/master?type=${type}&t=${Date.now()}`, '_blank')}
+    >
+      <Download className="ic sm" /> Excel
+    </button>
+  );
+}
+
 function EmptyRow({ colSpan, icon: Icon }: { colSpan: number; icon?: React.ElementType }) {
   return (
     <tr>
@@ -267,9 +280,12 @@ function CompaniesTab({ companyStats, fmt }: { companyStats: Map<string, { count
         count={filtered.length}
         sub={`${items.reduce((s, c) => s + (c._count?.products || 0), 0)} products across ${items.length} companies`}
         actions={
-          <button className="btn btn-p" onClick={() => { setEditItem(null); setFormName(''); setFormMultiTier(false); setFormDeductionPercent(''); setDialogOpen(true); }}>
-            <Plus className="ic sm" /> Add Company
-          </button>
+          <>
+            <ExportExcelBtn type="companies" />
+            <button className="btn btn-p" onClick={() => { setEditItem(null); setFormName(''); setFormMultiTier(false); setFormDeductionPercent(''); setDialogOpen(true); }}>
+              <Plus className="ic sm" /> Add Company
+            </button>
+          </>
         }
       />
 
@@ -560,6 +576,7 @@ function ProductsTab() {
         sub="Har product ka apna claim rate · Excel bulk-import supported"
         actions={
           <>
+            <ExportExcelBtn type="products" />
             <button className="btn btn-o" onClick={() => { setImportCompany(''); setImportFile(null); setImportResult(null); setImportOpen(true); }}>
               <Upload className="ic sm" /> Bulk Import
             </button>
@@ -937,9 +954,12 @@ function SuppliersTab({ supplierStats, fmt }: { supplierStats: Map<string, { cou
         count={filtered.length}
         sub="Distribution partners jo claims supply karte hain"
         actions={
-          <button className="btn btn-p" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
-            <Plus className="ic sm" /> Add Supplier
-          </button>
+          <>
+            <ExportExcelBtn type="suppliers" />
+            <button className="btn btn-p" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+              <Plus className="ic sm" /> Add Supplier
+            </button>
+          </>
         }
       />
 
@@ -1022,7 +1042,7 @@ function ShopsTab({ shopStats }: { shopStats: Map<string, number> }) {
   const [filterCompany, setFilterCompany] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Shop | null>(null);
-  const [form, setForm] = useState({ name: '', address: '', shopType: 'retail' });
+  const [form, setForm] = useState({ name: '', address: '', phone: '', shopType: 'retail' });
   const [companySettings, setCompanySettings] = useState<Record<string, { orderBookerId: string; shopType: string; creditLimit: string }>>({});
   const [orderBookers, setOrderBookers] = useState<OrderBooker[]>([]);
   const [saving, setSaving] = useState(false);
@@ -1048,7 +1068,7 @@ function ShopsTab({ shopStats }: { shopStats: Map<string, number> }) {
 
   const openAddDialog = () => {
     setEditItem(null);
-    setForm({ name: '', address: '', shopType: 'retail' });
+    setForm({ name: '', address: '', phone: '', shopType: 'retail' });
     const initialSettings: Record<string, { orderBookerId: string; shopType: string; creditLimit: string }> = {};
     companies.forEach((c) => { initialSettings[c.id] = { orderBookerId: '', shopType: 'retail', creditLimit: '' }; });
     setCompanySettings(initialSettings);
@@ -1057,7 +1077,7 @@ function ShopsTab({ shopStats }: { shopStats: Map<string, number> }) {
 
   const openEditDialog = async (shop: Shop) => {
     setEditItem(shop);
-    setForm({ name: shop.name, address: shop.address, shopType: shop.shopType || 'retail' });
+    setForm({ name: shop.name, address: shop.address, phone: shop.phone || '', shopType: shop.shopType || 'retail' });
     const settings: Record<string, { orderBookerId: string; shopType: string; creditLimit: string }> = {};
     companies.forEach((c) => { settings[c.id] = { orderBookerId: '', shopType: 'retail', creditLimit: '' }; });
     shop.companyOrderBookers?.forEach((cob) => {
@@ -1114,6 +1134,7 @@ function ShopsTab({ shopStats }: { shopStats: Map<string, number> }) {
       const body = {
         name: form.name,
         address: form.address,
+        phone: form.phone,
         shopType: form.shopType,
         companyOrderBookers: cobArray,
       };
@@ -1165,7 +1186,7 @@ function ShopsTab({ shopStats }: { shopStats: Map<string, number> }) {
       if (success) {
         setDialogOpen(false);
         setEditItem(null);
-        setForm({ name: '', address: '', shopType: 'retail' });
+        setForm({ name: '', address: '', phone: '', shopType: 'retail' });
         setCompanySettings({});
         load();
       } else {
@@ -1215,9 +1236,12 @@ function ShopsTab({ shopStats }: { shopStats: Map<string, number> }) {
         count={filtered.length}
         sub="Retail, wholesale aur LMT shops · per-company credit limits"
         actions={
-          <button className="btn btn-p" onClick={openAddDialog}>
-            <Plus className="ic sm" /> Add Shop
-          </button>
+          <>
+            <ExportExcelBtn type="shops" />
+            <button className="btn btn-p" onClick={openAddDialog}>
+              <Plus className="ic sm" /> Add Shop
+            </button>
+          </>
         }
       />
 
@@ -1324,6 +1348,10 @@ function ShopsTab({ shopStats }: { shopStats: Map<string, number> }) {
             <div className="field">
               <label className="label">Address</label>
               <input className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Address" />
+            </div>
+            <div className="field">
+              <label className="label">Phone (WhatsApp)</label>
+              <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="0300-1234567" />
             </div>
             <div className="field">
               <label className="label">Shop Type <span className="req">*</span></label>
@@ -1495,9 +1523,12 @@ function OrderBookersTab({ obStats, obWithLogin, obCompanies, fmt, onNavigate }:
         count={filtered.length}
         sub="Field team aur unki assigned companies"
         actions={
-          <button className="btn btn-p" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
-            <Plus className="ic sm" /> Add Order Booker
-          </button>
+          <>
+            <ExportExcelBtn type="order-bookers" />
+            <button className="btn btn-p" onClick={() => { setEditItem(null); setFormName(''); setDialogOpen(true); }}>
+              <Plus className="ic sm" /> Add Order Booker
+            </button>
+          </>
         }
       />
 

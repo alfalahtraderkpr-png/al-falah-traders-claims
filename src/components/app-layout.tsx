@@ -22,6 +22,8 @@ import {
   Search,
   Bell,
   DatabaseBackup,
+  Trash2,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -58,6 +60,8 @@ const adminNavGroups = [
       { id: 'users', label: 'Users', icon: Shield },
       { id: 'reports', label: 'Reports', icon: BarChart3 },
       { id: 'backup', label: 'Backup', icon: DatabaseBackup },
+      { id: 'trash', label: 'Trash', icon: Trash2 },
+      { id: 'settings', label: 'Settings', icon: SettingsIcon },
     ],
   },
 ];

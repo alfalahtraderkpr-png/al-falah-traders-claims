@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     const suppliers = await db.supplier.findMany({
+      where: { deletedAt: null },
       orderBy: { name: 'asc' },
       include: { company: true },
     });

@@ -52,6 +52,17 @@ interface DashboardData {
     totalPendingAmount: number;
     pendingClaimCount: number;
   }>;
+  oldStuckClaims?: Array<{
+    id: string;
+    claimNumber: string;
+    date: string;
+    totalAmount: number;
+    netAmount: number;
+    status: string;
+    company: string;
+    shop: string;
+    daysOld: number;
+  }>;
 }
 
 interface ClaimLite {
@@ -305,6 +316,45 @@ export function Dashboard({ user, onNavigate, onNewClaim }: DashboardProps) {
         <div className="note">
           <AlertTriangle className="ic" />
           <div><b>Recalculate:</b> {recalcResult}</div>
+        </div>
+      )}
+
+      {/* Old stuck claims alert (30+ days) */}
+      {(data.oldStuckClaims || []).length > 0 && (
+        <div className="card" style={{ borderColor: 'color-mix(in srgb, var(--af-bad) 45%, var(--af-border))', background: 'linear-gradient(135deg, var(--af-bad-soft), var(--af-surface) 55%)' }}>
+          <div className="card-h">
+            <div className="card-t">
+              <AlertTriangle className="ic sm" style={{ color: 'var(--af-bad)' }} />
+              Purani Claims — 30+ din se atki hui hain ({data.oldStuckClaims!.length})
+            </div>
+            <button className="btn btn-g btn-sm" onClick={() => onNavigate?.('claims')}>
+              View Claims <ChevronRight className="ic sm" />
+            </button>
+          </div>
+          <div className="tbl-wrap card-b tight">
+            <table className="tbl" style={{ minWidth: 620 }}>
+              <thead>
+                <tr><th>Claim #</th><th>Shop</th><th>Company</th><th className="num">Amount</th><th>Kitne Din</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {data.oldStuckClaims!.slice(0, 5).map((c) => (
+                  <tr key={c.id}>
+                    <td className="strong claim-no">{c.claimNumber}</td>
+                    <td>{c.shop}</td>
+                    <td>{c.company}</td>
+                    <td className="num strong">{formatAmount(c.netAmount || c.totalAmount)}</td>
+                    <td><span className="bdg rejected">{c.daysOld} din</span></td>
+                    <td><span className={`bdg ${statusBdg[c.status] || 'neutral'}`}>{statusLbl[c.status] || c.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {data.oldStuckClaims!.length > 5 && (
+              <div className="small muted" style={{ padding: '10px 14px', borderTop: '1px solid var(--af-border)' }}>
+                Aur {data.oldStuckClaims!.length - 5} purani claims bhi pending hain — Claims page pr dekhen
+              </div>
+            )}
+          </div>
         </div>
       )}
 

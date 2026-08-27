@@ -42,8 +42,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete company with products' }, { status: 400 });
     }
 
-    await db.company.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    // SOFT DELETE — company moves to Trash, recoverable for 30 days
+    await db.company.update({ where: { id }, data: { deletedAt: new Date() } });
+    return NextResponse.json({ success: true, trashed: true });
   } catch (error) {
     console.error('Delete company error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

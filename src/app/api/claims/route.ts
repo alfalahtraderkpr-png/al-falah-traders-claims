@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const auth = await getAuthContext(request);
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { deletedAt: null };
 
     if (status) where.status = status;
     if (companyId) where.companyId = companyId;

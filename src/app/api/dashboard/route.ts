@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const orderBookerId = searchParams.get('orderBookerId');
 
-    // Get claims stats
-    const where: Record<string, unknown> = {};
+    // Get claims stats (soft-deleted claims excluded everywhere)
+    const where: Record<string, unknown> = { deletedAt: null };
 
     // If order booker, only show their shops' claims
     if (orderBookerId) {
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       rejectedClaims,
       recentClaims,
       outstandingShopClaims,
+      oldStuckClaims,
     ] = await Promise.all([
       db.claim.count({ where }),
       // Pending = Stock not received yet, claim created but not approved
@@ -54,6 +55,17 @@ export async function GET(request: NextRequest) {
           shop: true,
           company: true,
         },
+      }),
+      // Old stuck claims (30+ days, still not settled) for dashboard alert
+      db.claim.findMany({
+        where: {
+          ...where,
+          status: { in: ['pending', 'approved', 'partial', 'arrived_approved', 'partially_approved', 'partially_cleared'] },
+          createdAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 10,
+        include: { company: true, shop: true },
       }),
     ]);
 
@@ -107,6 +119,17 @@ export async function GET(request: NextRequest) {
       },
       recentClaims,
       topOutstandingShops,
+      oldStuckClaims: oldStuckClaims.map((c) => ({
+        id: c.id,
+        claimNumber: c.claimNumber,
+        date: c.date,
+        totalAmount: c.totalAmount,
+        netAmount: c.netAmount,
+        status: c.status,
+        company: c.company.name,
+        shop: c.shop.name,
+        daysOld: Math.floor((Date.now() - new Date(c.createdAt).getTime()) / (24 * 60 * 60 * 1000)),
+      })),
     });
   } catch (error) {
     console.error('Dashboard error:', error);

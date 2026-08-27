@@ -227,6 +227,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
 .note{display:flex;gap:11px;align-items:flex-start;padding:12px 15px;border:1.5px dashed var(--af-violet2);background:var(--af-violet-soft);border-radius:12px;font-size:12.5px;color:var(--af-text2);line-height:1.55}
 .note .ic{color:var(--af-violet);margin-top:1px}
 .note b{color:var(--af-text)}
+.note.bad-note{border-color:color-mix(in srgb,var(--af-bad) 45%,transparent);background:var(--af-bad-soft)}
+.note.ok-note{border-color:color-mix(in srgb,var(--af-ok) 45%,transparent);background:var(--af-ok-soft)}
+.note.bad-note .ic{color:var(--af-bad)}
+.note.ok-note .ic{color:var(--af-ok)}
 
 /* ================= CHARTS ================= */
 .bars{display:flex;align-items:flex-end;gap:14px;height:200px;padding:8px 4px 0}

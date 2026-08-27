@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft, Printer, FileText, Image as ImageIcon, FileDown, Loader2,
   MessageCircle, Package, CheckCircle, Banknote, Camera, Split, Clock,
@@ -137,7 +137,16 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<ReceiptType>('received');
+  const [businessName, setBusinessName] = useState<string>('');
   const availableTypes = getAvailableReceiptTypes(claim.status);
+
+  // Load company profile from Settings (used on receipt + WhatsApp text)
+  useEffect(() => {
+    fetch('/api/settings', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => { if (s?.companyName) setBusinessName(s.companyName); })
+      .catch(() => {});
+  }, []);
 
   const formatAmount = (amount: number) => `Rs ${amount.toLocaleString()}`;
 
@@ -493,7 +502,7 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
       {/* Receipt Preview - centered for proper image generation */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <div className="print-area" style={{ width: '100%', maxWidth: 672 }}>
-          <Receipt claim={claim} receiptType={selectedType} ref={receiptRef} />
+          <Receipt claim={claim} receiptType={selectedType} businessName={businessName || undefined} ref={receiptRef} />
         </div>
       </div>
 

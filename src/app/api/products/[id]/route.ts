@@ -100,8 +100,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete product used in claims' }, { status: 400 });
     }
 
-    await db.product.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    // SOFT DELETE — product moves to Trash, recoverable for 30 days
+    await db.product.update({ where: { id }, data: { deletedAt: new Date() } });
+    return NextResponse.json({ success: true, trashed: true });
   } catch (error) {
     console.error('Delete product error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

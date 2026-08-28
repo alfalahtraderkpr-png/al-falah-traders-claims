@@ -208,3 +208,16 @@ Stage Summary:
 - Design 3 Classic Formal Invoice LIVE on https://al-falah-traders-claims.vercel.app
 - DB migrated, settings editable, sab QA pass
 - Token security: user ko rotate/revoke ki salah deni hai
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: Dashboard layout reorder — KPIs upar, Purani Claims neeche
+
+Work Log:
+- dashboard.tsx: KPI cards block ko Purani Claims (30+ din) alert se pehle move kiya
+- Build + lint pass, commit 7c4ff9b, push, Vercel live
+- DOM + VLM verify: order correct (KPI top=162, Purani=521)
+
+Stage Summary:
+- Dashboard flow: Header → KPIs → Purani Claims → Charts → Recent Claims

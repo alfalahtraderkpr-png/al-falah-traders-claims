@@ -156,3 +156,34 @@ Stage Summary:
 - Reports: Cleared Claims = Admin has cleared/paid the claim (separate section)
 - Dashboard: 5 cards - Total, Stock Not Received, Arrived & Approved, Cleared, Rejected
 - Migration ready to convert existing approved claims
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Design 3 (Classic Formal Invoice) implement karna + Settings mein address/city edit
+
+Work Log:
+- Local repo reset karke origin/main (4f5b5e4) par sync kiya — pichle session ka kaam (trash/settings/export/print-fix) mil gaya
+- receipt.tsx POORA REWRITE — Design 3 Classic Formal Invoice:
+  * Georgia serif font, 2px border, 720px width
+  * Header: company profile (Settings se) + receipt title/number/date right side
+  * "Received From" (shop/address/order booker) | "Claim Details" (company/supplier/status chip)
+  * Bordered items table (dark header, zebra rows, unit ke sath product)
+  * Amount in words (Crore/Lakh/Thousand Pakistani units) — 11/11 unit tests pass
+  * Terms & Conditions + status note (dashed box)
+  * Totals column with NET PAYABLE grand box (status-colored)
+  * 3 signature lines: Shopkeeper / Order Booker / For {Company} + gol status stamp
+  * Stamp: status text + company name + CITY + date, rotate -8deg, double border
+  * 4 receipt types (received/approved/partial/cleared) apne accent colors ke sath
+- claim-detail.tsx: /api/settings se poora profile fetch karke company prop pass (businessName replace)
+- AppSetting.city field add (schema + settings API GET/PUT + SettingsManager city input + backup/restore whitelist)
+- /api/admin/migrate endpoint banaya (admin-only, idempotent DDL: ALTER TABLE AppSetting ADD COLUMN city)
+- SW cache v8 → v9; bun install fresh sandbox mein; build PASS; eslint 0 errors
+- Commit: aee3c1d "Feat: Classic Formal Invoice receipt (Design 3)..."
+- amountToWords test: /home/z/my-project/scripts/test-amount-words.js (11/11 pass)
+
+Stage Summary:
+- Code 100% ready + committed LOCALLY (aee3c1d)
+- BLOCKER: git push ke liye GitHub token nahi (purana token exposure ke baad rotate hona chahiye)
+- User se fresh fine-grained GitHub token manga hai — milne par: push → Vercel deploy → /api/admin/migrate call → production verify
+- Deploy sequence: push → wait for Vercel → login admin@alfalah.com → POST /api/admin/migrate → check /api/settings (city field) → receipt visual test

@@ -449,7 +449,6 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
                 <div className="attach-row">
                   {claim.attachments.map((attachment) => (
                     <a className="attach" key={attachment.id} href={attachment.url} download={`claim-${claim.claimNumber}-photo.png`} title="Download">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={attachment.url} alt="Claim attachment" />
                     </a>
                   ))}

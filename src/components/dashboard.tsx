@@ -319,7 +319,27 @@ export function Dashboard({ user, onNavigate, onNewClaim }: DashboardProps) {
         </div>
       )}
 
-      {/* Old stuck claims alert (30+ days) */}
+      {/* KPI cards */}
+      <div className="kpis">
+        {kpis.map((k) => {
+          const Icon = k.icon;
+          return (
+            <div className="kpi" key={k.lbl} style={k.style}>
+              <div className="kpi-top">
+                <div className="kpi-ic"><Icon className="ic" /></div>
+                {k.delta}
+              </div>
+              <div>
+                <div className="kpi-lbl">{k.lbl}</div>
+                <div className="kpi-val">{k.val}</div>
+                <div className="kpi-sub">{k.sub}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Old stuck claims alert (30+ days) — KPIs ke neeche */}
       {(data.oldStuckClaims || []).length > 0 && (
         <div className="card" style={{ borderColor: 'color-mix(in srgb, var(--af-bad) 45%, var(--af-border))', background: 'linear-gradient(135deg, var(--af-bad-soft), var(--af-surface) 55%)' }}>
           <div className="card-h">
@@ -357,26 +377,6 @@ export function Dashboard({ user, onNavigate, onNewClaim }: DashboardProps) {
           </div>
         </div>
       )}
-
-      {/* KPI cards */}
-      <div className="kpis">
-        {kpis.map((k) => {
-          const Icon = k.icon;
-          return (
-            <div className="kpi" key={k.lbl} style={k.style}>
-              <div className="kpi-top">
-                <div className="kpi-ic"><Icon className="ic" /></div>
-                {k.delta}
-              </div>
-              <div>
-                <div className="kpi-lbl">{k.lbl}</div>
-                <div className="kpi-val">{k.val}</div>
-                <div className="kpi-sub">{k.sub}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
       {/* Trend + Donut */}
       <div className="dash-grid">

@@ -211,6 +211,7 @@ model AppSetting {
   id          String   @id @default("main") // always "main"
   companyName String   @default("Al-Falah Traders")
   address     String   @default("")
+  city        String   @default("Khanpur")
   phone       String   @default("")
   email       String   @default("")
   updatedAt   DateTime @updatedAt

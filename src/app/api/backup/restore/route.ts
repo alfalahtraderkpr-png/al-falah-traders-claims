@@ -24,7 +24,7 @@ import { getAuthContext } from '@/lib/auth-context';
 // Whitelist of allowed fields per table — makes restore resilient across
 // schema versions (extra fields in old/new backups are silently dropped).
 const FIELDS: Record<string, string[]> = {
-  appSettings: ['id', 'companyName', 'address', 'phone', 'email', 'updatedAt'],
+  appSettings: ['id', 'companyName', 'address', 'city', 'phone', 'email', 'updatedAt'],
   users: ['id', 'name', 'email', 'password', 'role', 'orderBookerId', 'createdAt', 'updatedAt'],
   companies: ['id', 'name', 'multiTierPricing', 'claimDeductionPercent', 'createdAt', 'updatedAt', 'deletedAt'],
   products: ['id', 'name', 'price', 'claimPrice', 'wholesalePrice', 'lmtPrice', 'unit', 'companyId', 'createdAt', 'updatedAt', 'deletedAt'],
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
         } else {
           // No settings in backup (old version) — keep defaults
           await tx.appSetting.create({
-            data: { id: 'main', companyName: 'Al-Falah Traders', address: '', phone: '', email: '' },
+            data: { id: 'main', companyName: 'Al-Falah Traders', address: '', city: 'Khanpur', phone: '', email: '' },
           });
         }
 

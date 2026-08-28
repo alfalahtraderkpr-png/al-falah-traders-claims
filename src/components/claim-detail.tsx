@@ -6,7 +6,7 @@ import {
   MessageCircle, Package, CheckCircle, Banknote, Camera, Split, Clock,
   Lightbulb, XCircle,
 } from 'lucide-react';
-import { Receipt, ReceiptType } from './receipt';
+import { Receipt, ReceiptType, ReceiptCompanyInfo } from './receipt';
 
 interface ClaimDetailProps {
   claim: ClaimData;
@@ -137,14 +137,24 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<ReceiptType>('received');
-  const [businessName, setBusinessName] = useState<string>('');
+  const [company, setCompany] = useState<ReceiptCompanyInfo>({});
   const availableTypes = getAvailableReceiptTypes(claim.status);
 
-  // Load company profile from Settings (used on receipt + WhatsApp text)
+  // Load company profile from Settings (used on receipt header + stamp)
   useEffect(() => {
     fetch('/api/settings', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((s) => { if (s?.companyName) setBusinessName(s.companyName); })
+      .then((s) => {
+        if (s) {
+          setCompany({
+            name: s.companyName || '',
+            address: s.address || '',
+            phone: s.phone || '',
+            email: s.email || '',
+            city: s.city || '',
+          });
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -501,8 +511,8 @@ export function ClaimDetail({ claim, user, onBack }: ClaimDetailProps) {
 
       {/* Receipt Preview - centered for proper image generation */}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <div className="print-area" style={{ width: '100%', maxWidth: 672 }}>
-          <Receipt claim={claim} receiptType={selectedType} businessName={businessName || undefined} ref={receiptRef} />
+        <div className="print-area" style={{ width: '100%', maxWidth: 720 }}>
+          <Receipt claim={claim} receiptType={selectedType} company={company} ref={receiptRef} />
         </div>
       </div>
 

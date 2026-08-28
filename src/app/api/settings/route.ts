@@ -16,6 +16,7 @@ export async function GET() {
           id: 'main',
           companyName: 'Al-Falah Traders',
           address: '',
+          city: 'Khanpur',
           phone: '',
           email: '',
         },
@@ -38,26 +39,23 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { companyName, address, phone, email } = await request.json();
+    const { companyName, address, city, phone, email } = await request.json();
     if (!companyName || !String(companyName).trim()) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
     }
 
+    const data = {
+      companyName: String(companyName).trim(),
+      address: String(address || '').trim(),
+      city: String(city || '').trim() || 'Khanpur',
+      phone: String(phone || '').trim(),
+      email: String(email || '').trim(),
+    };
+
     const settings = await db.appSetting.upsert({
       where: { id: 'main' },
-      update: {
-        companyName: String(companyName).trim(),
-        address: String(address || '').trim(),
-        phone: String(phone || '').trim(),
-        email: String(email || '').trim(),
-      },
-      create: {
-        id: 'main',
-        companyName: String(companyName).trim(),
-        address: String(address || '').trim(),
-        phone: String(phone || '').trim(),
-        email: String(email || '').trim(),
-      },
+      update: data,
+      create: { id: 'main', ...data },
     });
 
     return NextResponse.json(settings);

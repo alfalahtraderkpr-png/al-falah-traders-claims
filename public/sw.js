@@ -1,4 +1,4 @@
-const CACHE_NAME = 'al-falah-claims-v8';
+const CACHE_NAME = 'al-falah-claims-v9';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

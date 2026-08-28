@@ -10,13 +10,14 @@ interface AppSettings {
   id: string;
   companyName: string;
   address: string;
+  city: string;
   phone: string;
   email: string;
   updatedAt: string;
 }
 
 export function SettingsManager({ onNavigate }: { onNavigate?: (section: string) => void }) {
-  const [form, setForm] = useState({ companyName: '', address: '', phone: '', email: '' });
+  const [form, setForm] = useState({ companyName: '', address: '', city: '', phone: '', email: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'ok' | 'bad'; text: string } | null>(null);
@@ -31,6 +32,7 @@ export function SettingsManager({ onNavigate }: { onNavigate?: (section: string)
           setForm({
             companyName: s.companyName || '',
             address: s.address || '',
+            city: s.city || '',
             phone: s.phone || '',
             email: s.email || '',
           });
@@ -124,15 +126,6 @@ export function SettingsManager({ onNavigate }: { onNavigate?: (section: string)
                   onChange={(e) => setForm({ ...form, companyName: e.target.value })}
                 />
               </div>
-              <div className="field">
-                <label className="label"><Phone className="ic" style={{ width: 12, height: 12, verticalAlign: -1, marginRight: 4 }} />Phone</label>
-                <input
-                  className="input"
-                  placeholder="0300-1234567"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
-              </div>
               <div className="field" style={{ gridColumn: '1 / -1' }}>
                 <label className="label"><MapPin className="ic" style={{ width: 12, height: 12, verticalAlign: -1, marginRight: 4 }} />Address</label>
                 <input
@@ -140,6 +133,24 @@ export function SettingsManager({ onNavigate }: { onNavigate?: (section: string)
                   placeholder="Shop address, area, city"
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label className="label"><Building2 className="ic" style={{ width: 12, height: 12, verticalAlign: -1, marginRight: 4 }} />City (receipt stamp par yehi show hoga)</label>
+                <input
+                  className="input"
+                  placeholder="Khanpur"
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label className="label"><Phone className="ic" style={{ width: 12, height: 12, verticalAlign: -1, marginRight: 4 }} />Phone</label>
+                <input
+                  className="input"
+                  placeholder="0300-1234567"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
               </div>
               <div className="field" style={{ gridColumn: '1 / -1' }}>
@@ -183,7 +194,8 @@ export function SettingsManager({ onNavigate }: { onNavigate?: (section: string)
               <div className="strong" style={{ fontSize: 13.5, marginBottom: 6 }}>💡 Tips</div>
               <ul className="small muted" style={{ lineHeight: 1.9, paddingLeft: 18, margin: 0 }}>
                 <li>Company name badalne se receipts pr turant naya naam aayega</li>
-                <li>Phone number WhatsApp share messages mein bhi included hai</li>
+                <li>Address aur City receipt ke header + stamp par show hoti hai</li>
+                <li>Phone number receipt header aur WhatsApp messages mein included hai</li>
                 <li>Har hafte ek backup download karna achi aadat hai</li>
               </ul>
             </div>

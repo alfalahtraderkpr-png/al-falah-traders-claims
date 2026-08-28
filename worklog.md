@@ -187,3 +187,24 @@ Stage Summary:
 - BLOCKER: git push ke liye GitHub token nahi (purana token exposure ke baad rotate hona chahiye)
 - User se fresh fine-grained GitHub token manga hai — milne par: push → Vercel deploy → /api/admin/migrate call → production verify
 - Deploy sequence: push → wait for Vercel → login admin@alfalah.com → POST /api/admin/migrate → check /api/settings (city field) → receipt visual test
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Design 3 push + Vercel deploy + Neon migration + production verify
+
+Work Log:
+- User ne fresh GitHub token diya; fetch kiya — remote par kuch naya nahi tha, Design 3 commit (aee3c1d) local hi tha
+- Verify: receipt.tsx Design 3 complete, settings city/address editable, migrate endpoint, schema, SW v9
+- next build PASS; eslint 0/0 (unused eslint-disable directive claim-detail.tsx se hata — 6d506ba)
+- Push 4f5b5e4..6d506ba → GitHub main → Vercel auto-deploy
+- Deploy live confirm: GET /api/admin/migrate 405 (naya code live)
+- Admin login → POST /api/admin/migrate → ok:true (Neon AppSetting.city column added)
+- GET /api/settings → city:"Khanpur" ✓
+- Browser E2E + VLM: receipt render PASS (header/address, bordered table, amount-in-words, NET PAYABLE, terms, gol stamp company+city, 3 signatures), zero console errors
+- Settings page par user ka address "Bai Pass Road Near Wapda Scrap Office KhanPur" save + prefilled confirm
+
+Stage Summary:
+- Design 3 Classic Formal Invoice LIVE on https://al-falah-traders-claims.vercel.app
+- DB migrated, settings editable, sab QA pass
+- Token security: user ko rotate/revoke ki salah deni hai

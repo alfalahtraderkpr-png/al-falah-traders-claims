@@ -553,6 +553,58 @@
     print-color-adjust: exact;
   }
 
+  /* === Cleared Today daily report — branded professional variant === */
+  .cleared-tbl {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  .cleared-tbl th,
+  .cleared-tbl td {
+    font-size: 10px !important;
+    padding: 3.5px 6px !important;
+  }
+
+  .cleared-tbl thead th {
+    background-color: #1e1b4b !important;
+    color: #ffffff !important;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-size: 10px !important;
+  }
+
+  .cleared-tbl tr.grp td {
+    background-color: #e8eaf8 !important;
+    color: #1e1b4b !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cleared-tbl tr.sub td {
+    background-color: #f4f5fb !important;
+    color: #111827 !important;
+    font-weight: 800 !important;
+  }
+
+  .cleared-tbl tfoot td {
+    background-color: #1e1b4b !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 11px !important;
+    padding: 5px 6px !important;
+  }
+
+  .cleared-tbl th,
+  .cleared-tbl td,
+  .cleared-tbl thead th,
+  .cleared-tbl tr.grp td,
+  .cleared-tbl tr.sub td,
+  .cleared-tbl tfoot td {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* Compact print summary row */
   .print-summary {
     display: flex !important;

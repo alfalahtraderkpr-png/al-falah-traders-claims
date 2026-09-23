@@ -503,12 +503,12 @@
     margin: 0 !important;
   }
 
-  /* Print table styles - ultra compact */
+  /* Print table styles - branded professional */
   .print-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    font-size: 8px !important;
-    line-height: 1.1 !important;
+    font-size: 10px !important;
+    line-height: 1.25 !important;
   }
 
   /* Dark readable text for af-ui tables in print (both themes) */
@@ -528,17 +528,20 @@
 
   .print-table th,
   .print-table td {
-    border: 1px solid #999 !important;
-    padding: 1px 3px !important;
-    line-height: 1.15 !important;
+    border: 1px solid #a8adc9 !important;
+    padding: 3.5px 6px !important;
+    line-height: 1.25 !important;
   }
 
   .print-table th {
-    background-color: #e5e7eb !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    background-color: #1e1b4b !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
     font-weight: 700 !important;
-    font-size: 8px !important;
+    font-size: 10px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 
   .print-bg-gray {
@@ -551,6 +554,28 @@
     background-color: #d1fae5 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  /* Branded overrides for ALL report tables — these must beat the
+     .print-area .tbl th / .print-area .tbl td dark-text rules above */
+  .print-area .print-table th {
+    background-color: #1e1b4b !important;
+    color: #ffffff !important;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-size: 10px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-area .print-table tfoot td {
+    background-color: #1e1b4b !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 10.5px !important;
+    padding: 4px 6px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* === Cleared Today daily report — branded professional variant === */

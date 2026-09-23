@@ -433,7 +433,7 @@ export function Reports({ user }: { user: { id: string; name: string; email: str
         {activeTab === 'aging' && <ClaimsAgingReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'performance' && isAdmin && <OBPerformanceReport orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
         {activeTab === 'company' && isAdmin && <CompanyClaimsReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
-        {activeTab === 'cleared' && isAdmin && <ClearedPaymentReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
+        {activeTab === 'cleared' && isAdmin && <ClearedPaymentReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
         {activeTab === 'cleared_claims' && isAdmin && <ClearedClaimsReport companies={companies} orderBookers={orderBookers} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} user={user} />}
         {activeTab === 'detail' && isAdmin && <ClaimDetailReport companies={companies} allClaims={allClaims} formatAmount={formatAmount} onPrint={handlePrint} />}
       </div>
@@ -454,14 +454,61 @@ function FilterBar({ children, actions }: { children: React.ReactNode; actions: 
   );
 }
 
+/* Company profile cache — one fetch per page session, shared by all print headers */
+let printSettingsCache: { companyName: string; address: string; city: string; phone: string } | null | undefined;
+function usePrintSettings() {
+  const [settings, setSettings] = useState<{ companyName: string; address: string; city: string; phone: string } | null>(printSettingsCache ?? null);
+  useEffect(() => {
+    if (printSettingsCache !== undefined) return;
+    let cancelled = false;
+    (async () => {
+      let value: { companyName: string; address: string; city: string; phone: string } | null = null;
+      try {
+        const res = await fetch('/api/settings');
+        value = res.ok ? await res.json() : null;
+      } catch { value = null; }
+      printSettingsCache = value;
+      if (!cancelled) setSettings(value);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  return settings;
+}
+
+/* Branded professional print header — same design as Cleared Today report */
 function PrintHeader({ title, sub }: { title: string; sub?: string }) {
+  const company = usePrintSettings();
   return (
-    <div className="hidden print-block print-header">
-      <h1 className="text-xl font-bold text-center">AL FALAH TRADERS</h1>
-      <h2 className="text-lg font-semibold text-center mt-1">{title}</h2>
-      {sub && <p className="text-sm text-center mt-1">{sub}</p>}
-      <p className="text-xs text-center text-gray-500 mt-1">Generated: {new Date().toLocaleString()}</p>
-      <hr className="my-3 border-gray-400" />
+    <div className="hidden print-block">
+      <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: 1.2, textAlign: 'center', color: '#1e1b4b' }}>
+        {(company?.companyName || 'Al-Falah Traders').toUpperCase()}
+      </div>
+      {(company?.address || company?.city || company?.phone) ? (
+        <div style={{ fontSize: 10.5, textAlign: 'center', color: '#374151', marginTop: 2 }}>
+          {[company?.address, company?.city].filter(Boolean).join(', ')}{company?.phone ? ` · ${company.phone}` : ''}
+        </div>
+      ) : null}
+      <div style={{ fontSize: 15, fontWeight: 800, textAlign: 'center', marginTop: 8, color: '#111827' }}>{title}</div>
+      {sub && <div style={{ fontSize: 11, fontWeight: 700, textAlign: 'center', marginTop: 2, color: '#1f2937' }}>{sub}</div>}
+      <div style={{ fontSize: 9.5, textAlign: 'center', color: '#4b5563', marginTop: 3 }}>
+        Printed: {new Date().toLocaleString('en-GB', { timeZone: 'Asia/Karachi', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} PKT
+      </div>
+      <div style={{ borderTop: '2.5px solid #1e1b4b', marginTop: 7 }} />
+    </div>
+  );
+}
+
+/* Signature block — office record ke liye har report ke aakhir mein */
+function PrintSignatures() {
+  return (
+    <div className="hidden print-block">
+      <div style={{ display: 'flex', gap: 48, marginTop: 34 }}>
+        {['Prepared By', 'Verified By', 'Authorized Signature'].map(role => (
+          <div key={role} style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ borderTop: '1px dotted #555', paddingTop: 4, fontSize: 10, fontWeight: 700, color: '#111827' }}>{role}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -574,6 +621,7 @@ function PendingClaimsReport({ companies, orderBookers, allClaims, formatAmount,
           </table>
         </div>
       )}
+      <PrintSignatures />
     </div>
   );
 }
@@ -833,6 +881,7 @@ function ClaimsSummaryReport({ companies, orderBookers, allClaims, formatAmount,
         <Lightbulb className="ic" />
         <div><b>Exports same rahenge:</b> PDF (landscape, full-width table) aur Excel dono — jo filters aapne lagaye hain wahi export honge. Layout improvements ke ilawa reporting logic mein koi change nahi.</div>
       </div>
+      <PrintSignatures />
     </div>
   );
 }
@@ -943,6 +992,7 @@ function ClaimsAgingReport({ companies, orderBookers, allClaims, formatAmount, o
           </div>
         );
       })}
+      <PrintSignatures />
     </div>
   );
 }
@@ -1040,6 +1090,7 @@ function OBPerformanceReport({ orderBookers, allClaims, formatAmount, onPrint }:
           </tfoot>
         </table>
       </div>
+      <PrintSignatures />
     </div>
   );
 }
@@ -1171,6 +1222,7 @@ function CompanyClaimsReport({ companies, allClaims, formatAmount, onPrint }: {
           </table>
         </div>
       ))}
+      <PrintSignatures />
     </div>
   );
 }
@@ -1283,6 +1335,7 @@ function ClearedPaymentReport({ companies, orderBookers, allClaims, formatAmount
           <p className="small">No cleared claims found</p>
         </div></div>
       )}
+      <PrintSignatures />
     </div>
   );
 }
@@ -1391,6 +1444,7 @@ function PendingClaimsArrivedReport({ companies, orderBookers, allClaims, format
           </table>
         </div>
       )}
+      <PrintSignatures />
     </div>
   );
 }
@@ -1487,6 +1541,7 @@ function ClaimDetailReport({ companies, allClaims, formatAmount, onPrint }: {
           </div>
         </div>
       )}
+      <PrintSignatures />
     </div>
   );
 }
@@ -1583,6 +1638,7 @@ function ClearedClaimsReport({ companies, orderBookers, allClaims, formatAmount,
           </table>
         </div>
       )}
+      <PrintSignatures />
     </div>
   );
 }

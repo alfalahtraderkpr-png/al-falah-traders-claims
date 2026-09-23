@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
 
     const auth = await getAuthContext(request);
 
+    // SECURITY: claims data requires a logged-in session.
+    // (Order bookers are further locked to their own claims below.)
+    if (!auth) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const where: Record<string, unknown> = { deletedAt: null };
 
     if (status) where.status = status;
@@ -74,6 +80,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: only logged-in users can create claims
+    const auth = await getAuthContext(request);
+    if (!auth) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const { date, companyId, shopId, supplierId, orderBookerId, items, createdBy, creatorRole } = await request.json();
 
     if (!companyId || !shopId || !supplierId) {
@@ -143,10 +155,14 @@ export async function POST(request: NextRequest) {
 
     // Admin claims are auto-approved; Order booker claims need admin approval (status: pending)
     // approvedAmount is always null at creation - it gets set only when payment is actually deducted
-    const effectiveCreatorRole = creatorRole || 'orderbooker';
+    // SECURITY: an order booker session can never create an "admin" (auto-approved)
+    // claim, and is always recorded as the claim's order booker.
+    const isAdminUser = auth.role === 'admin';
+    const effectiveCreatorRole = isAdminUser ? (creatorRole || 'admin') : 'orderbooker';
     const isAdminClaim = effectiveCreatorRole === 'admin';
     const initialStatus = isAdminClaim ? 'approved' : 'pending';
     const initialApprovedAmount = null; // No payment deducted at creation time
+    const effectiveOrderBookerId = isAdminUser ? (orderBookerId || null) : auth.orderBookerId;
 
     const claim = await db.claim.create({
       data: {
@@ -155,7 +171,7 @@ export async function POST(request: NextRequest) {
         companyId,
         shopId,
         supplierId,
-        orderBookerId: orderBookerId || null,
+        orderBookerId: effectiveOrderBookerId,
         totalAmount,
         deductionAmount,
         netAmount,

@@ -1,9 +1,16 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthContext } from '@/lib/auth-context';
 
 export async function POST(request: NextRequest) {
   try {
+    // Login required — app apne requests mein auth cookies bhejta hai
+    const auth = await getAuthContext(request);
+    if (!auth) {
+      return NextResponse.json({ error: 'Login required' }, { status: 401 });
+    }
+
     const { claimId, attachments } = await request.json();
     
     if (!claimId || !attachments || !Array.isArray(attachments)) {

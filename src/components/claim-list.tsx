@@ -93,6 +93,7 @@ interface Claim {
   rejectReason: string | null;
   createdBy: string | null;
   createdAt: string;
+  attachments?: Array<{ id: string; claimId: string; url: string; type: string; createdAt: string }>;
 }
 
 const PAGE_SIZE = 20;
@@ -119,6 +120,22 @@ export function ClaimList({ user, autoOpenForm, onAutoOpenHandled }: ClaimListPr
   const [editClaim, setEditClaim] = useState<Claim | null>(null);
   const [viewClaim, setViewClaim] = useState<Claim | null>(null);
   const [quickClaimFrom, setQuickClaimFrom] = useState<Claim | null>(null);
+
+  // Claim detail kholte waqt fresh detail fetch karte hain — list API jaan-bujh kar
+  // attachments (base64 photos) skip karta hai taake list halki rahe; detail API
+  // (GET /api/claims/[id]) attachments include karta hai. Wahi yahan laate hain
+  // taake app se upload ki hui photos claim detail par nazar aayen.
+  const openClaimView = async (claim: Claim) => {
+    setViewClaim(claim); // list data se foran khul jata hai
+    try {
+      const res = await fetch(`/api/claims/${claim.id}`, { cache: 'no-store' });
+      if (res.ok) {
+        const fresh = (await res.json()) as Claim;
+        // sirf tab replace karo jab user abhi bhi usi claim ka detail dekh raha ho
+        setViewClaim((prev) => (prev && prev.id === claim.id ? fresh : prev));
+      }
+    } catch { /* fetch fail ho to list wali data se hi detail chalta rahega */ }
+  };
 
   const isAdmin = user.role === 'admin';
 
@@ -798,7 +815,7 @@ export function ClaimList({ user, autoOpenForm, onAutoOpenHandled }: ClaimListPr
                         <button
                           className="strong claim-no"
                           style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', font: 'inherit' }}
-                          onClick={() => setViewClaim(claim)}
+                          onClick={() => openClaimView(claim)}
                           title="Click to view claim details"
                         >
                           {claim.claimNumber}
@@ -837,7 +854,7 @@ export function ClaimList({ user, autoOpenForm, onAutoOpenHandled }: ClaimListPr
                     </td>
                     <td>
                       <div className="row-actions">
-                        <button className="ra" title="View Details" onClick={() => setViewClaim(claim)}>
+                        <button className="ra" title="View Details" onClick={() => openClaimView(claim)}>
                           <Eye className="ic sm" />
                         </button>
                         <button className="ra violet" title="Share on WhatsApp" onClick={() => handleWhatsApp(claim)}>

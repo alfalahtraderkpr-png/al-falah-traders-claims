@@ -24,6 +24,7 @@ import {
   DatabaseBackup,
   Trash2,
   Settings as SettingsIcon,
+  BadgeCheck,
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -42,6 +43,7 @@ const adminNavGroups = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, cnt: 'total' as const },
       { id: 'claims', label: 'Claims', icon: FileText, cnt: 'total' as const },
       { id: 'stock-not-received', label: 'Stock Not Received', icon: AlertTriangle, cnt: 'pending' as const },
+      { id: 'cleared-today', label: 'Cleared Today', icon: BadgeCheck },
     ],
   },
   {

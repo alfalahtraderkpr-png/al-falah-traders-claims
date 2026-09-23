@@ -51,17 +51,29 @@ export async function PUT(
 
     // ============================================================
     // PERMISSION CHECK: order bookers can ONLY use 'update' action
-    // (to edit their own pending claims' items). All other actions
-    // (approve, reject, clear, partial, change_status, arrive_and_approve)
-    // are ADMIN-ONLY.
+    // (to edit their own pending claims' items) AND 'clear' (to mark
+    // their OWN claims as cleared when payment is collected at the
+    // shop). All other actions (approve, reject, partial,
+    // change_status, arrive_and_approve) are ADMIN-ONLY.
     // ============================================================
     const auth = await getAuthContext(request);
 
-    const ADMIN_ONLY_ACTIONS = ['approve', 'arrive_and_approve', 'partial', 'clear', 'reject', 'change_status'];
+    const ADMIN_ONLY_ACTIONS = ['approve', 'arrive_and_approve', 'partial', 'reject', 'change_status'];
     if (ADMIN_ONLY_ACTIONS.includes(action)) {
       if (!auth || auth.role !== 'admin') {
         return NextResponse.json(
-          { error: 'Only admin can perform this action. Order bookers can only edit their own pending claims.' },
+          { error: 'Only admin can perform this action. Order bookers can only edit their own pending claims or clear their own claims.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // 'clear' — order bookers may clear ONLY their own claims
+    // (the mobile app uses this when payment is collected at the shop)
+    if (action === 'clear' && auth && auth.role !== 'admin') {
+      if (!auth.orderBookerId || claim.orderBookerId !== auth.orderBookerId) {
+        return NextResponse.json(
+          { error: 'You can only clear your own claims.' },
           { status: 403 }
         );
       }
@@ -151,16 +163,42 @@ export async function PUT(
         break;
 
       case 'clear':
-        // Full amount deducted from shopkeeper - claim settled
-        if (!body.clearedBy || !body.clearedBy.trim()) {
+        // Full amount deducted from shopkeeper - claim settled.
+        // Admins pass clearedBy from the dashboard dialog; order bookers
+        // clearing from the mobile app are recorded under their own name.
+        const isOrderBookerClear = !!auth && auth.role !== 'admin';
+        const clearByName = isOrderBookerClear
+          ? auth.name
+          : (body.clearedBy || '').trim();
+        if (!clearByName) {
           return NextResponse.json({ error: 'Cleared by name is required' }, { status: 400 });
         }
         updateData = {
           approvedAmount: claim.netAmount || claim.totalAmount,
           status: 'cleared',
-          clearedBy: body.clearedBy.trim(),
+          clearedBy: clearByName,
           clearedDate: new Date(),
         };
+        // Audit trail — who cleared which claim, and from where
+        try {
+          await db.auditLog.create({
+            data: {
+              userId: auth?.userId ?? null,
+              userName: auth?.name ?? null,
+              action: 'clear',
+              entity: 'claim',
+              entityId: id,
+              details: JSON.stringify({
+                claimNumber: claim.claimNumber,
+                amount: claim.netAmount || claim.totalAmount,
+                clearedBy: clearByName,
+                via: isOrderBookerClear ? 'orderbooker-app' : 'dashboard',
+              }),
+            },
+          });
+        } catch (auditErr) {
+          console.error('Audit log write failed:', auditErr);
+        }
         break;
 
       case 'reject':

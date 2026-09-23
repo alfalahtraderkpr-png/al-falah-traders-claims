@@ -9,6 +9,7 @@ import { MasterData } from '@/components/master-data';
 import { UsersManager } from '@/components/users-manager';
 import { Reports } from '@/components/reports';
 import { StockNotReceived } from '@/components/stock-not-received';
+import { ClearedToday } from '@/components/cleared-today';
 import { BackupManager } from '@/components/backup-manager';
 import { TrashManager } from '@/components/trash-manager';
 import { SettingsManager } from '@/components/settings-manager';
@@ -173,6 +174,8 @@ export default function Home() {
           return <UsersManager />;
         case 'stock-not-received':
           return <StockNotReceived user={user} />;
+        case 'cleared-today':
+          return user.role === 'admin' ? <ClearedToday user={user} /> : <Dashboard user={user} />;
         case 'backup':
           return user.role === 'admin' ? <BackupManager /> : <Dashboard user={user} />;
         case 'trash':

@@ -1,9 +1,16 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthContext } from '@/lib/auth-context';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Login required — the OB list powers claim filters/reports (any role may read).
+    const auth = await getAuthContext(request);
+    if (!auth) {
+      return NextResponse.json({ error: 'Login required' }, { status: 401 });
+    }
+
     const orderBookers = await db.orderBooker.findMany({
       where: { deletedAt: null },
       orderBy: { name: 'asc' },
@@ -18,6 +25,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthContext(request);
+    if (!auth || auth.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { name } = await request.json();
 
     if (!name || !name.trim()) {

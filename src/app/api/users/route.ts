@@ -2,9 +2,16 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { hashSync } from 'bcryptjs';
+import { getAuthContext } from '@/lib/auth-context';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Admin only — the user list includes login emails for the whole company.
+    const auth = await getAuthContext(request);
+    if (!auth || auth.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     // Fetch users WITHOUT userCompanies include — table may not exist yet
     const users = await db.user.findMany({
       orderBy: { createdAt: 'desc' },
@@ -56,6 +63,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthContext(request);
+    if (!auth || auth.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { name, email, password, role, orderBookerId, assignedCompanyIds } = await request.json();
 
     if (!name || !email || !password || !role) {
@@ -148,6 +160,11 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await getAuthContext(request);
+    if (!auth || auth.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 
